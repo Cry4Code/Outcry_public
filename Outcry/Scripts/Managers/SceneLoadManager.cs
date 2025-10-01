@@ -1,0 +1,176 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+
+public class SceneLoadManager : Singleton<SceneLoadManager>
+{
+    private Dictionary<ESceneType, SceneBase> scenes;
+    private SceneBase currentScene;
+    private SceneBase prevScene;
+    private string prevSceneName;
+
+    private const string managerSceneName = "InitManagers";
+
+    protected override void Awake()
+    {
+        base.Awake();
+
+        scenes = new Dictionary<ESceneType, SceneBase>
+        {
+            { ESceneType.TitleScene, new TitleScene() },
+            { ESceneType.LobbyScene, new LobbyScene() },
+            { ESceneType.LoadingScene, new LoadingScene() },
+            { ESceneType.StageScene, new StageScene() },
+        };
+    }
+
+    public async void LoadInitManager()
+    {
+        var op = SceneManager.LoadSceneAsync(managerSceneName, LoadSceneMode.Additive);
+        while (!op.isDone)
+        {
+            await Task.Yield();
+        }
+        
+        SceneManager.UnloadSceneAsync(managerSceneName);
+
+        Debug.Log("<color=yellow>Manager Scene Load Complete.</color>");
+    }
+
+    public void LoadScene(ESceneType sceneType)
+    {
+        StartCoroutine(LoadSceneRoutine(sceneType));
+    }
+
+    private IEnumerator LoadSceneRoutine(ESceneType sceneType)
+    {
+        // Fade Out 실행 및 완료까지 대기
+        yield return FadeManager.Instance.FadeOut();
+
+        if (!scenes.ContainsKey(sceneType))
+        {
+            Debug.LogWarning($"{sceneType.ToString()} 씬이 존재하지 않습니다.");
+            // Fade In을 다시 실행하여 화면을 돌려줌
+            yield return FadeManager.Instance.FadeIn();
+            yield break; // 코루틴 종료
+        }
+
+        if (currentScene != null && currentScene.SceneName == sceneType.ToString())
+        {
+            yield return FadeManager.Instance.FadeIn();
+            yield break;
+        }
+
+        if (currentScene != null)
+        {
+            currentScene.SceneExit();
+        }
+
+        currentScene = null;
+
+        // 씬 비동기 로드
+        var op = SceneManager.LoadSceneAsync(sceneType.ToString());
+        while (!op.isDone)
+        {
+            yield return null;
+        }
+
+        // SceneBase 초기화
+        currentScene = scenes[sceneType];
+        currentScene.SceneAwake();
+        currentScene.SceneEnter();
+
+        // Fade In 실행 및 완료까지 대기
+        yield return FadeManager.Instance.FadeIn();
+    }
+
+    //public async void LoadScene(ESceneType sceneType)
+    //{
+    //    if (!scenes.ContainsKey(sceneType))
+    //    {
+    //        Debug.LogWarning($"{sceneType.ToString()} 씬이 존재하지 않습니다.");
+    //        return;
+    //    }
+
+    //    if (currentScene != null && currentScene.SceneName == sceneType.ToString())
+    //    {
+    //        return;
+    //    }
+
+    //    // 이전 씬의 Exit 로직 실행
+    //    if (currentScene != null)
+    //    {
+    //        currentScene.SceneExit();
+    //    }
+
+    //    // currentScene을 여기서 null로 설정하여 이전 씬의 참조 즉시 해제
+    //    currentScene = null;
+
+    //    var op = SceneManager.LoadSceneAsync(sceneType.ToString());
+    //    while (!op.isDone)
+    //    {
+    //        await Task.Yield();
+    //    }
+
+    //    // 씬 로드가 끝나면 해당 씬의 SceneBase 객체를 찾아 초기화
+    //    currentScene = scenes[sceneType];
+
+    //    currentScene.SceneAwake();
+    //    currentScene.SceneEnter();
+    //}
+
+    /// <summary>
+    /// 로딩 이후 씬 활성화
+    /// </summary>
+    public IEnumerator ActivateLoadedScenes(SceneLoadPackage package)
+    {
+        // 이전 씬 정리
+        currentScene?.SceneExit();
+        prevSceneName = SceneManager.GetActiveScene().name;
+
+        // 메인 씬 활성화
+        var mainSceneOp = package.SceneLoadOperations[0];
+        mainSceneOp.allowSceneActivation = true;
+        yield return mainSceneOp;
+
+        UnityEngine.SceneManagement.Scene newActiveScene = SceneManager.GetSceneByName(package.MainSceneType.ToString());
+        SceneManager.SetActiveScene(newActiveScene);
+
+        // 나머지 Additive 씬들도 모두 활성화
+        for (int i = 1; i < package.SceneLoadOperations.Count; i++)
+        {
+            package.SceneLoadOperations[i].allowSceneActivation = true;
+        }
+
+        // SceneBase 논리 상태 전환
+        if (scenes.TryGetValue(package.MainSceneType, out SceneBase newScene))
+        {
+            currentScene = newScene;
+            currentScene.SceneAwake();
+            currentScene.SceneEnter();
+        }
+
+        // 이전 씬(LoadingScene) 언로드
+        if (!string.IsNullOrEmpty(prevSceneName) && SceneManager.GetSceneByName(prevSceneName).isLoaded)
+        {
+            yield return SceneManager.UnloadSceneAsync(prevSceneName);
+        }
+
+        Debug.Log($"<color=cyan>SceneLoadManager: '{package.MainSceneType}'으로 씬 전환 완료.</color>");
+
+        FadeManager.Instance.FadeIn();
+    }
+
+    public async void LoadAdditiveScene(string sceneName)
+    {
+        var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+        while (!op.isDone)
+        {
+            await Task.Yield();
+        }
+        Debug.Log($"<color=yellow>Additive Scene '{sceneName}' Load Complete.</color>");
+    }
+}
