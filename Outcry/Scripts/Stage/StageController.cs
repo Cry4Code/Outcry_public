@@ -1,4 +1,6 @@
 using Cinemachine;
+using Cysharp.Threading.Tasks;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,14 +40,14 @@ public class StageController : MonoBehaviour
     /// <summary>
     /// 각 스테이지의 고유한 시나리오가 구현될 메인 코루틴(자식 클래스에서 반드시 구현)
     /// </summary>
-    public virtual IEnumerator StageSequence()
+    public virtual async UniTask StageSequence()
     {
         Debug.Log("기본 스테이지 시퀀스 시작!");
         // 플레이어 스폰
         SpawnPlayer();
 
         // 몬스터 스폰 로직 호출
-        yield return new WaitForSeconds(0.5f); // 약간의 딜레이 후 스폰
+        await UniTask.Delay(TimeSpan.FromSeconds(0.5f));  // 약간의 딜레이 후 스폰
         SpawnMonstersLogic();
     }
 

@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class SaveLoadUI : UIBase
+public class SaveLoadUI : UIPopup
 {
     [SerializeField] private TextMeshProUGUI titleText;
     [SerializeField] private Button[] slotBtns;

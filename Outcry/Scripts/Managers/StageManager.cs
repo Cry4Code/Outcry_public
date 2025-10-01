@@ -1,11 +1,12 @@
-using UnityEngine;
-using UnityEngine.UI;
+using Cinemachine;
+using Cysharp.Threading.Tasks;
+using StageEnums;
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System;
-using StageEnums;
-using Cinemachine;
+using UnityEngine;
 using UnityEngine.Tilemaps;
+using UnityEngine.UI;
 
 public class StageManager : Singleton<StageManager>
 {
@@ -70,8 +71,6 @@ public class StageManager : Singleton<StageManager>
     protected override void OnDestroy()
     {
         base.OnDestroy();
-
-        _ = AudioManager.Instance.StopBGM();
 
         // 씬 전환 시 이 스테이지에서 로드했던 모든 리소스 해제
         foreach (var key in loadedAssetKeys)
@@ -228,7 +227,7 @@ public class StageManager : Singleton<StageManager>
         {
             // 컨트롤러에게 스폰에 필요한 모든 정보 넘겨줌
             currentStageController.Initialize(this, currentStageData, playerPrefab, enemyPrefabs, playerSpawnTransform, enemySpawnPoints, stageCamera, obstacleSpawnPoints);
-            StartCoroutine(currentStageController.StageSequence());
+            currentStageController.StageSequence().Forget();
         }
         else
         {
@@ -423,19 +422,26 @@ public class StageManager : Singleton<StageManager>
 
     public void TogglePause()
     {
+        // 게임이 진행 중일 때 -> 일시정지 상태로 변경
         if (CurrentState == EStageState.InProgress)
         {
             CurrentState = EStageState.Paused;
-            Time.timeScale = 0f;
-            
-            // TODO: 옵션 UI 표시?
+            Time.timeScale = 0f; // 게임 시간 정지
+
+            OptionUI optionUI = UIManager.Instance.Show<OptionUI>();
+            optionUI.Setup(EOptionUIType.Stage);
+
+            CursorManager.Instance.SetInGame(false);
         }
+        // 일시정지 상태일 때 -> 게임 진행 상태로 변경
         else if (CurrentState == EStageState.Paused)
         {
             CurrentState = EStageState.InProgress;
-            Time.timeScale = 1f;
+            Time.timeScale = 1f; // 게임 시간 다시 시작
 
-            // TODO: 옵션 UI 표시?
+            UIManager.Instance.CloseAllPopups();
+
+            CursorManager.Instance.SetInGame(true);
         }
     }
     #endregion

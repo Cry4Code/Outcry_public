@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class VictoryUI : UIBase
+public class VictoryUI : UIPopup
 {
     [SerializeField] private Button ExitBtn;
 

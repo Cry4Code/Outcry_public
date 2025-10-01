@@ -146,7 +146,14 @@ public class PlayerMove : MonoBehaviour
     /// <param name="context"></param>
     public void OnPause(InputAction.CallbackContext context)
     {
-        CursorManager.Instance.SetInGame(!CursorManager.Instance.IsInGame);
+        //StageManager.Instance.TogglePause();
+        //CursorManager.Instance.SetInGame(!CursorManager.Instance.IsInGame);
+
+        // 키가 눌리는 순간(Started)에만 한 번 호출되도록 하여 중복 실행을 방지합니다.
+        if (context.started)
+        {
+            StageManager.Instance.TogglePause();
+        }
     }
 
 

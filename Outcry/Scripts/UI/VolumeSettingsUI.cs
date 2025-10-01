@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-public class VolumeSettingsUI : UIBase
+public class VolumeSettingsUI : UIPopup
 {
     [SerializeField] private VolumeSlider[] volumeSliders;
     [SerializeField] private Button ExitBtn;

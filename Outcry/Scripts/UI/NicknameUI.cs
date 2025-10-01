@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class NicknameUI : UIBase
+public class NicknameUI : UIPopup
 {
     [SerializeField] private TMP_InputField nicknameInputField;
     [SerializeField] private Button startBtn;

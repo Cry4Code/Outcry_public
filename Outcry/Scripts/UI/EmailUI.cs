@@ -10,7 +10,7 @@ public enum EEmailUIType
     Link    // 기존 계정(게스트)에 이메일 연동 목적
 }
 
-public class EmailUI : UIBase
+public class EmailUI : UIPopup
 {
     [SerializeField] private Button signUpBtn;
     [SerializeField] private Button loginButton;

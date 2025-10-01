@@ -8,6 +8,11 @@ public class UIManager : Singleton<UIManager>
 {
     // 씬 전환 마다 uis 클리어
     private Dictionary<string, UIBase> uis = new Dictionary<string, UIBase>();
+
+    // 팝업 UI를 관리하기 위한 스택 추가
+    private Stack<UIPopup> popupStack = new Stack<UIPopup>();
+    private int baseSortingOrder = 10; // 팝업이 일반 UI(HUD 등)와 겹치지 않도록 기본 순서값 설정
+
     public static int screenWidth = 1920;
     public static int screenHeight = 1080;
 
@@ -53,6 +58,14 @@ public class UIManager : Singleton<UIManager>
 
         ui.Open();
 
+        // UI가 팝업 타입인지 확인
+        if (ui is UIPopup popup)
+        {
+            // 스택에 팝업을 추가하고 SortingOrder를 재설정
+            popupStack.Push(popup);
+            RefreshPopupOrder();
+        }
+
         return (T)ui;
     }
 
@@ -69,7 +82,41 @@ public class UIManager : Singleton<UIManager>
             return;
         }
 
+        // 닫으려는 UI가 스택의 최상단 팝업인지 확인
+        if (popupStack.Count > 0 && ui == popupStack.Peek())
+        {
+            popupStack.Pop();
+            RefreshPopupOrder();
+        }
+
         ui.Close();
+    }
+
+    /// <summary>
+    /// 현재 열려있는 모든 팝업 UI 닫음
+    /// </summary>
+    public void CloseAllPopups()
+    {
+        while (popupStack.Count > 0)
+        {
+            // 스택에서 하나씩 꺼내서 닫기
+            UIPopup popup = popupStack.Pop();
+            popup.Close();
+        }
+    }
+
+    /// <summary>
+    /// 팝업 스택을 기반으로 캔버스의 SortingOrder 재정렬
+    /// </summary>
+    private void RefreshPopupOrder()
+    {
+        int currentOrder = baseSortingOrder;
+        // 스택의 가장 아래부터 순회하기 위해 임시 배열 사용
+        UIPopup[] popups = popupStack.ToArray();
+        for (int i = popups.Length - 1; i >= 0; i--)
+        {
+            popups[i].canvas.sortingOrder = currentOrder++;
+        }
     }
 
     public T GetUI<T>() where T : UIBase
@@ -126,13 +173,17 @@ public class UIManager : Singleton<UIManager>
 
         var result = go.GetComponent<UIBase>();
         result.canvas = canvas;
-        result.canvas.sortingOrder = uis.Count;
+
+        // SortingOrder 초기값 설정은 Show 메서드에서 관리하므로 여기서 uis.Count를 사용하지 않음
+        result.canvas.sortingOrder = 0;
 
         return (T)result;
     }
 
     public void ClearUIPool()
     {
+        CloseAllPopups(); // 모든 팝업 닫기
+
         // 모든 UI를 닫고 딕셔너리 클리어
         foreach (var ui in uis.Values)
         {

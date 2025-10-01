@@ -1,4 +1,6 @@
+using Cysharp.Threading.Tasks;
 using StageEnums;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,20 +14,20 @@ public class FallenKingStageController : StageController
     private GameObject loadedRockObstaclePrefab; // 로드된 프리팹을 저장할 변수
     private GoblinKingAI goblinKingInstance; // 이벤트 구독 해제를 위한 인스턴스 저장
 
-    public override IEnumerator StageSequence()
+    public override async UniTask StageSequence()
     {
         Debug.Log("고블린 킹 스테이지 시퀀스 시작!");
 
         // 스테이지에 필요한 에셋 미리 로드
-        yield return StartCoroutine(LoadAssetsCoroutine());
+        await LoadAssetsCoroutine();
 
         SpawnPlayer();
 
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
+
         SpawnMonstersLogic();
 
-        yield return new WaitForSeconds(2f);
-
-        _ = AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
+        await UniTask.Delay(TimeSpan.FromSeconds(2f));
     }
 
     /// <summary>
@@ -94,7 +96,7 @@ public class FallenKingStageController : StageController
         List<Transform> shuffledPoints = obstacleSpawnPoints.ToList();
         for (int i = 0; i < shuffledPoints.Count; i++)
         {
-            int randomIndex = Random.Range(i, shuffledPoints.Count);
+            int randomIndex = UnityEngine.Random.Range(i, shuffledPoints.Count);
 
             Transform temp = shuffledPoints[i];
             shuffledPoints[i] = shuffledPoints[randomIndex];

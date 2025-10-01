@@ -1,3 +1,5 @@
+using Cysharp.Threading.Tasks;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,17 +9,18 @@ public class TutorialStageController : StageController
 {
     private int currentWaveIndex = 0;
 
-    public override IEnumerator StageSequence()
+    public override async UniTask StageSequence()
     {
         Debug.Log("튜토리얼 스테이지 시퀀스 시작!");
 
-        _ = AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.Tutorial);
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.Tutorial);
 
         // 플레이어 스폰
         SpawnPlayer();
 
+        await UniTask.Delay(TimeSpan.FromSeconds(1f));
+
         // 몬스터 한 번에 스폰하지 않고 첫 번째 웨이브만 시작
-        yield return new WaitForSeconds(0.5f);
         SpawnMonstersLogic();
     }
 

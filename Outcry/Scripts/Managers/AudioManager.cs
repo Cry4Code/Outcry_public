@@ -199,6 +199,7 @@ public class AudioManager : Singleton<AudioManager>
         {
             Debug.LogWarning($"Failed to load BGM clip from address: {newBgmAddress}");
             currentBgmAddress = null; // 로드 실패 시 현재 BGM 주소 초기화
+            ResourceManager.Instance.UnloadAddressableAsset(newBgmAddress);
             return;
         }
 
@@ -210,6 +211,8 @@ public class AudioManager : Singleton<AudioManager>
         bgmSource.playOnAwake = false;
         bgmSource.outputAudioMixerGroup = bgmMixerGroup;
         bgmSource.Play();
+
+        Debug.Log("[AudioManager] Playing BGM: " + newBgmAddress);
 
         // SoundData에 저장된 최종 볼륨까지 페이드 인
         StartCoroutine(FadeIn(sound.Volume, fadeDuration));

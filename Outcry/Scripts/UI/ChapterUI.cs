@@ -2,7 +2,7 @@ using StageEnums;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class ChapterUI : UIBase
+public class ChapterUI : UIPopup
 {
     [SerializeField] private Button goblinKingStageBtn;
     [SerializeField] private Button exitBtn;
