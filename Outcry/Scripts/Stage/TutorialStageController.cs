@@ -11,17 +11,14 @@ public class TutorialStageController : StageController
 
     public override async UniTask StageSequence()
     {
-        Debug.Log("튜토리얼 스테이지 시퀀스 시작!");
-
-        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.Tutorial);
-
-        // 플레이어 스폰
         SpawnPlayer();
 
-        await UniTask.Delay(TimeSpan.FromSeconds(1f));
+        await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
 
         // 몬스터 한 번에 스폰하지 않고 첫 번째 웨이브만 시작
         SpawnMonstersLogic();
+
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.Tutorial);
     }
 
     protected override void SpawnMonstersLogic()

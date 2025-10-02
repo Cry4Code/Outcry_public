@@ -16,18 +16,15 @@ public class FallenKingStageController : StageController
 
     public override async UniTask StageSequence()
     {
-        Debug.Log("고블린 킹 스테이지 시퀀스 시작!");
-
         // 스테이지에 필요한 에셋 미리 로드
         await LoadAssetsCoroutine();
 
         SpawnPlayer();
-
-        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
-
         SpawnMonstersLogic();
 
         await UniTask.Delay(TimeSpan.FromSeconds(2f));
+
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
     }
 
     /// <summary>

@@ -6,6 +6,7 @@ public class LoadingScene : SceneBase
 {
     public override void SceneAwake()
     {
+        _ = AudioManager.Instance.StopBGM();
     }
 
     public override void SceneEnter()
