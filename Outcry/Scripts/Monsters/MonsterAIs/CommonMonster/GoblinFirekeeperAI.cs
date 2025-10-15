@@ -20,7 +20,7 @@ public class GoblinFirekeeperAI : MonsterAIBase
         // 몬스터 데이터를 일반 몬스터로 형변환
         if (monster.MonsterData is not CommonMonsterModel monsterModel)
         {
-            Debug.LogError($"[{nameof(GoblinRogueAI)}] CommonMonsterModel 필요, 실제 타입: {monster?.MonsterData?.GetType().Name}");
+            Debug.LogError($"[{nameof(GoblinFirekeeperAI)}] CommonMonsterModel 필요, 실제 타입: {monster?.MonsterData?.GetType().Name}");
             return; // monsterModel 미할당 시 바로 return
         }
 
@@ -39,7 +39,7 @@ public class GoblinFirekeeperAI : MonsterAIBase
         startWhenGrounded.AddChild(isGrounded);
 
         var behaviorSelector = new SelectorNode();
-        behaviorSelector.nodeName = "BehaivorSelector";
+        behaviorSelector.nodeName = "BehaviorSelector";
         startWhenGrounded.AddChild(behaviorSelector);
         #endregion
 
@@ -84,15 +84,12 @@ public class GoblinFirekeeperAI : MonsterAIBase
         behaviorSelector.AddChild(chaseSequence);
         chaseSequence.nodeName = "ChaseSequenceNode";
 
-        var chaseStartCondition = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.detectRange);
+        var chaseStartCondition = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         chaseSequence.AddChild(chaseStartCondition);
 
-        var chaseKeepCondition = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.disdetectRange);
+        var chaseKeepCondition = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.disdetectRange);
         var chaseAction = new ChaseActionNode(monster.Rb2D, monster.transform, target.transform,
-            monsterModel.chaseSpeed, monsterModel.approachRange,
-            monster.Animator);
+            monsterModel.chaseSpeed, monsterModel.approachRange, monster.Animator);
         var chaseGuarded = new WhileTrueDecorator(chaseKeepCondition, chaseAction);
         chaseSequence.AddChild(chaseGuarded);
         #endregion
@@ -103,11 +100,9 @@ public class GoblinFirekeeperAI : MonsterAIBase
         behaviorSelector.AddChild(patrolSeqence);
 
         var notDetected = new InverterNode();
-        var isDetected = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.detectRange);
+        var isDetected = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         notDetected.SetChild(isDetected);
-        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform,
-            monsterModel.patrolSpeed, monster.Animator);
+        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
         var patrolGuarded = new WhileTrueDecorator(notDetected, patrolAction);
         patrolSeqence.AddChild(patrolGuarded);
 

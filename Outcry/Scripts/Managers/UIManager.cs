@@ -6,15 +6,16 @@ using UnityEngine.UI;
 
 public class UIManager : Singleton<UIManager>
 {
+    public static int screenWidth = 1920;
+    public static int screenHeight = 1080;
+    public Stack<UIPopup> PopupStack => popupStack;
+
     // 씬 전환 마다 uis 클리어
     private Dictionary<string, UIBase> uis = new Dictionary<string, UIBase>();
 
     // 팝업 UI를 관리하기 위한 스택 추가
     private Stack<UIPopup> popupStack = new Stack<UIPopup>();
     private int baseSortingOrder = 10; // 팝업이 일반 UI(HUD 등)와 겹치지 않도록 기본 순서값 설정
-
-    public static int screenWidth = 1920;
-    public static int screenHeight = 1080;
 
     protected override void Awake()
     {

@@ -12,7 +12,6 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
     private Vector2 originalLocalPosition;
     private Color originalColor;
 
-    private float timer;
     
     
     private float ascendSpeed = 50f;
@@ -22,7 +21,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
     }
 
     public override void InitializeSkillSequenceNode(MonsterBase monster, PlayerController target)
-    {        
+    {
         this.monster = monster;
         this.target = target;
         
@@ -61,31 +60,47 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
 
     protected override bool CanPerform()
     {
-        bool result;
-        bool isCooldownComplete;
-        bool isLowHealth;
         if (skillTriggered) //한번 실행되면 다시 실행될 일 없음. 실행 끝난 이후 리셋 X
         {
             return false;
         }
         
-        //todo. think. 지금 연산을... 무조건 두개 다 하게 되어있음.
-        // 메모리를 위해서 둘 중 하나라도 실패하면 return 하도록 하면 나머지 연산을 할 필요가 없어짐
-        // 다만 가독성이 떨어질 수 있음.
-        // 우선은 가독성 우선으로 하여 놔둠.
-        
         //체력이 일정 이하일때
-        isLowHealth = monster.Condition.CurrentHealth < skillData.triggerHealth * monster.Condition.MaxHealth;
+        bool isLowHealth = monster.Condition.CurrentHealth < skillData.triggerHealth * monster.Condition.MaxHealth;
+        Debug.Log($"Skill {skillData.skillName} (ID: {skillData.skillId}) {isLowHealth} : {monster.Condition.CurrentHealth} / {monster.Condition.MaxHealth} < {skillData.triggerHealth}");
+        if (isLowHealth) return true;
         
         //쿨타임 체크
-        //todo. 완성 후에는 테스트 매니저 참조가 아닌 SkillData 참조로 변경할 것!
-        isCooldownComplete = Time.time - lastUsedTime >= skillData.cooldown;
-
-        result = (isLowHealth || isCooldownComplete) && !skillTriggered;
-        Debug.Log($"Skill {skillData.skillName} used? {result} : {Time.time - lastUsedTime} / {skillData.cooldown} || {monster.Condition.CurrentHealth} / {monster.Condition.MaxHealth}");
-        return result;
+        bool isCooldownComplete = Time.time - lastUsedTime >= skillData.cooldown;
+        Debug.Log($"Skill {skillData.skillName} (ID: {skillData.skillId}) cooldownComplete={isCooldownComplete} : {Time.time - lastUsedTime} / {skillData.cooldown}");
+        return isCooldownComplete;
     }
-
+    // protected override bool CanPerform()
+    // {
+    //     bool result;
+    //     bool isCooldownComplete;
+    //     bool isLowHealth;
+    //     if (skillTriggered) //한번 실행되면 다시 실행될 일 없음. 실행 끝난 이후 리셋 X
+    //     {
+    //         return false;
+    //     }
+    //     
+    //     //todo. think. 지금 연산을... 무조건 두개 다 하게 되어있음.
+    //     // 메모리를 위해서 둘 중 하나라도 실패하면 return 하도록 하면 나머지 연산을 할 필요가 없어짐
+    //     // 다만 가독성이 떨어질 수 있음.
+    //     // 우선은 가독성 우선으로 하여 놔둠.
+    //     
+    //     //체력이 일정 이하일때
+    //     isLowHealth = monster.Condition.CurrentHealth < skillData.triggerHealth * monster.Condition.MaxHealth;
+    //     
+    //     //쿨타임 체크
+    //     //todo. 완성 후에는 테스트 매니저 참조가 아닌 SkillData 참조로 변경할 것!
+    //     isCooldownComplete = Time.time - lastUsedTime >= skillData.cooldown;
+    //
+    //     result = (isLowHealth || isCooldownComplete) && !skillTriggered;
+    //     Debug.Log($"Skill {skillData.skillName} used? {result} : {Time.time - lastUsedTime} / {skillData.cooldown} || {monster.Condition.CurrentHealth} / {monster.Condition.MaxHealth}");
+    //     return result;
+    // }
     private bool isJumping = false;
     private bool isJumpAnimationStarted = false;
     private NodeState JumpAction()
@@ -96,7 +111,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
             monster.Condition.SetInivincible(true);
             
-            // 1. 몬스터가 점프해서 화면 밖으로 사라짐.
+            // 1. 몬스터가 점프해서 화면 밖으로 사라질 곳 설정
             isJumping = true;
             float ascendHeight = 10f;
             targetPos = new Vector2(
@@ -108,9 +123,8 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
             // lastUsedTime = Time.time; //skillTriggered로만 체크해도 됨. (단 한번만 사용되는 스킬이므로)
             // timer = Time.time; //애니메이션 시작했는지 체크하는 로직 변경하면서 이제 필요없음
             
-            //2. 점프 애니메이션 실행: 점프 대비해서 중력 0으로 만듬.
+            //2. 점프 애니메이션 실행
             monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.RumbleOfRuin);
-            // monster.Rb2D.gravityScale = 0f;
 
             // 낙석 이벤트 호출
             GoblinKingAI ai = monster.GetComponent<GoblinKingAI>();
@@ -125,7 +139,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         // 3. 점프 애니메이션이 시작될 때까지 대기. (애니메이션 재생 확보: 프레임 하나 이상 재생된 상태)
         if (!isJumpAnimationStarted)
         {
-            isJumpAnimationStarted = IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinStart);
+            isJumpAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinStart);
             return NodeState.Running;
         }
 
@@ -194,7 +208,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         // 3. 착지 애니메이션이 시작될 때까지 대기. (애니메이션 재생 확보: 프레임 하나 이상 재생된 상태)
         if (!isDownAnimationStarted)
         {
-            isDownAnimationStarted = IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinDown);
+            isDownAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinDown);
             if (isDownAnimationStarted)
             {
                 //3-1 애니메이션 시작이 된게 확보되면 그때 중력 상승.
@@ -233,7 +247,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         // 2. 던지기 애니메이션 시작될 때까지 대기. (애니메이션 재생 확보: 프레임 하나 이상 재생된 상태)
         if (!isROREventAnimationStarted)
         {
-            isROREventAnimationStarted = IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinEvent);
+            isROREventAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinEvent);
             return NodeState.Running;
         }
 
@@ -274,7 +288,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
             isCameraShaked = true;
             
             //6-2. 플레이어가 데미지 입기
-            if (!PlayerManager.Instance.player.Condition.behindObstacle.Value) //todo. 플레이어가 숨었는지 체크하는 걸로 변경
+            if (!PlayerManager.Instance.player.Condition.behindObstacle.Value)
             {
                 PlayerManager.Instance.player.Condition.TakeDamage(skillData.damage1);
             }
@@ -313,7 +327,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         // 3. 착지 애니메이션이 시작될 때까지 대기. (애니메이션 재생 확보: 프레임 하나 이상 재생된 상태)
         if (!isComebackAnimationStarted)
         {
-            isComebackAnimationStarted = IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinComeBack);
+            isComebackAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.RumbleOfRuinComeBack);
             if (isComebackAnimationStarted)
             {
                 //3-1 애니메이션 시작이 된게 확보되면 그때 중력과 초기화.
@@ -329,8 +343,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
             return NodeState.Running;
         }
         
-        //final: 무적 해제 및 혹시 놓쳤을 수도 있는 부분 전부 초기화
-        monster.Condition.SetInivincible(false);
+        //final: 놓쳤을 수도 있는 부분 전부 초기화
         ResetState();
         return NodeState.Success;
     }
@@ -343,25 +356,5 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         monster.transform.localScale = originalLocalScale;
         // monster.Rb2D.position = originalLocalPosition;
         monster.Condition.SetInivincible(false);
-    }
-
-    /// <summary>
-    /// 애니메이션 재생 직후 호출해서 애니메이션이 시작될 때까지 대기할때 사용합니다.
-    /// 애니메이션 재생 지시 후 즉시 호출해야 합니다.
-    /// 아닐 경우 올바르게 작동하지 않습니다.
-    /// </summary>
-    /// <param name="animator"></param>
-    /// <param name="animationNameHase"></param>
-    /// <param name="isAnimationStarted"></param>
-    private bool IsAnimationStarted(Animator animator, int animationNameHase)
-    {
-        if (AnimatorUtility.IsAnimationPlaying(animator, animationNameHase))
-        {
-            return true;
-        }
-        else
-        {
-            return false;
-        }
     }
 }

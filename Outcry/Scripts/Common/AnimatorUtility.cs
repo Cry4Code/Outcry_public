@@ -44,4 +44,24 @@ public static class AnimatorUtility
         length = 0f;
         return false; // 애니메이션 클립을 찾지 못한 경우
     }
+    
+    /// <summary>
+    /// 애니메이션 재생 직후 호출해서 애니메이션이 시작될 때까지 대기할때 사용합니다.
+    /// 애니메이션 재생 지시 후 즉시 호출해야 합니다.
+    /// 아닐 경우 올바르게 작동하지 않습니다.
+    /// </summary>
+    /// <param name="animator"></param>
+    /// <param name="animationNameHase"></param>
+    /// <param name="isAnimationStarted"></param>
+    public static bool IsAnimationStarted(Animator animator, int animationNameHase)
+    {
+        if (AnimatorUtility.IsAnimationPlaying(animator, animationNameHase))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }

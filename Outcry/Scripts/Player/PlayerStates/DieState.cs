@@ -2,9 +2,11 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DieState : IPlayerState
+public class DieState : BasePlayerState
 {
-    public void Enter(PlayerController controller)
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         controller.SetAnimation(AnimatorHash.PlayerAnimation.Die, true);
         controller.Inputs.Player.Dodge.Disable();
@@ -15,17 +17,17 @@ public class DieState : IPlayerState
         controller.Inputs.Player.Parry.Disable();
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
         
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
         
     }

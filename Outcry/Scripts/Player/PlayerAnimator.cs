@@ -55,14 +55,12 @@ public class PlayerAnimator : MonoBehaviour
         animator.SetBool(AnimatorHash.PlayerAnimation.Idle, false);
         animator.SetBool(AnimatorHash.PlayerAnimation.Move, false);
         animator.SetBool(AnimatorHash.PlayerAnimation.Fall, false);
-        animator.SetBool(AnimatorHash.PlayerAnimation.WallHold, false);
     }
 
     public void ClearTrigger()
     {
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.Jump);
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.DoubleJump);
-        animator.ResetTrigger(AnimatorHash.PlayerAnimation.WallJump);
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.NormalAttack);
     }
 

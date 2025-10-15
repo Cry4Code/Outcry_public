@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class StageScene : SceneBase
+public class InGameScene : SceneBase
 {
     public override void SceneAwake() { }
 
@@ -16,17 +16,28 @@ public class StageScene : SceneBase
         }
 
         var stageData = stageDataProvider.GetStageData();
-        var allEnemyData = stageDataProvider.GetCurrentStageEnemyData(); // 모든 몬스터 데이터 가져오기
-
-        var orderedMonsterPrefabs = new List<GameObject>();
-        foreach (var enemyData in allEnemyData)
+        if (stageData.Stage_id == (int)StageEnums.EStageType.Village)
         {
-            var prefab = ResourceManager.Instance.GetLoadedAsset<GameObject>(enemyData.Enemy_path);
-            orderedMonsterPrefabs.Add(prefab); // 리스트에 순서대로 추가
+            GameManager.Instance.CurrentGameState = EGameState.Lobby;
+        }
+        else
+        {
+            GameManager.Instance.CurrentGameState = EGameState.Battle;
+        }
 
-            if (prefab == null)
+        var allEnemyData = stageDataProvider.GetCurrentStageEnemyData(); // 모든 몬스터 데이터 가져오기
+        var orderedMonsterPrefabs = new List<GameObject>();
+        if (allEnemyData != null)
+        {
+            foreach (var enemyData in allEnemyData)
             {
-                Debug.LogError($"ID {enemyData.ID}에 해당하는 몬스터 프리팹을 찾을 수 없습니다.");
+                var prefab = ResourceManager.Instance.GetLoadedAsset<GameObject>(enemyData.Enemy_path);
+                orderedMonsterPrefabs.Add(prefab); // 리스트에 순서대로 추가
+
+                if (prefab == null)
+                {
+                    Debug.LogError($"ID {enemyData.ID}에 해당하는 몬스터 프리팹을 찾을 수 없습니다.");
+                }
             }
         }
 
@@ -40,5 +51,6 @@ public class StageScene : SceneBase
     public override void SceneExit()
     {
         UIManager.Instance.ClearUIPool();
+        _ = AudioManager.Instance.StopBGM();
     }
 }

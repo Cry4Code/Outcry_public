@@ -49,7 +49,6 @@ public class StoreManager : Singleton<StoreManager>
 
 
 
-
     public void Buy()
     {
         //스킬 미리보기 버튼이 눌려있으면 해당 스킬 구매

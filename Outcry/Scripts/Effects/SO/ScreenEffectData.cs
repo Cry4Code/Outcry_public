@@ -45,8 +45,6 @@ public class ScreenEffectData : BaseEffectData
         
         try
         {
-            Debug.LogWarning($"[이펙트: UniTask (ID : {effectId} TYPE: {effectType})] EffectAsync operation try entered.");
-            
             //획득 대기. 
              effectInstance = await ObjectPoolManager.Instance.GetObjectAsync(path, target.transform, position);
             //Duration 만큼 대기
@@ -62,11 +60,9 @@ public class ScreenEffectData : BaseEffectData
         }
         finally
         {
-            Debug.Log($"이펙트: UniTask (ID : {effectId}) EffectAsync operation finally entered.");
             if (effectInstance != null)
             {
                 ObjectPoolManager.Instance.ReleaseObject(path, effectInstance);
-                Debug.Log($"이펙트: UniTask (ID : {effectId}) EffectAsync operation completed and object {path} released.");
             }
         }
         

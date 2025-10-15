@@ -32,7 +32,7 @@ public class ActionNode : LeafNode
     /// <returns></returns>
     protected virtual NodeState Act()
     {
-        return NodeState.Success;
+        throw new NotImplementedException();
     }
 
     public override NodeState Tick()

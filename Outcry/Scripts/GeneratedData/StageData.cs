@@ -14,6 +14,7 @@ public class StageData : IData
     public string Map_path;
     public float Time_limit;
     public float[] BossPhaseThresholds;
+    public int Boss_Soul;
 }
 
 [Serializable]

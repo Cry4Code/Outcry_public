@@ -10,6 +10,13 @@ public enum ESlotUIType
     Save
 }
 
+// SaveLoadUI에 전달할 데이터 클래스
+public class SaveLoadUIData
+{
+    // 나가기 버튼 클릭 시 실행될 동작을 담는 Action
+    public Action OnClickExitAction { get; set; }
+}
+
 public class SaveLoadManager : Singleton<SaveLoadManager>
 {
     // UI에게 슬롯 데이터 로딩이 완료되었음을 알리는 이벤트
@@ -37,7 +44,7 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
     public async Task LoadAllUserData()
     {
         // Firebase에서 유저 데이터 로드
-        slotsData = await FirebaseManager.Instance.LoadAllUserDataAsync();
+        slotsData = await UGSManager.Instance.LoadAllUserDataAsync();
     }
 
     private void HandleGameDataSaved(int slotIndex, UserData savedData)
@@ -59,11 +66,17 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
     /// <summary>
     /// 저장/로드 UI를 여는 유일한 진입점
     /// </summary>
-    public void OpenUI(ESlotUIType type)
+    public void OpenUI(ESlotUIType type, SaveLoadUIData data = null)
     {
         currentType = type;
 
-        UIManager.Instance.Show<SaveLoadUI>();
+        var saveLoadPopup = UIManager.Instance.Show<SaveLoadUI>();
+
+        // 전달받은 데이터가 있다면, Setup 메서드를 호출하여 UI에 전달합니다.
+        if (data != null)
+        {
+            saveLoadPopup.Setup(data);
+        }
 
         // 데이터 로딩 완료되면 이벤트를 발생시켜 UI에게 데이터 전달
         OnSlotsDataUpdated?.Invoke(currentType, slotsData);

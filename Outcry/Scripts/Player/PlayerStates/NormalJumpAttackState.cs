@@ -5,12 +5,17 @@ using UnityEngine;
 
 public class NormalJumpAttackState : NormalJumpAttackSubState
 {
+    public override eTransitionType ChangableStates =>
+        eTransitionType.SpecialAttackState | eTransitionType.DodgeState | eTransitionType.StartParryState |
+        eTransitionType.AdditionalAttackState;
+    
     private float startStateTime;
     private float startAttackTime = 0.01f;
     private float jumpAnimationLength;
 
     private float animRunningTime = 0f;
-    /*private float inAirTime = 0.1f;*/
+    
+    private bool isLeft = false;
     
     public override void Enter(PlayerController controller)
     {
@@ -23,7 +28,10 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.NormalAttack);
         controller.Inputs.Player.Move.Disable();
         controller.Move.rb.gravityScale = 0;
+        controller.isLookLocked = true;
         animRunningTime = 0f;
+        isLeft = CursorManager.Instance.IsLeftThan(controller.transform);
+        controller.Move.ForceLook(isLeft);
         jumpAnimationLength = 
             controller.Animator.animator.runtimeAnimatorController
             .animationClips.First(c => c.name == "NormalJumpAttack").length;
@@ -31,28 +39,14 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
 
     public override void HandleInput(PlayerController controller)
     {
-        if (controller.Inputs.Player.SpecialAttack.triggered)
-        {
-            controller.isLookLocked = false;
-            controller.ChangeState<SpecialAttackState>();
-            return;
-        }
-        if (controller.Inputs.Player.Dodge.triggered)
-        {
-            controller.ChangeState<DodgeState>();
-            return;
-        }
-        if (controller.Inputs.Player.Parry.triggered)
-        {
-            controller.ChangeState<StartParryState>();
-            return;
-        }
+        base.HandleInput(controller);
+        controller.Move.ForceLook(isLeft);
     }
 
     public override void LogicUpdate(PlayerController controller)
     {
         /*player.PlayerMove.rb.velocity = new Vector2(player.PlayerMove.rb.velocity.x, 0);*/
-        
+        if (!controller.isLookLocked) controller.isLookLocked = true;
         controller.Move.rb.velocity = Vector2.zero;
         animRunningTime += Time.deltaTime;
         

@@ -11,13 +11,13 @@ public enum EGameState
     Initializing, // 초기화 중
     MainMenu,     // 메인 메뉴 (로그인 전)
     Lobby,        // 로비 (캐릭터/보스 선택)
-    InGame,       // 게임 플레이 중 (보스 전투)
+    Battle,       // 게임 플레이 중 (보스 전투)
     LoadingScene  // 씬 로딩 중
 }
 
 public class GameManager : Singleton<GameManager>, IStageDataProvider
 {
-    public EGameState CurrentGameState { get; private set; }
+    public EGameState CurrentGameState { get; set; }
     public UserData CurrentUserData { get; private set; }
     public SceneLoadPackage NextLoadPackage { get; private set; }
 
@@ -58,6 +58,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         DataTableManager.Instance.LoadCollectionData<EnemyDataTable>();
 
         Debug.Log("GameManager Initialized.");
+
+        CurrentGameState = EGameState.MainMenu;
     }
 
     public StageData GetStageData()
@@ -141,7 +143,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         }
 
         Debug.Log($"게임을 {currentSlotIndex}번 슬롯에 저장합니다...");
-        bool success = await FirebaseManager.Instance.SaveUserDataAsync(currentSlotIndex, CurrentUserData);
+        bool success = await UGSManager.Instance.SaveUserDataAsync(currentSlotIndex, CurrentUserData);
         if (success)
         {
             Debug.Log("Save successful.");
@@ -187,10 +189,31 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     // 로비(거점) 씬으로 이동
     public void GoToLobby()
     {
+        currentStageData = DataTableManager.Instance.GetCollectionDataById<StageData>((int)EStageType.Village);
+        if (currentStageData == null)
+        {
+            Debug.LogError($"villageStageData를 찾을 수 없습니다.");
+            // TODO: 타이틀로 돌아가기?
+            return;
+        }
+
         CurrentGameState = EGameState.LoadingScene;
 
         // 로비 이동을 위한 간단한 명세서 생성(미리 로드할 리소스 없음)
-        var package = new SceneLoadPackage(ESceneType.LobbyScene);
+        var package = new SceneLoadPackage(ESceneType.InGameScene);
+        package.AdditiveSceneNames.Add("StageManagers");
+
+        // PlayerSFX 효과음 프리 로드
+        package.PreLoadingTasks.Add(new LoadingTask
+        {
+            Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
+            Coroutine = LoadPlayerSFXCoroutine // 실행할 코루틴 메서드 연결
+        });
+
+        if (!string.IsNullOrEmpty(currentStageData.Map_path))
+        {
+            package.ResourceAddressesToLoad.Add(currentStageData.Map_path);
+        }
 
         // 유저 데이터 저장
         if (CurrentUserData != null && currentSlotIndex != -1)
@@ -201,6 +224,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
                 Coroutine = SaveGameCoroutine           // 실행할 코루틴 메서드 연결
             });
         }
+
+        package.ResourceAddressesToLoad.Add(Paths.Prefabs.Player);
 
         // 생성된 명세서 저장
         NextLoadPackage = package;
@@ -226,12 +251,19 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         CurrentGameState = EGameState.LoadingScene;
 
         // 스테이지 시작 이벤트 로깅
-        FirebaseManager.Instance.LogStageStart(currentStageData.Stage_name);
+        UGSManager.Instance.LogStageStart(currentStageData.Stage_name);
 
         // 스테이지 시작을 위한 데이터 설정
-        var package = new SceneLoadPackage(ESceneType.StageScene);
+        var package = new SceneLoadPackage(ESceneType.InGameScene);
         package.AdditiveSceneNames.Add("StageManagers");
-        
+
+        // PlayerSFX 효과음 프리 로드
+        package.PreLoadingTasks.Add(new LoadingTask
+        {
+            Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
+            Coroutine = LoadPlayerSFXCoroutine // 실행할 코루틴 메서드 연결
+        });
+
         if (!string.IsNullOrEmpty(currentStageData.Map_path))
         {
             package.ResourceAddressesToLoad.Add(currentStageData.Map_path);
@@ -269,6 +301,12 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         Debug.Log($"스테이지 ID: {clearedStage.ID} 클리어! 유저 데이터 업데이트 및 저장.");
 
+        // 튜토리얼 클리어 처리
+        if (clearedStage.ID == (int)EStageType.Tutorial && !CurrentUserData.IsTutorialCleared)
+        {
+            CurrentUserData.IsTutorialCleared = true;
+        }
+
         // 스테이지에 포함된 모든 몬스터를 클리어 목록에 추가
         foreach (var bossId in clearedStage.Monster_ids)
         {
@@ -279,14 +317,100 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             }
         }
 
-        // 튜토리얼 클리어 처리
-        if (clearedStage.ID == (int)EStageType.Tutorial && !CurrentUserData.IsTutorialCleared)
-        {
-            CurrentUserData.IsTutorialCleared = true;
-        }
+        // TODO: 스테이지 클리어 보상 지급(소울)
+        // (보상 중복 보유 가능 여부에 따라 달라질 예정)
+        GainSouls(currentStageData.Boss_Soul, 1);
 
         // 변경된 데이터 저장
         SaveGame();
     }
     #endregion
+
+    #region 게임 플레이 관련
+    /// <summary>
+    /// 플레이어의 인벤토리에 소울을 추가하거나 개수를 늘립니다.
+    /// </summary>
+    /// <param name="soulId">추가할 소울의 고유 ID</param>
+    /// <param name="amount">추가할 개수</param>
+    public void GainSouls(int soulId, int amount)
+    {
+        if (CurrentUserData == null) return;
+
+        // FindIndex는 조건에 맞는 항목의 인덱스를 찾고 없으면 -1 반환
+        int index = CurrentUserData.AcquiredSouls.FindIndex(s => s.SoulId == soulId);
+
+        if (index != -1) // 인벤토리에 이미 해당 소울이 존재할 경우
+        {
+            // struct는 값 타입(Value Type)이므로, 리스트에서 직접 수정하려면
+            // 복사본을 만들고 값을 변경한 뒤, 다시 리스트의 해당 위치에 덮어써야 합니다.
+            UserSoulData existingSoul = CurrentUserData.AcquiredSouls[index];
+            existingSoul.Count += amount;
+            CurrentUserData.AcquiredSouls[index] = existingSoul;
+
+            Debug.Log($"소울 갱신: ID {soulId}, 총 개수: {existingSoul.Count}");
+        }
+        else // 새로 획득한 소울일 경우
+        {
+            CurrentUserData.AcquiredSouls.Add(new UserSoulData { SoulId = soulId, Count = amount });
+            Debug.Log($"새로운 소울 획득: ID {soulId}, 개수: {amount}");
+        }
+    }
+
+    /// <summary>
+    /// 지정된 양의 소울을 소모하려고 시도
+    /// </summary>
+    /// <param name="soulId">소모할 소울의 ID</param>
+    /// <param name="amount">소모할 개수</param>
+    /// <returns>소모에 성공하면 true, 소울이 부족하면 false 반환</returns>
+    public bool TrySpendSouls(int soulId, int amount)
+    {
+        if (CurrentUserData == null) return false;
+
+        // 소모하려는 소울이 인벤토리에 있는지 확인
+        int index = CurrentUserData.AcquiredSouls.FindIndex(s => s.SoulId == soulId);
+
+        if (index == -1) // 해당 소울을 가지고 있지 않은 경우
+        {
+            Debug.LogWarning($"소울 소모 실패: ID {soulId} 소울을 가지고 있지 않습니다.");
+            return false;
+        }
+
+        // 소울 개수가 충분한지 확인
+        if (CurrentUserData.AcquiredSouls[index].Count < amount)
+        {
+            Debug.LogWarning($"소울 소모 실패: ID {soulId} 소울이 부족합니다. (필요: {amount}, 보유: {CurrentUserData.AcquiredSouls[index].Count})");
+            return false;
+        }
+
+        // 소울 개수가 충분하면 개수 차감
+        UserSoulData soulToSpend = CurrentUserData.AcquiredSouls[index];
+        soulToSpend.Count -= amount;
+        CurrentUserData.AcquiredSouls[index] = soulToSpend;
+
+        Debug.Log($"소울 소모 성공: ID {soulId}, {amount}개 사용. 남은 개수: {soulToSpend.Count}");
+
+        // 소모 성공
+        return true;
+    }
+    #endregion
+
+    /// <summary>
+    /// PlayerSFX 레이블을 가진 모든 오디오 클립을 로드하는 코루틴
+    /// </summary>
+    private IEnumerator LoadPlayerSFXCoroutine()
+    {
+        var loadTask = ResourceManager.Instance.LoadAssetsByLabelAsync<AudioClip>("PlayerSFX");
+
+        // Task가 완료될 때까지 코루틴에서 대기합
+        yield return new WaitUntil(() => loadTask.IsCompleted);
+
+        if (loadTask.IsFaulted)
+        {
+            Debug.LogError("플레이어 효과음(PlayerSFX) 로딩에 실패했습니다!");
+        }
+        else
+        {
+            Debug.Log($"플레이어 효과음 {loadTask.Result.Count}개 로딩 완료.");
+        }
+    }
 }

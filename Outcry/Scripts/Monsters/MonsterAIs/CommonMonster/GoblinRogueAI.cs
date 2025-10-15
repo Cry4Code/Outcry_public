@@ -39,10 +39,9 @@ public class GoblinRogueAI : MonsterAIBase
         startWhenGrounded.AddChild(isGrounded);
 
         var behaviorSelector = new SelectorNode();
-        behaviorSelector.nodeName = "BehaivorSelector";
+        behaviorSelector.nodeName = "BehaviorSelector";
         startWhenGrounded.AddChild(behaviorSelector);
         #endregion
-
 
         #region 공격 시퀀스 노드 (추격 포함)
         SequenceNode attackSequence = new SequenceNode();   // 공격 시퀀스
@@ -85,15 +84,12 @@ public class GoblinRogueAI : MonsterAIBase
         behaviorSelector.AddChild(chaseSequence);
         chaseSequence.nodeName = "ChaseSequenceNode";
 
-        var chaseStartCondition = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.detectRange);
+        var chaseStartCondition = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         chaseSequence.AddChild(chaseStartCondition);
 
-        var chaseKeepCondition = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.disdetectRange);
+        var chaseKeepCondition = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.disdetectRange);
         var chaseAction = new ChaseActionNode(monster.Rb2D, monster.transform, target.transform,
-            monsterModel.chaseSpeed, monsterModel.approachRange,
-            monster.Animator);
+            monsterModel.chaseSpeed, monsterModel.approachRange, monster.Animator);
         var chaseGuarded = new WhileTrueDecorator(chaseKeepCondition, chaseAction);
         chaseSequence.AddChild(chaseGuarded);
         #endregion
@@ -104,11 +100,9 @@ public class GoblinRogueAI : MonsterAIBase
         behaviorSelector.AddChild(patrolSeqence);
 
         var notDetected = new InverterNode();
-        var isDetected = new IsInRangeConditionNode(monster.transform, target.transform,
-            monsterModel.detectRange);
+        var isDetected = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         notDetected.SetChild(isDetected);
-        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform,
-            monsterModel.patrolSpeed, monster.Animator);
+        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
         var patrolGuarded = new WhileTrueDecorator(notDetected, patrolAction);
         patrolSeqence.AddChild(patrolGuarded);
 

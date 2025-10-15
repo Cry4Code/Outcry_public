@@ -17,21 +17,11 @@ public class WindSlash : SkillBase
     private float runDistance = 2f;
     private Vector2 startPos;
     private Vector2 targetPos;
-
-    // 시간 쪼개기 
-    private float startStateTime;
-    private float startAttackTime = 0.01f;
-    private float animRunningTime = 0f;
-    private float attackAnimationLength;
+  
     
-    // 쿨타임
-    private float lastUsedTime = float.MinValue;
-
-
-    
-    
-    public override void Enter(PlayerController controller)
+    public override void Enter()
     {
+        useSuccessed = false;
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
         {
@@ -57,6 +47,7 @@ public class WindSlash : SkillBase
         
         
         Debug.Log("[플레이어] 스킬 WindSlash 사용!");
+        useSuccessed = true;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
@@ -68,9 +59,6 @@ public class WindSlash : SkillBase
         controller.Animator.ClearBool();*/
         animRunningTime = 0f;
         startStateTime = Time.time;
-        attackAnimationLength = 
-            controller.Animator.animator.runtimeAnimatorController
-                .animationClips.First(c => c.name == "WindSlash").length;
         controller.Attack.SetDamageList(damages);
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
@@ -83,12 +71,7 @@ public class WindSlash : SkillBase
         isMoved = false;
     }
 
-    public override void HandleInput(PlayerController controller)
-    {
-
-    }
-
-    public override void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate()
     {
         animRunningTime += Time.deltaTime;
 
@@ -126,7 +109,7 @@ public class WindSlash : SkillBase
                 }
             }
 
-            if (animRunningTime >= attackAnimationLength)
+            if (animRunningTime >= animationLength)
             {
                 if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                 else controller.ChangeState<FallState>();
@@ -136,11 +119,4 @@ public class WindSlash : SkillBase
         }
     }
 
-    public override void Exit(PlayerController controller)
-    {
-        Debug.Log("[플레이어] 스킬 WindSlash 종료");
-        controller.PlayerInputEnable();
-        lastUsedTime = Time.time;
-        controller.Condition.isCharge = false;
-    }
 }

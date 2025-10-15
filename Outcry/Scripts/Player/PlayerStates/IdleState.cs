@@ -5,6 +5,10 @@ using UnityEngine;
 
 public class IdleState : GroundSubState
 {
+    public override eTransitionType ChangableStates =>
+        eTransitionType.NormalAttackState | eTransitionType.FallState |  eTransitionType.SpecialAttackState | 
+        eTransitionType.DodgeState | eTransitionType.StartParryState | eTransitionType.PotionState | 
+        eTransitionType.JumpState |  eTransitionType.MoveState | eTransitionType.AdditionalAttackState;
     public override void Enter(PlayerController controller)
     {
         // 애니메이션 설정 
@@ -12,8 +16,9 @@ public class IdleState : GroundSubState
         base.Enter(controller);
         
         controller.Move.Stop();
-        controller.Move.ChangeGravity(false);
+        controller.Attack.successParry = false;
         controller.Condition.canStaminaRecovery.Value = true;
+        controller.Attack.HasJumpAttack = false;
         controller.Attack.ClearAttackCount();
         controller.Animator.ClearTrigger();
         controller.Animator.ClearInt();
@@ -36,7 +41,7 @@ public class IdleState : GroundSubState
             return;
         }
         
-        var input = controller.Inputs.Player.Move.ReadValue<Vector2>();
+        base.HandleInput(controller);
 
         if (input.y < 0 && controller.Inputs.Player.Jump.triggered && controller.Move.isGrounded )
         {
@@ -53,77 +58,27 @@ public class IdleState : GroundSubState
                 }
             }
         }
-        
-        if (controller.Inputs.Player.NormalAttack.triggered)
-        {
-            controller.isLookLocked = true;
-            controller.ChangeState<NormalAttackState>();
-            return;
-        }
 
-        if (controller.Inputs.Player.SpecialAttack.triggered)
+        if (input.y > 0)
         {
-            controller.isLookLocked = false;
-            controller.ChangeState<SpecialAttackState>();
-            return;
+            Debug.Log($"[플레이어] 상호작용 시도");
+            controller.Move.TryInteract();
         }
-        
-        if (controller.Inputs.Player.Dodge.triggered)
-        {
-            controller.ChangeState<DodgeState>();
-            return;
-        }
-
-        if (controller.Inputs.Player.Parry.triggered)
-        {
-            controller.ChangeState<StartParryState>();
-            return;
-        }
-
-        if (controller.Inputs.Player.Potion.triggered && controller.Condition.potionCount > 0)
-        {
-            controller.ChangeState<PotionState>();
-            return;
-        }
-        
-        
-        if (controller.Inputs.Player.Jump.triggered 
-            && controller.Move.isGrounded 
-            && !controller.Move.isGroundJump 
-            && !controller.Move.isWallTouched)
-        {
-            // Debug.Log("Jump Key Input");
-            controller.ChangeState<JumpState>();
-            return;
-        }
-        if (input.x != 0)
-        {
-            controller.Move.ForceLook(input.x < 0);
-            controller.isLookLocked = true;
-            controller.ChangeState<MoveState>();
-            return;
-        }
-
-        if (controller.Inputs.Player.AdditionalAttack.triggered)
-        {
-            controller.ChangeState<AdditionalAttackState>();
-            return;
-        }
-
-        
     }
  
     public override void LogicUpdate(PlayerController controller) 
     {
-        
-
         if (controller.Move.isDodged)
         {
             controller.Move.Stop();
             controller.Move.isDodged = false;
         }
-        
-        if (controller.Move.rb.velocity.y < 0) controller.ChangeState<FallState>();
+
+        if (controller.Move.rb.velocity.y < 0)
+        {
+            controller.ChangeState<FallState>();
+            return;
+        }
     }
 
     public override void Exit(PlayerController controller)

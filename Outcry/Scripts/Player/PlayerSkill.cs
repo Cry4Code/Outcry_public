@@ -20,7 +20,10 @@ public class PlayerSkill : MonoBehaviour
 
     private void Start()
     {
-        SetSkill(skillCode);
+        if (skillCode != 0)
+        {
+            SetSkill(skillCode);
+        }
     }
 
     public void SetSkill(int skillId)

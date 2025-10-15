@@ -34,7 +34,14 @@ public class StageController : MonoBehaviour
         stageCamera = vcam;
         obstacleSpawnPoints = obstacleSpawns;
 
-        stageManager.SetTotalMonsterCount(enemyPrefabs.Count);
+        if (enemys != null && enemys.Count > 0)
+        {
+            stageManager.SetTotalMonsterCount(enemys.Count);
+        }
+        else // 몬스터가 없거나 리스트가 null일 경우
+        {
+            stageManager.SetTotalMonsterCount(0); // 몬스터 수를 0으로 명확하게 설정
+        }
     }
 
     /// <summary>
@@ -42,7 +49,6 @@ public class StageController : MonoBehaviour
     /// </summary>
     public virtual async UniTask StageSequence()
     {
-        Debug.Log("기본 스테이지 시퀀스 시작!");
         // 플레이어 스폰
         SpawnPlayer();
 
@@ -100,7 +106,18 @@ public class StageController : MonoBehaviour
     /// </summary>
     protected virtual void SpawnAllMonsters()
     {
-        Debug.Log("모든 몬스터를 한 번에 스폰합니다.");
+        // 몬스터가 없는 상황 방어(로비 빌리지에서는 몬스터가 없을 수 있음)
+        if (enemyPrefabs == null || enemySpawnPoints == null)
+        {
+            return;
+        }
+
+        // 리스트가 비어있는지 확인(몬스터가 없는 스테이지는 정상적인 상황)
+        if (enemyPrefabs.Count == 0)
+        {
+            return;
+        }
+
         for (int i = 0; i < enemyPrefabs.Count; i++)
         {
             if (enemySpawnPoints.TryGetValue(i, out Transform spawnTransform))
@@ -115,6 +132,12 @@ public class StageController : MonoBehaviour
                 }
 
                 var monster = monsterInstance.GetComponent<MonsterBase>();
+                if(monster == null)
+                {
+                    Debug.LogError("MonsterBase 컴포넌트가 없습니다!");
+                    continue;
+                }
+
                 monster.SetMonsterData(monsterData);
 
                 Debug.Log($"SpawnIndex {i} 위치에 몬스터(ID: {stageData.Monster_ids[i]}) 스폰 완료");
@@ -174,5 +197,46 @@ public class StageController : MonoBehaviour
         }
 
         // 웨이브 스폰 등 몬스터 사망 시 필요한 로직을 자식 클래스에서 구현 가능
+    }
+
+    /// <summary>
+    /// 스테이지 승리 시 StageManager에 의해 호출됩니다.
+    /// </summary>
+    public virtual void OnStageVictory()
+    {
+        Debug.Log("[StageController] 승리 처리 시작: 플레이어 입력 비활성화 및 몬스터 AI 정지");
+
+        // 플레이어 입력 비활성화
+        if (playerInstance != null && PlayerManager.Instance.player != null)
+        {
+            // TODO: 다른 입력은 안되는데 좌우 이동은 가능(버그 수정 필요)
+            PlayerManager.Instance.player.PlayerInputDisable();
+        }
+
+        // 현재 살아있는 모든 몬스터 AI 중지
+        foreach (var monsterObject in aliveMonsters)
+        {
+            if (monsterObject != null && monsterObject.TryGetComponent<MonsterAIBase>(out var monsterAI))
+            {
+                monsterAI.DeactivateBt();
+            }
+        }
+    }
+
+    /// <summary>
+    /// 스테이지 패배 시 StageManager에 의해 호출
+    /// </summary>
+    public virtual void OnStageDefeat()
+    {
+        Debug.Log("[StageController] 패배 처리 시작: 모든 몬스터 AI 정지");
+
+        // 현재 살아있는 모든 몬스터의 AI 중지
+        foreach (var monsterObject in aliveMonsters)
+        {
+            if (monsterObject != null && monsterObject.TryGetComponent<MonsterAIBase>(out var monsterAI))
+            {
+                monsterAI.DeactivateBt();
+            }
+        }
     }
 }

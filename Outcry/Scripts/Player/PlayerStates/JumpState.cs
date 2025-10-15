@@ -5,16 +5,18 @@ using UnityEngine;
 
 public class JumpState : AirSubState
 {
-    private float minWallHoldTime = 1f; // 이 초가 지나야 벽 짚기가 가능함
-    private float elapsedTime;
+    public override eTransitionType ChangableStates =>
+        eTransitionType.DoubleJumpState | eTransitionType.DownAttackState | eTransitionType.NormalJumpAttackState |
+        eTransitionType.SpecialAttackState | eTransitionType.DodgeState | eTransitionType.StartParryState |
+        eTransitionType.AdditionalAttackState;
     
     public override void Enter(PlayerController controller)
     {
         base.Enter(controller);
         controller.Condition.canStaminaRecovery.Value = true;
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.Jump);
-        controller.isLookLocked = true; 
-        elapsedTime = 0f;
+        /*controller.isLookLocked = true; */
+        controller.isLookLocked = false; 
         
         if (controller.Move.isWallTouched)
         {
@@ -25,61 +27,27 @@ public class JumpState : AirSubState
             controller.Move.Jump();
         }
         
+        /*if (moveInput.x != 0)
+        {
+            controller.Move.ForceLook(moveInput.x < 0);
+            controller.Move.Move();
+        }*/
+        
         if (!controller.Move.isGroundJump) controller.Move.isGroundJump = true;
     }
-
+    
     public override void HandleInput(PlayerController controller)
     {
-        elapsedTime += Time.deltaTime;
-        var moveInput = controller.Inputs.Player.Move.ReadValue<Vector2>();
+        base.HandleInput(controller);
         
-        if (controller.Inputs.Player.Jump.triggered)
+        if (moveInput.x != 0)
         {
-            if(!controller.Move.isDoubleJump)
-            {
-                controller.ChangeState<DoubleJumpState>();
-                return;
-            }
+            /*controller.Move.ForceLook(moveInput.x < 0);*/
+            controller.Move.Move();
         }
-        if (controller.Move.isWallTouched && elapsedTime >= minWallHoldTime)
+        else if (controller.Move.rb.velocity.x != 0)
         {
-            controller.ChangeState<WallHoldState>();
-            return;
-        }
-        
-        if (controller.Inputs.Player.NormalAttack.triggered && moveInput.y < 0)
-        {
-            controller.isLookLocked = true;
-            controller.ChangeState<DownAttackState>();
-            return;
-        }
-        if (controller.Inputs.Player.NormalAttack.triggered && !controller.Attack.HasJumpAttack)
-        {
-            controller.isLookLocked = true;
-            controller.ChangeState<NormalJumpAttackState>();
-            return;
-        }
-        
-        if (controller.Inputs.Player.SpecialAttack.triggered)
-        {
-            controller.isLookLocked = false;
-            controller.ChangeState<SpecialAttackState>();
-            return;
-        }
-        if (controller.Inputs.Player.Dodge.triggered)
-        {
-            controller.ChangeState<DodgeState>();
-            return;
-        }
-        if (controller.Inputs.Player.Parry.triggered)
-        {
-            controller.ChangeState<StartParryState>();
-            return;
-        }
-        if (controller.Inputs.Player.AdditionalAttack.triggered)
-        {
-            controller.ChangeState<AdditionalAttackState>();
-            return;
+            controller.Move.Stop();
         }
     }
 
@@ -90,7 +58,6 @@ public class JumpState : AirSubState
             controller.Move.isGroundJump = true;
             return;
         }
-        controller.Move.Move();
         if (controller.Move.rb.velocity.y < 1f)
         {
             controller.ChangeState<FallState>();

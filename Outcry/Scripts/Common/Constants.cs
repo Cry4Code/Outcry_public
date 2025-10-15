@@ -22,10 +22,12 @@ public static class AddressablePaths
 {
     public const string ROOT = "Assets/09. AddressableAssets/RemoteGroup/";
 
+    public const string AttackRange = "Projectile/AttackRange.prefab";
     public static class Projectile
     {
         public const string Stone = "Projectile/Stone.prefab";
         public const string Fireball = "Projectile/Fireball.prefab";
+        public const string Laser = "Projectile/Laser.prefab";
     }
 }
 public static class Paths
@@ -83,6 +85,7 @@ public static class AnimatorHash
         public static readonly int WhirlWind = Animator.StringToHash("WhirlWind");
         public static readonly int Shark = Animator.StringToHash("Shark");
         public static readonly int RumbleOfRuin = Animator.StringToHash("RumbleOfRuin");
+        public static readonly int FinalHorizon = Animator.StringToHash("FinalHorizon");
         public static readonly int IsTired = Animator.StringToHash("IsTired");
         public static readonly int IsReady = Animator.StringToHash("IsReady");
     }
@@ -109,6 +112,10 @@ public static class AnimatorHash
         public static readonly int RumbleOfRuinDown = Animator.StringToHash("RumbleOfRuinDown");
         public static readonly int RumbleOfRuinEvent = Animator.StringToHash("RumbleOfRuinEvent");
         public static readonly int RumbleOfRuinComeBack = Animator.StringToHash("RumbleOfRuinComeBack");
+        public static readonly int FinalHorizonStart = Animator.StringToHash("FinalHorizonStart");
+        public static readonly int FinalHorizonMiddle = Animator.StringToHash("FinalHorizonMiddle");
+        public static readonly int FinalHorizonAttack = Animator.StringToHash("FinalHorizonAttack");
+        public static readonly int FinalHorizonEnd = Animator.StringToHash("FinalHorizonEnd");
     }
 
     public static class PlayerAnimation
@@ -124,12 +131,10 @@ public static class AnimatorHash
         public static readonly int Idle = Animator.StringToHash("Idle");
         public static readonly int Move = Animator.StringToHash("Move");
         public static readonly int Fall = Animator.StringToHash("Fall");
-        public static readonly int WallHold = Animator.StringToHash("WallHold");
 
         // Trigger 파라미터
         public static readonly int Jump = Animator.StringToHash("Jump");
         public static readonly int DoubleJump = Animator.StringToHash("DoubleJump");
-        public static readonly int WallJump = Animator.StringToHash("WallJump");
         public static readonly int NormalAttack = Animator.StringToHash("NormalAttack");
         public static readonly int DownAttack = Animator.StringToHash("DownAttack");
         public static readonly int SpecialAttack = Animator.StringToHash("SpecialAttack");

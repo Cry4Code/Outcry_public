@@ -23,7 +23,6 @@ public class TutorialStageController : StageController
 
     protected override void SpawnMonstersLogic()
     {
-        Debug.Log("튜토리얼의 순차 스폰 로직을 시작합니다.");
         SpawnNextMonster(); // 첫 몬스터만 스폰
     }
 

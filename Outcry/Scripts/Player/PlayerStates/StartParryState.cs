@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class StartParryState : IPlayerState
+public class StartParryState : BasePlayerState
 {
     private float startStateTime;
     private float startAttackTime = 0.01f;
     private float t;
     private float parryTime;
-    
-    public async void Enter(PlayerController controller)
+
+    public override eTransitionType ChangableStates { get; }
+
+    public async override void Enter(PlayerController controller)
     {
         if (!controller.Condition.TryUseStamina(controller.Data.parryStamina))
         {
@@ -43,46 +45,49 @@ public class StartParryState : IPlayerState
         t = 0;
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
+        t += Time.deltaTime;
+        
         if (controller.Attack.successParry)
         {
             controller.ChangeState<SuccessParryState>();
             return;
         }
         
-        AnimatorStateInfo curAnimInfo = controller.Animator.animator.GetCurrentAnimatorStateInfo(0);
-        if (!curAnimInfo.IsName("StartParry")) return;
-
-        t += Time.deltaTime;
-        
-        float animTime = curAnimInfo.normalizedTime;
-
-        if (animTime >= 1.0f)
+        if (Time.time - startStateTime > startAttackTime)
         {
-            if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
-            else controller.ChangeState<FallState>();
-            return;
-        }
+            AnimatorStateInfo curAnimInfo = controller.Animator.animator.GetCurrentAnimatorStateInfo(0);
 
-        if (t >= parryTime)
-        {
-            if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
-            else controller.ChangeState<FallState>();
-            return;
+            if (curAnimInfo.IsName("StartParry"))
+            { 
+                float animTime = curAnimInfo.normalizedTime;
+                
+                if (animTime >= 1.0f)
+                {
+                    if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
+                    else controller.ChangeState<FallState>();
+                    return;
+                }
+                
+                if (t >= parryTime)
+                {
+                    if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
+                    else controller.ChangeState<FallState>();
+                    return;
+                }
+            }
         }
-            
-        
-
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
+        if(!controller.Attack.successParry) controller.Condition.NoMoreInvincible();
         controller.Attack.isStartParry = false;
     }
 }

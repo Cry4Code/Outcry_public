@@ -117,6 +117,20 @@ public class FallenKingStageController : StageController
         }
     }
 
+    public override void OnStageDefeat()
+    {
+        // 현재 살아있는 모든 몬스터의 AI 중지
+        foreach (var monsterObject in aliveMonsters)
+        {
+            if (monsterObject != null && monsterObject.TryGetComponent<MonsterAIBase>(out var monsterAI))
+            {
+                // TODO: 고블린 킹 마지막 웃는 애니메이션 추가되면
+                // monsterAI.VictoryCeremony(); 사용
+                monsterAI.DeactivateBt();
+            }
+        }
+    }
+
     /// <summary>
     /// 컨트롤러가 파괴될 때 이벤트 구독 해제하여 메모리 누수 방지
     /// </summary>

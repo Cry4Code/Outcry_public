@@ -1,25 +1,27 @@
 using UnityEngine;
 
-public class AdditionalAttackState : IPlayerState
+public class AdditionalAttackState : BasePlayerState
 {
-    public void Enter(PlayerController controller)
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         Debug.Log("[플레이어] 추가 스킬 입력됨");
-        controller.Skill.CurrentSkill.Enter(controller);
+        controller.Skill.CurrentSkill.Enter();
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
-        controller.Skill.CurrentSkill.HandleInput(controller);
+        
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
-        controller.Skill.CurrentSkill.LogicUpdate(controller);
+        controller.Skill.CurrentSkill.LogicUpdate();
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
-        controller.Skill.CurrentSkill.Exit(controller);
+        controller.Skill.CurrentSkill.Exit();
     }
 }

@@ -3,14 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class PotionState : IPlayerState
+public class PotionState : BasePlayerState
 {
     private float startStateTime;
     private float startPotionTime = 0.01f;
     private float animRunningTime = 0f;
     private float potionAnimationLength;
-    
-    public void Enter(PlayerController controller)
+
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         animRunningTime = 0f;
         controller.Move.rb.velocity = Vector2.zero;
@@ -24,7 +26,7 @@ public class PotionState : IPlayerState
         Debug.Log("[플레이어] 체력 회복 시도");
     }
     
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         /*var input = controller.Inputs.Player.Move.ReadValue<Vector2>();
         
@@ -65,7 +67,7 @@ public class PotionState : IPlayerState
         }*/
     }
 
-    public async void LogicUpdate(PlayerController controller)
+    public async override void LogicUpdate(PlayerController controller)
     {
         animRunningTime += Time.deltaTime;
         
@@ -102,7 +104,7 @@ public class PotionState : IPlayerState
                 
         }
     }
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
         controller.Condition.getPotion.Value = false;
     }

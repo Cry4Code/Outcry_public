@@ -21,5 +21,7 @@ public class ChapterUI : UIPopup
     private void OnExitButtonClicked()
     {
         UIManager.Instance.Hide<ChapterUI>();
+        CursorManager.Instance.SetInGame(true);
+        PlayerManager.Instance.player.PlayerInputEnable();
     }
 }

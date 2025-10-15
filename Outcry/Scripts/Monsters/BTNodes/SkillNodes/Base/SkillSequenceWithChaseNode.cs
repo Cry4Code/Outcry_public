@@ -26,14 +26,14 @@ public abstract class SkillSequenceWithChaseNode : SkillSequenceNode
             monster.Animator);
         // 추격 해제 조건
         float loseRange = skillData.range + 0.1f; // 스킬 사거리 +0.1 만큼 멀어지면 추격 종료
-        var keepChasingCondition = new IsInRangeConditionNode(monster.transform, target.transform, loseRange);
+        var keepChasingCondition = new IsDetectableConditionNode(monster.transform, target.transform, loseRange);
         var chaseGuarded = new WhileTrueDecorator(keepChasingCondition, chaseAction);
         ActionNode skillAction = new ActionNode(SkillAction);
 
         //노드 이름 설정 (디버깅용)
         canPerform.nodeName = "CanPerform";
         chaseAction.nodeName = "ChaseAction";
-        chaseGuarded.nodeName = "WhlieTrue(KeepChasing)";
+        chaseGuarded.nodeName = "WhileTrue(KeepChasing)";
         skillAction.nodeName = "SkillAction";
 
         children.Clear();

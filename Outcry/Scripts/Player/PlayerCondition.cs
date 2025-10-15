@@ -150,6 +150,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
 
     public void TakeDamage(int damage)
     {
+        Debug.Log($"[TakeDamage] 불림. invincibleCoroutine = {invincibleCoroutine != null} |  isCharge = {isCharge} | isSuperArmor = {isSuperArmor}");
         if (isInvincible) return;
         if (isDead.Value)
         {
@@ -164,7 +165,6 @@ public class PlayerCondition : MonoBehaviour, IDamagable
             if (invincibleCoroutine != null) return;
             invincibleCoroutine = StartCoroutine(Invincible(controller.Data.parryInvincibleTime));
         }
-        if (invincibleCoroutine != null) return;
         if(!isCharge) invincibleCoroutine = StartCoroutine(Invincible());
         Debug.Log("[플레이어] 플레이어 데미지 받음");
         health.Substract(damage);
@@ -178,6 +178,12 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         {
             StartCoroutine(Invincible(time));
         }
+    }
+
+    public void NoMoreInvincible()
+    {
+        isInvincible = false;
+        if(invincibleCoroutine != null) StopCoroutine(invincibleCoroutine);
     }
 
     IEnumerator Invincible()

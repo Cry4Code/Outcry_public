@@ -27,6 +27,7 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
         dataList.Add(new SharkSkillSequenceNode(103007));
         
         dataList.Add(new RumbleOfRuinSkillSequenceNode(103009));
+        dataList.Add(new FinalHorizonSkillSequenceNode(103010));
 
         #region 일반 몬스터
 
@@ -87,6 +88,9 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
                 break;
             case RumbleOfRuinSkillSequenceNode:
                 skillSequenceNode = new RumbleOfRuinSkillSequenceNode(skillId);
+                break;
+            case FinalHorizonSkillSequenceNode:
+                skillSequenceNode = new FinalHorizonSkillSequenceNode(skillId);
                 break;
             case GoblinCommonAttackSkillSequenceNode:
                 skillSequenceNode = new GoblinCommonAttackSkillSequenceNode(skillId);

@@ -72,15 +72,17 @@ public class MonsterCondition : MonoBehaviour, IDamagable
             StopCoroutine(animationCoroutine);
         }
 
-        if (CurrentHealth <= MaxHealth / 2)
+        if (monster is BossMonster bm && CurrentHealth <= MaxHealth / 2)
         {
-            monster.Animator.SetBool(AnimatorHash.MonsterParameter.IsTired, true );
-            if (CurrentHealth <= 0)
-            {
-                Death();
-                return;
-            }
+            bm.Animator.SetBool(AnimatorHash.MonsterParameter.IsTired, true );
         }
+        
+        if (CurrentHealth <= 0)
+        {
+            Death();
+            return;
+        }
+        
         animationCoroutine = StartCoroutine(HitAnimation(hitAnimationLength));
     }
     

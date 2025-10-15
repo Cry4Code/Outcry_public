@@ -32,7 +32,7 @@ public class ConditionNode : LeafNode
     /// <returns></returns>
     protected virtual bool IsCondition()
     {
-        return true;
+        throw new NotImplementedException();
     }
 
     public override NodeState Tick()

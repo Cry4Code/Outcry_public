@@ -4,10 +4,35 @@ using System.Collections.Generic;
 using Unity.IO.LowLevel.Unsafe;
 using UnityEngine;
 
+[Flags]
+public enum eTransitionType
+{
+    None = 0,
+    IdleState = 1 << 0,
+    MoveState = 1 << 1,
+    JumpState = 1 << 2,
+    DoubleJumpState = 1 << 3,
+    FallState = 1 << 4,
+    NormalAttackState = 1 << 5,
+    NormalJumpAttackState = 1 << 6,
+    DownAttackState = 1 << 7,
+    SpecialAttackState = 1 << 8,
+    DodgeState = 1 << 9,
+    StartParryState = 1 << 10,
+    SuccessParryState = 1 << 11,
+    DamagedState = 1 << 12,
+    DieState = 1 << 13,
+    PotionState = 1 << 14,
+    AdditionalAttackState = 1 << 15,
+}
+
+
+
 public class PlayerController : MonoBehaviour
 {
 
-    private Dictionary<System.Type, IPlayerState> states; // 상태 저장용
+    private Dictionary<System.Type, BasePlayerState> states; // 상태 저장용
+    public Dictionary<string, System.Type> stringStateTypes;
     public PlayerInputs Inputs { get; private set; }
     public PlayerMove Move { get; private set; }
     public PlayerAttack Attack { get; private set; }
@@ -26,15 +51,15 @@ public class PlayerController : MonoBehaviour
 
     public bool runFSM = true;
     
-    private IPlayerState currentState;
-    [HideInInspector] public bool isLookLocked = false;
+    private BasePlayerState currentState;
+    /*[HideInInspector] */public bool isLookLocked = false;
     
     
     
     private void Awake()
     {
         Inputs = new PlayerInputs();
-        Inputs.Enable();
+        
         Skill = GetComponent<PlayerSkill>();
         Skill.Init(this);
         Move = GetComponent<PlayerMove>();
@@ -43,17 +68,38 @@ public class PlayerController : MonoBehaviour
         Condition = GetComponent<PlayerCondition>();
         Hitbox = GetComponentInChildren<AttackHitbox>();
         Hitbox.Init(this);
+        Animator = GetComponentInChildren<PlayerAnimator>();
         
         halfPlayerHeight = GetComponent<BoxCollider2D>().bounds.size.y / 2;
         
-        states = new Dictionary<System.Type, IPlayerState>
+        
+        stringStateTypes = new  Dictionary<string, System.Type>()
+        {
+            { "IdleState", typeof(IdleState)},
+            { "MoveState", typeof(MoveState)},
+            { "JumpState" , typeof(JumpState)},
+            { "DoubleJumpState" , typeof(DoubleJumpState)},
+            { "FallState", typeof(FallState)},
+            { "NormalAttackState", typeof(NormalAttackState)},
+            { "NormalJumpAttackState", typeof(NormalJumpAttackState)},
+            { "DownAttackState", typeof(DownAttackState)},
+            { "SpecialAttackState", typeof(SpecialAttackState)},
+            { "DodgeState", typeof(DodgeState)},
+            { "StartParryState", typeof(StartParryState)},
+            { "SuccessParryState", typeof(SuccessParryState)},
+            { "DamagedState", typeof(DamagedState)},
+            { "DieState", typeof(DieState)},
+            { "PotionState", typeof(PotionState)},
+            { "AdditionalAttackState", typeof(AdditionalAttackState)},
+        };
+        
+        
+        states = new Dictionary<System.Type, BasePlayerState>
         {
             { typeof(IdleState), new IdleState() },
             { typeof(MoveState), new MoveState() },
             { typeof(JumpState), new JumpState() },
             { typeof(DoubleJumpState), new DoubleJumpState() },
-            { typeof(WallJumpState), new WallJumpState() },
-            { typeof(WallHoldState), new WallHoldState() },
             { typeof(FallState), new FallState() },
             { typeof(NormalAttackState), new NormalAttackState() },
             { typeof(NormalJumpAttackState), new NormalJumpAttackState()},
@@ -68,6 +114,9 @@ public class PlayerController : MonoBehaviour
             { typeof(AdditionalAttackState), new AdditionalAttackState()},
         };
 
+        
+        
+
         // TODO : 보스 처음에 나올 때 FSM 멈춰두기
         // runFSM = false;
         runFSM = true;
@@ -75,12 +124,18 @@ public class PlayerController : MonoBehaviour
 
     private void Start()
     {
-        Animator = GetComponentInChildren<PlayerAnimator>();
+        foreach (var skill in DataManager.Instance.AllSkills)
+        {
+            skill.Value.SettingController(this);
+        }
+        
         ChangeState<IdleState>();
     }
 
     private void OnEnable()
     {
+        
+        Inputs.Enable();
         Inputs.Change.Pause.started += Move.OnPause;
         Data = DataManager.Instance.PlayerDataModel;
         Debug.Log($"[플레이어] 플레이어 데이터 로드 완료 -> 테스트 : 최대 체력 = {Data.maxHealth}");
@@ -88,6 +143,7 @@ public class PlayerController : MonoBehaviour
 
     private void OnDisable()
     {
+        Inputs.Disable();
         Inputs.Change.Pause.started -= Move.OnPause;
     }
 
@@ -105,7 +161,7 @@ public class PlayerController : MonoBehaviour
         if(!isLookLocked) Move.Look();
     }
 
-    public void ChangeState<T>() where T : IPlayerState
+    public void ChangeState<T>() where T : BasePlayerState
     {
         currentState?.Exit(this);
 
@@ -113,7 +169,15 @@ public class PlayerController : MonoBehaviour
         currentState.Enter(this);
     }
 
-    public bool IsCurrentState<T>() where T : IPlayerState
+    public void ChangeState(Type type)
+    {
+        currentState?.Exit(this);
+
+        currentState = states[type];
+        currentState.Enter(this);
+    }
+
+    public bool IsCurrentState<T>() where T : BasePlayerState
     {
         return currentState is T;
     }
@@ -122,6 +186,13 @@ public class PlayerController : MonoBehaviour
     {
         if (isTrigger) Animator.SetTriggerAnimation(animHash);
         else  Animator.SetBoolAnimation(animHash);
+    }
+
+    public IEnumerator IgnoreInputInTime(float time)
+    {
+        PlayerInputDisable();
+        yield return new WaitForSecondsRealtime(time);
+        PlayerInputEnable();
     }
 
     public void PlayerInputDisable()

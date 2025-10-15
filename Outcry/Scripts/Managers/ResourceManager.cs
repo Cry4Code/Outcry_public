@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using UnityEngine.ResourceManagement.ResourceLocations;
 
 // --------------- ResourceManager의 자체 참조 카운트가 필요한 이유 ---------------
 // ResourceManager는 여러 시스템(StageManager, UIManager 등)의 요청을 받아
@@ -211,44 +212,67 @@ public class ResourceManager : Singleton<ResourceManager>
         }
     }
 
-    // 동기 Addressable 에셋 로드
-    // 이미 로드된 에셋은 캐시에서 즉시 반환하며 참조 카운트 1 증가
     /// <summary>
-    /// 메인 스레드를 차단하여 게임이 멈출 수 있으므로 사용을 권장하지 않음
+    /// 지정된 레이블을 가진 모든 에셋을 비동기적으로 로드합니다.
+    /// 내부적으로 각 에셋의 참조 카운트를 개별적으로 관리합니다.
     /// </summary>
-    public T LoadAssetAddressable<T>(string address) where T : Object
+    /// <typeparam name="T">로드할 에셋의 타입</typeparam>
+    /// <param name="label">로드할 에셋들의 레이블</param>
+    /// <returns>성공적으로 로드된 에셋의 리스트</returns>
+    public async Task<IList<T>> LoadAssetsByLabelAsync<T>(string label) where T : Object
     {
-        // 이미 로드되었거나 로딩 중인 에셋인지 확인
-        if (refCounts.TryGetValue(address, out _))
+        // 레이블에 해당하는 모든 리소스의 위치(주소) 정보를 먼저 가져옴
+        var locationsHandle = Addressables.LoadResourceLocationsAsync(label, typeof(T));
+        IList<IResourceLocation> locations = await locationsHandle.Task;
+        if (locations == null || locations.Count == 0)
         {
-            refCounts[address]++; // 참조 카운트 1 증가
-            // 로드가 완료될 때까지 기다렸다가 캐시에서 반환
-            return addressableHandles[address].WaitForCompletion() as T;
+            Debug.LogWarning($"[ResourceManager] '{label}' 레이블에 해당하는 에셋이 없습니다.");
+            Addressables.Release(locationsHandle);
+            return new List<T>();
         }
 
-        // 처음 로드하는 에셋인 경우
-        refCounts[address] = 1; // 참조 카운트를 1로 초기화
-
-        var loadHandle = Addressables.LoadAssetAsync<T>(address);
-        addressableHandles[address] = loadHandle; // 핸들 저장
-
-        // 작업이 완료될 때까지 메인 스레드를 멈추고 대기
-        T result = loadHandle.WaitForCompletion();
-
-        if (loadHandle.Status == AsyncOperationStatus.Succeeded)
+        // 각 위치 정보(주소)를 이용해 개별 에셋을 로드하는 Task 목록 생성
+        var loadTasks = new List<Task<T>>();
+        foreach (var location in locations)
         {
-            assetPool[address] = result; // 캐시에 저장
-            return result;
+            // 기존의 개별 에셋 로드 메서드를 호출하여 참조 카운팅 시스템을 그대로 활용
+            loadTasks.Add(LoadAssetAddressableAsync<T>(location.PrimaryKey));
         }
-        else
+
+        // 위치 정보 핸들은 더 이상 필요 없으므로 즉시 해제
+        Addressables.Release(locationsHandle);
+
+        // 모든 개별 에셋 로드가 완료될 때까지 기다림
+        T[] loadedAssets = await Task.WhenAll(loadTasks);
+
+        // 로드된 에셋 리스트 반환(null이 포함될 수 있으므로 필터링)
+        return loadedAssets.Where(asset => asset != null).ToList();
+    }
+
+    /// <summary>
+    /// 지정된 레이블을 가진 모든 에셋의 참조 카운트를 1씩 감소시키고 0이 되면 언로드
+    /// </summary>
+    /// <param name="label">언로드할 에셋들의 레이블</param>
+    public async Task UnloadAssetsByLabelAsync(string label)
+    {
+        // 레이블에 해당하는 모든 리소스의 위치(주소) 정보 가져옴
+        var locationsHandle = Addressables.LoadResourceLocationsAsync(label);
+        IList<IResourceLocation> locations = await locationsHandle.Task;
+        if (locations == null)
         {
-            Debug.LogError($"[ResourceManager] 동기 로드 실패: {address}");
-            // 실패 시 모든 정보 제거
-            refCounts.Remove(address);
-            addressableHandles.Remove(address);
-            Addressables.Release(loadHandle);
-            return null;
+            Addressables.Release(locationsHandle);
+            return;
         }
+
+        // 각 위치 정보(주소)를 이용해 개별 에셋 언로드
+        foreach (var location in locations)
+        {
+            // 기존 개별 에셋 언로드 메서드를 호출하여 참조 카운팅 시스템 활용
+            UnloadAddressableAsset(location.PrimaryKey);
+        }
+
+        // 위치 정보 핸들은 더 이상 필요 없으므로 즉시 해제합니다.
+        Addressables.Release(locationsHandle);
     }
     #endregion
 

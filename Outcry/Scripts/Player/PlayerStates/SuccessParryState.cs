@@ -2,12 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SuccessParryState : IPlayerState
+public class SuccessParryState : BasePlayerState
 {
     private float startStateTime;
     private float startAttackTime = 0.01f;
     private bool isStartSFX = false;
-    public void Enter(PlayerController controller)
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         controller.isLookLocked = false;
         controller.Move.ForceLook(CursorManager.Instance.mousePosition.x - controller.transform.position.x < 0);
@@ -25,12 +27,12 @@ public class SuccessParryState : IPlayerState
         controller.isLookLocked = true;
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         
     }
 
-    public async void LogicUpdate(PlayerController controller)
+    public async override void LogicUpdate(PlayerController controller)
     {
         if (Time.time - startStateTime > startAttackTime)
         {
@@ -58,7 +60,7 @@ public class SuccessParryState : IPlayerState
         }
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
         controller.Attack.successParry = false;
     }

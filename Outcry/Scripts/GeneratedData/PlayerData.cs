@@ -15,12 +15,9 @@ public class PlayerData
     public int DodgeStamina;
     public float DodgeInvincibleTime;
     public float DodgeDistance;
-    public int DoubleJumpStamina;
     public int ParryStamina;
     public float ParryInvincibleTime;
     public int ParryDamage;
-    public int WallJumpStamina;
-    public float WallJumpDistance;
     public float InvincibleTime;
     public int[] NormalAttackDamage;
     public int JumpAttackDamage;

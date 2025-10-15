@@ -5,18 +5,25 @@ using UnityEngine;
 
 public class NormalAttackState : NormalAttackSubState
 {
+    public override eTransitionType ChangableStates =>
+        eTransitionType.NormalAttackState | eTransitionType.SpecialAttackState | 
+        eTransitionType.DodgeState | eTransitionType.StartParryState;
+    
     private float startStateTime;
     private float startAttackTime = 0.001f;
     private float startComboTime = 0.1f;
     private float comboTime = 0.2f; // 콤보타임 지나서 누르면 의미없음.
     private bool isComboInput = false;
     private float animRunningTime;
+    private bool isLeft = false;
     
     public override async void Enter(PlayerController controller)
     {
         base.Enter(controller);
         startStateTime = Time.time;
         isComboInput = false;
+        
+        controller.isLookLocked = true; 
         controller.Condition.canStaminaRecovery.Value = false;
         // AttackCount = 0 + NormalAttack Trigger On.
         controller.Animator.ClearBool();
@@ -26,6 +33,12 @@ public class NormalAttackState : NormalAttackSubState
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.NormalAttack);
         if (controller.Attack.AttackCount != controller.Attack.MaxAttackCount)
         {
+            if (controller.Attack.AttackCount == 0)
+            {
+                isLeft = CursorManager.Instance.IsLeftThan(controller.transform);
+                controller.Move.ForceLook(isLeft);
+                controller.isLookLocked = true; 
+            }
             await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.NormalAttackSound, EffectType.Sound, controller.gameObject);
         }
 
@@ -40,6 +53,8 @@ public class NormalAttackState : NormalAttackSubState
 
     public override void HandleInput(PlayerController controller)
     {
+        base.HandleInput(controller);
+        controller.Move.ForceLook(isLeft);
         controller.Move.rb.velocity = Vector2.zero;
         // 키 입력이 필요
         if (Time.time - startStateTime <= comboTime)
@@ -58,25 +73,6 @@ public class NormalAttackState : NormalAttackSubState
                 isComboInput = true;
             }
         }
-        
-        
-        if (controller.Inputs.Player.SpecialAttack.triggered)
-        {
-            controller.isLookLocked = false;
-            controller.ChangeState<SpecialAttackState>();
-            return;
-        }
-        
-        if (controller.Inputs.Player.Dodge.triggered)
-        {
-            controller.ChangeState<DodgeState>();
-            return;
-        }
-        if (controller.Inputs.Player.Parry.triggered)
-        {
-            controller.ChangeState<StartParryState>();
-            return;
-        }
     }
 
     public override void LogicUpdate(PlayerController controller)
@@ -87,7 +83,7 @@ public class NormalAttackState : NormalAttackSubState
         // 입력이 있으면 (0.5초 이내로) 다시 NormalAttackState로 변경
         
         // 현재 진행 중인 애니메이션이 NormalAttack_(현재번호) 일 때
-
+        
         AnimatorStateInfo curAnimInfo = controller.Animator.animator.GetCurrentAnimatorStateInfo(0);
         AnimatorStateInfo nextAnimInfo = controller.Animator.animator.GetNextAnimatorStateInfo(0);
 

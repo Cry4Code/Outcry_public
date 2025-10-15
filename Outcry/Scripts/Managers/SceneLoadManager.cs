@@ -21,9 +21,8 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
         scenes = new Dictionary<ESceneType, SceneBase>
         {
             { ESceneType.TitleScene, new TitleScene() },
-            { ESceneType.LobbyScene, new LobbyScene() },
             { ESceneType.LoadingScene, new LoadingScene() },
-            { ESceneType.StageScene, new StageScene() },
+            { ESceneType.InGameScene, new InGameScene() },
         };
     }
 
@@ -86,41 +85,6 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
         // Fade In 실행 및 완료까지 대기
         yield return FadeManager.Instance.FadeIn();
     }
-
-    //public async void LoadScene(ESceneType sceneType)
-    //{
-    //    if (!scenes.ContainsKey(sceneType))
-    //    {
-    //        Debug.LogWarning($"{sceneType.ToString()} 씬이 존재하지 않습니다.");
-    //        return;
-    //    }
-
-    //    if (currentScene != null && currentScene.SceneName == sceneType.ToString())
-    //    {
-    //        return;
-    //    }
-
-    //    // 이전 씬의 Exit 로직 실행
-    //    if (currentScene != null)
-    //    {
-    //        currentScene.SceneExit();
-    //    }
-
-    //    // currentScene을 여기서 null로 설정하여 이전 씬의 참조 즉시 해제
-    //    currentScene = null;
-
-    //    var op = SceneManager.LoadSceneAsync(sceneType.ToString());
-    //    while (!op.isDone)
-    //    {
-    //        await Task.Yield();
-    //    }
-
-    //    // 씬 로드가 끝나면 해당 씬의 SceneBase 객체를 찾아 초기화
-    //    currentScene = scenes[sceneType];
-
-    //    currentScene.SceneAwake();
-    //    currentScene.SceneEnter();
-    //}
 
     /// <summary>
     /// 로딩 이후 씬 활성화

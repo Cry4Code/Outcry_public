@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class DodgeState : IPlayerState
+public class DodgeState : BasePlayerState
 {
     
     private float startStateTime;
@@ -12,8 +12,10 @@ public class DodgeState : IPlayerState
     private float dodgePower = 20f;
     private float dodgeAnimationLength;
     private Vector2 dodgeDirection;
-    
-    public void Enter(PlayerController controller)
+
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         if (!controller.Condition.TryUseStamina(controller.Data.dodgeStamina))
         {
@@ -30,8 +32,7 @@ public class DodgeState : IPlayerState
         }
         
         var moveInputs = controller.Inputs.Player.Move.ReadValue<Vector2>();
-        controller.isLookLocked = false;
-        controller.Move.rb.velocity = Vector2.zero;
+        controller.isLookLocked = true;
         if (moveInputs.x != 0)
         {
             // 입력이 있을 때 그 쪽 보게
@@ -48,25 +49,28 @@ public class DodgeState : IPlayerState
         controller.Animator.ClearTrigger();
         controller.Animator.ClearInt();
         controller.Animator.ClearBool();
-        controller.Inputs.Player.Move.Disable();
+        
         dodgeAnimationLength = 
             controller.Animator.animator.runtimeAnimatorController
                 .animationClips.First(c => c.name == "Dodge").length;
         CameraManager.Instance.ShakeCamera(0.1f, 0.5f, 1f, EffectOrder.Player);
-        controller.Move.rb.AddForce(dodgeDirection, ForceMode2D.Impulse);
+        Debug.Log($"[Dodge] DodgeDirection: {dodgeDirection}");
+        /*controller.Move.rb.velocity = Vector2.zero;*/
+        /*controller.Move.rb.AddForce(dodgeDirection, ForceMode2D.Impulse);*/
+        
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.Dodge);
         controller.Condition.SetInvincible(controller.Data.dodgeInvincibleTime);
-        controller.isLookLocked = true;
         startStateTime = Time.time;
         animRunningTime = 0f;
+        controller.Inputs.Player.Move.Disable();
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
         animRunningTime += Time.deltaTime;
         
@@ -76,6 +80,7 @@ public class DodgeState : IPlayerState
 
             if (curAnimInfo.IsName("Dodge"))
             { 
+                controller.Move.rb.velocity = dodgeDirection;
                 float animTime = curAnimInfo.normalizedTime;
 
                 if (animTime >= 1.0f)
@@ -96,7 +101,7 @@ public class DodgeState : IPlayerState
         }
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
         controller.Inputs.Player.Move.Enable();
     }

@@ -15,12 +15,9 @@ public class PlayerDataModel
     public int dodgeStamina;
     public float dodgeInvincibleTime;
     public float dodgeDistance;
-    public int doubleJumpStamina;
     public int parryStamina;
     public float parryInvincibleTime;
     public int parryDamage;
-    public int wallJumpStamina;
-    public float wallJumpDistance;
     public float invincibleTime;
     public int[] normalAttackDamage;
     public int jumpAttackDamage;
@@ -31,8 +28,8 @@ public class PlayerDataModel
     public float moveSpeed;
 
     public PlayerDataModel(
-        int  maxHealth, int  maxStamina, float rateStamina, float fullStamina, int specialAttackStamina, int specialAttackDamage, int justSpecialAttackDamage, int dodgeStamina, float dodgeInvincibleTime, float dodgeDistance, int doubleJumpStamina, int parryStamina,  float parryInvincibleTime,
-        int parryDamage, int wallJumpStamina, float wallJumpDistance, float invincibleTime, int[] normalAttackDamage, int jumpAttackDamage, int downAttackDamage, float jumpforce, float doubleJumpForce, int skill_Ids, float moveSpeed
+        int  maxHealth, int  maxStamina, float rateStamina, float fullStamina, int specialAttackStamina, int specialAttackDamage, int justSpecialAttackDamage, int dodgeStamina, float dodgeInvincibleTime, float dodgeDistance, int parryStamina,  float parryInvincibleTime,
+        int parryDamage, float invincibleTime, int[] normalAttackDamage, int jumpAttackDamage, int downAttackDamage, float jumpforce, float doubleJumpForce, int skill_Ids, float moveSpeed
         )
     {
         this.maxHealth = maxHealth;
@@ -45,12 +42,9 @@ public class PlayerDataModel
         this.dodgeStamina = dodgeStamina;
         this.dodgeInvincibleTime = dodgeInvincibleTime;
         this.dodgeDistance = dodgeDistance;
-        this.doubleJumpStamina = doubleJumpStamina;
         this.parryStamina = parryStamina;
         this.parryInvincibleTime = parryInvincibleTime;
         this.parryDamage = parryDamage;
-        this.wallJumpStamina = wallJumpStamina;
-        this.wallJumpDistance = wallJumpDistance;
         this.invincibleTime = invincibleTime;
         this.normalAttackDamage = normalAttackDamage;
         this.jumpAttackDamage = jumpAttackDamage;

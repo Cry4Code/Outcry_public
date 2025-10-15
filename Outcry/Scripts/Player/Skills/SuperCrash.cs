@@ -8,16 +8,10 @@ public class SuperCrash : SkillBase
     // SuperCrash -> WhileSuperCrash -> EndSuperCrash
     // SuperCrash 진행할 동안만 공중에서 멈춰있고 나머지 재생해주면 됨
     
-    // 시간 쪼개기 
-    private float startAttackTime = 0.01f;
-    private float animRunningTime = 0f;
-    private float inAirAnimationLength;
     
-    // 쿨타임
-    private float lastUsedTime = float.MinValue;
-    
-    public override void Enter(PlayerController controller)
+    public override void Enter()
     {
+        useSuccessed = false;
         // 발동 조건 체크 : 공중
         if (controller.Move.isGrounded)
         {
@@ -40,7 +34,7 @@ public class SuperCrash : SkillBase
             return;
         }
         Debug.Log("[플레이어] 스킬 SuperCrash 사용!");
-        
+        useSuccessed = true;
         // 시점 고정
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
@@ -48,24 +42,16 @@ public class SuperCrash : SkillBase
         controller.Condition.isCharge = true;
         
         animRunningTime = 0f;
-        inAirAnimationLength = 
-            controller.Animator.animator.runtimeAnimatorController
-                .animationClips.First(c => c.name == "SuperCrash").length;
         controller.Attack.SetDamageList(damages);
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
         controller.PlayerInputDisable();
     }
 
-    public override void HandleInput(PlayerController controller)
-    {
-        
-    }
-
-    public override void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate()
     {
         animRunningTime += Time.deltaTime;
-        if (animRunningTime < inAirAnimationLength)
+        if (animRunningTime < animationLength)
         {
             controller.Move.rb.velocity = Vector2.zero;
             return;
@@ -81,12 +67,4 @@ public class SuperCrash : SkillBase
         }
     }
 
-    public override void Exit(PlayerController controller)
-    {
-        Debug.Log("[플레이어] 스킬 SuperCrash 종료");
-        controller.Move.rb.gravityScale = 1f;
-        controller.PlayerInputEnable();
-        lastUsedTime = Time.time;
-        controller.Condition.isCharge = false;
-    }
 }

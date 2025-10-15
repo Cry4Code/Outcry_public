@@ -92,7 +92,9 @@ public abstract class MonsterAIBase : MonoBehaviour //MonoBehaviour 상속 안�
     
     public void UpdateAI()
     {
-        if (!isAvailableToAct || monster.Animator.speed < 1f)
+        if (!isAvailableToAct)
+            return;
+        if (monster.Animator.speed < 1f)
             return;
         if (rootNode == null)
         {
@@ -103,6 +105,11 @@ public abstract class MonsterAIBase : MonoBehaviour //MonoBehaviour 상속 안�
         NodeState state = rootNode.Tick();
     }
     
+    public void VictoryCeremony()
+    {
+        DeactivateBt();
+        monster.Animator.Play(AnimatorHash.MonsterAnimation.Spawn);
+    }
     public void DeactivateBt()
     {
         isAvailableToAct = false;

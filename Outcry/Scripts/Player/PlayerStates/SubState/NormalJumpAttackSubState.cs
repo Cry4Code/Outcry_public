@@ -9,11 +9,6 @@ public class NormalJumpAttackSubState : AirSubState
         controller.Animator.OnBoolParam(AnimatorHash.PlayerAnimation.SubNormalJumpAttack);
     }
 
-    public override void HandleInput(PlayerController controller)
-    {
-        
-    }
-
     public override void LogicUpdate(PlayerController controller)
     {
         

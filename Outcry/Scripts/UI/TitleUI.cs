@@ -1,4 +1,5 @@
-using Firebase.Analytics;
+using StageEnums;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,6 +10,9 @@ public class TitleUI : UIBase
     [SerializeField] private Button settingsBtn;
     [SerializeField] private Button quitBtn;
 
+    // UPA 로그인 시도를 추적하기 위한 플래그
+    private bool isAttemptingUPALogin = false;
+
     private void Awake()
     {
         guestLoginBtn.onClick.AddListener(OnClickGuestLogin);
@@ -17,49 +21,141 @@ public class TitleUI : UIBase
         quitBtn.onClick.AddListener(OnClickQuit);
     }
 
-    private async void OnClickGuestLogin()
+    private void Start()
+    {
+        // UGSManager가 준비되었는지 확인 후 이벤트 구독
+        if (UGSManager.Instance != null)
+        {
+            UGSManager.Instance.OnLoginSuccess += HandleLoginSuccess;
+            UGSManager.Instance.OnLoginFailure += HandleLoginFailure;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // UGSManager가 TitleUI보다 먼저 파괴될 수 있는 예외적인 경우(예: 게임 종료 시) 대비
+        if (UGSManager.Instance != null)
+        {
+            UGSManager.Instance.OnLoginSuccess -= HandleLoginSuccess;
+            UGSManager.Instance.OnLoginFailure -= HandleLoginFailure;
+        }
+    }
+
+    // 게임 창 포커스 변경 시 호출되는 Unity 이벤트 메서드
+    private void OnApplicationFocus(bool hasFocus)
+    {
+        // 게임 창이 다시 활성화되었을 때(포커스를 얻었을 때)
+        if (hasFocus)
+        {
+            // 이메일 로그인을 시도하다가 돌아왔고 아직 로그인이 안 된 상태라면
+            if (isAttemptingUPALogin && !UGSManager.Instance.IsLoggedIn)
+            {
+                Debug.Log("Login cancelled by user. Re-enabling buttons.");
+                // 버튼을 다시 활성화하고 플래그를 리셋
+                SetButtonsInteractable(true);
+                isAttemptingUPALogin = false;
+            }
+        }
+    }
+
+    /// <summary>
+    /// 로그인 성공 이벤트가 발생하면 호출될 핸들러
+    /// </summary>
+    private async void HandleLoginSuccess()
+    {
+        Debug.Log("Login successful! Loading user data and transitioning UI.");
+
+        isAttemptingUPALogin = false;
+
+        // 게스트 로그인은 바로 튜토리얼 시작
+        if(UGSManager.Instance.IsAnonymousUser)
+        {
+            GameManager.Instance.StartStage((int)EStageType.Tutorial);
+            return;
+        }
+
+        // 로그인에 성공 -> 데이터 로드
+        await SaveLoadManager.Instance.LoadAllUserData();
+
+        // SaveLoadUI의 나가기 버튼에 주입할 동작 정의
+        var exitActionData = new SaveLoadUIData
+        {
+            OnClickExitAction = async () =>
+            {
+                // UI 닫고
+                UIManager.Instance.Hide<SaveLoadUI>();
+
+                // UGS 로그아웃 비동기 실행
+                await UGSManager.Instance.SignOutAsync();
+
+                // TitleUI의 버튼들 다시 활성화
+                SetButtonsInteractable(true);
+
+                Debug.Log("Signed out and returned to Title Screen.");
+            }
+        };
+
+        // 정의된 동작(exitActionData)과 함께 SaveLoadUI 열기
+        SaveLoadManager.Instance.OpenUI(ESlotUIType.Load, exitActionData);
+    }
+
+    /// <summary>
+    /// 로그인 실패 이벤트가 발생하면 호출될 핸들러
+    /// </summary>
+    private void HandleLoginFailure(object sender, LoginErrorArgs args)
+    {
+        Debug.LogWarning($"Login failed: {args.Title} - {args.Message}");
+
+        isAttemptingUPALogin = false;
+
+        // 에러 팝업UI 을 띄워 사용자에게 실패 원인을 알려줌
+        var popup = UIManager.Instance.Show<ConfirmUI>();
+
+        // 로그인 실패 메시지를 담은 데이터 생성
+        var popupData = new ConfirmPopupData
+        {
+            Title = args.Title,     // UGSManager에서 전달받은 제목
+            Message = args.Message, // UGSManager에서 전달받은 메시지
+            Type = EConfirmPopupType.OK, // 확인 버튼만 필요
+            OnClickOK = null // 확인 버튼 클릭 시 특별한 동작은 없음
+        };
+
+        // 데이터로 팝업UI 설정
+        popup.Setup(popupData);
+
+        // 사용자가 다시 시도할 수 있도록 버튼 활성화
+        SetButtonsInteractable(true);
+    }
+
+    private void OnClickGuestLogin()
     {
         Debug.Log("Guest Login Clicked");
 
-        // 이미 다른 계정으로 로그인 되어 있다면 먼저 로그아웃
-        if (FirebaseManager.Instance.IsLoggedIn && !FirebaseManager.Instance.IsAnonymousUser)
+        // TODO: 저장 안됨 경고 팝업 띄우고 확인 누르면 계속 진행
+        var popup = UIManager.Instance.Show<ConfirmUI>();
+        popup.Setup(new ConfirmPopupData
         {
-            Debug.Log("이메일 계정 로그아웃 후, 새로운 게스트 계정으로 전환합니다.");
-            await FirebaseManager.Instance.SignOutAsync();
-        }
-
-        // 현재 로그인 되어 있지 않다면 (기존에 로그아웃했거나 원래 로그아웃 상태) 익명 로그인 시도
-        if (!FirebaseManager.Instance.IsLoggedIn)
-        {
-            bool success = await FirebaseManager.Instance.SignInAnonymouslyAsync();
-            if (!success)
+            Title = "경고",
+            Message = "게스트 계정은 데이터가 저장되지 않습니다.\n 계정연동 후 저장 가능합니다.",
+            Type = EConfirmPopupType.OK_CANCEL,
+            OnClickOK = async () =>
             {
-                // TODO: 게스트 로그인 실패 UI 처리
-                Debug.LogError("Guest Login Failed!");
-                return; // 로그인에 실패했으므로 여기서 중단
-            }
-        }
-
-        // 성공적으로 게스트로 로그인된 상태 보장
-        Debug.Log("게스트 계정으로 로그인되었습니다. 데이터 로드 UI로 이동합니다.");
-        FirebaseAnalytics.LogEvent("login_anonymous"); // 게스트 로그인 이벤트 로깅
-
-        // 유저 데이터 로드 후 다음 UI로 이동
-        await SaveLoadManager.Instance.LoadAllUserData();
-        SaveLoadManager.Instance.OpenUI(ESlotUIType.Load);
+                SetButtonsInteractable(false);
+                await UGSManager.Instance.SwitchToNewGuestAccountAsync();
+            },
+            OnClickCancel = null
+        });
     }
 
-    private void OnClickEmailLogin()
+    private async void OnClickEmailLogin()
     {
         Debug.Log("Email Login Clicked");
 
-        if (FirebaseManager.Instance.IsLoggedIn)
-        {
-            FirebaseManager.Instance.SignOut();
-        }
+        // 로그인 시도 플래그 true로 설정하고 버튼 비활성화
+        isAttemptingUPALogin = true;
 
-        EmailUI email = UIManager.Instance.Show<EmailUI>();
-        email.Setup(EEmailUIType.SignUp);
+        SetButtonsInteractable(false);
+        await UGSManager.Instance.SignInWithUPAAsync();
     }
 
     public void SetButtonsInteractable(bool isInteractable)

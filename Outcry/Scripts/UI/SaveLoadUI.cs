@@ -1,4 +1,4 @@
-using System.Collections;
+using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -9,8 +9,12 @@ public class SaveLoadUI : UIPopup
     [SerializeField] private TextMeshProUGUI titleText;
     [SerializeField] private Button[] slotBtns;
     [SerializeField] private TMP_Text[] nicknameTexts;
+    [SerializeField] private GameObject[] emptySlotObjects;
     [SerializeField] private GameObject[] characterSlotObjects;
     [SerializeField] private Button exitBtn;
+
+    // 외부에서 전달받은 나가기 동작을 저장할 변수
+    private Action onClickExitAction;
 
     private void Start()
     {
@@ -69,19 +73,45 @@ public class SaveLoadUI : UIPopup
             if (data.TryGetValue(i, out UserData slotData))
             {
                 nicknameTexts[i].text = slotData.Nickname;
+
+                emptySlotObjects[i].SetActive(false);
                 characterSlotObjects[i].SetActive(true);
                 nicknameTexts[i].gameObject.SetActive(true);
             }
             else
             {
-                nicknameTexts[i].gameObject.SetActive(false);
+                emptySlotObjects[i].SetActive(true);
                 characterSlotObjects[i].SetActive(false);
+                nicknameTexts[i].gameObject.SetActive(false);
             }
+        }
+    }
+
+    /// <summary>
+    /// 외부에서 데이터를 받아 UI의 동작을 설정하는 메서드
+    /// </summary>
+    public void Setup(SaveLoadUIData data)
+    {
+        // 전달받은 데이터가 null이 아니면 나가기 동작 저장
+        if (data != null)
+        {
+            this.onClickExitAction = data.OnClickExitAction;
         }
     }
 
     private void OnClickExit()
     {
-        UIManager.Instance.Hide<SaveLoadUI>();
+        // 저장된 나가기 동작이 있으면 실행 없으면 기본 동작(숨기기) 수행
+        if (onClickExitAction != null)
+        {
+            onClickExitAction.Invoke();
+            // 동작 실행 후에는 초기화하여 다음 Open 시에 영향이 없도록 함
+            onClickExitAction = null;
+        }
+        else
+        {
+            // 기본 동작 UI 숨기기
+            UIManager.Instance.Hide<SaveLoadUI>();
+        }
     }
 }

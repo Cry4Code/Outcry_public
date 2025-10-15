@@ -110,9 +110,7 @@ public class EffectManager : Singleton<EffectManager>
     }
 
     /// <summary>
-    /// 이미 재생 중인 같은 타입의 이펙트가 있다면 해당 타입의 이펙트'만' 취소 후 재생합니다.
-    /// 그 외 다른 타입의 이펙트는 유지됩니다.
-    /// 우선순위를 따지지 않고 이전 이펙트를 취소 및 새 이펙트를 재생하므로 주의하여 사용하세요.
+    /// 
     /// </summary>
     /// <param name="effectId"></param>
     /// <param name="effectType"></param>

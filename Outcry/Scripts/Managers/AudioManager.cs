@@ -63,6 +63,14 @@ public class AudioManager : Singleton<AudioManager>
     private const string BGM_VOLUME_PARAM = "BGM";
     private const string SFX_VOLUME_PARAM = "SFX";
 
+    // PlayerPrefs 저장을 위한 키
+    private const string MASTER_VOLUME_KEY = "MasterVolume";
+    private const string BGM_VOLUME_KEY = "BGMVolume";
+    private const string SFX_VOLUME_KEY = "SFXVolume";
+    private const string MASTER_MUTE_KEY = "MasterMute";
+    private const string BGM_MUTE_KEY = "BGMMute";
+    private const string SFX_MUTE_KEY = "SFXMute";
+
     protected override void Awake()
     {
         base.Awake();
@@ -73,10 +81,8 @@ public class AudioManager : Singleton<AudioManager>
         InitializePool();
         InitializeSoundContainer();
 
-        // 볼륨 기본값으로 초기화
-        ResetToDefaultState();
-
-        // TODO: 초기 볼륨 설정(파이어베이스에서 불러오기?)
+        // PlayerPrefs에서 설정 불러오기
+        LoadVolumeSettings();
     }
 
     #region 초기화
@@ -466,6 +472,9 @@ public class AudioManager : Singleton<AudioManager>
 
         // 변환된 값으로 실제 오디오 믹서의 볼륨 조절
         gameAudioMixer.SetFloat(param, volumeDB);
+
+        // 변경된 설정을 PlayerPrefs에 저장
+        SaveVolumeSettings();
     }
 
     public float GetVolume(EVolumeType type)
@@ -566,6 +575,9 @@ public class AudioManager : Singleton<AudioManager>
 
         // UI 업데이트를 위해 이벤트 호출
         OnMuteStateChanged?.Invoke(type, isMute);
+
+        // 변경된 설정을 PlayerPrefs에 저장
+        SaveVolumeSettings();
     }
 
     // 현재 음소거 상태 반환
@@ -608,9 +620,12 @@ public class AudioManager : Singleton<AudioManager>
 
         // 슬라이더 UI도 업데이트되어야 하므로 이벤트 호출
         OnVolumeSettingsChanged?.Invoke();
+
+        // 변경된 설정을 PlayerPrefs에 저장
+        SaveVolumeSettings();
     }
 
-    // 외부(Firebase 등)에서 불러온 설정 값으로 모든 볼륨 한 번에 적용
+    // 외부에서 불러온 설정 값으로 모든 볼륨 한 번에 적용
     public void ApplyAllVolumeSettings(float master, float bgm, float sfx)
     {
         SetVolume(EVolumeType.Master, master);
@@ -619,6 +634,61 @@ public class AudioManager : Singleton<AudioManager>
 
         // 외부에서 데이터가 로드되어 볼륨이 바뀌었으므로 UI 업데이트 이벤트 호출
         OnVolumeSettingsChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// 현재 오디오 설정을 PlayerPrefs에 저장
+    /// </summary>
+    public void SaveVolumeSettings()
+    {
+        // 현재 볼륨 값 (음소거 상태가 아니어도 실제 볼륨 값을 저장)
+        PlayerPrefs.SetFloat(MASTER_VOLUME_KEY, GetVolume(EVolumeType.Master));
+        PlayerPrefs.SetFloat(BGM_VOLUME_KEY, GetVolume(EVolumeType.BGM));
+        PlayerPrefs.SetFloat(SFX_VOLUME_KEY, GetVolume(EVolumeType.SFX));
+
+        // 음소거 상태 (bool을 int로 변환하여 저장: true=1, false=0)
+        PlayerPrefs.SetInt(MASTER_MUTE_KEY, isMasterMuted ? 1 : 0);
+        PlayerPrefs.SetInt(BGM_MUTE_KEY, isBgmMuted ? 1 : 0);
+        PlayerPrefs.SetInt(SFX_MUTE_KEY, isSfxMuted ? 1 : 0);
+
+        // 변경사항을 디스크에 즉시 기록
+        PlayerPrefs.Save();
+        Debug.Log("[AudioManager] 오디오 설정이 저장되었습니다.");
+    }
+
+    /// <summary>
+    /// PlayerPrefs에서 오디오 설정 불러옴
+    /// </summary>
+    private void LoadVolumeSettings()
+    {
+        // 저장된 키가 있는지 확인 (MASTER_VOLUME_KEY 하나만 확인해도 충분)
+        if (PlayerPrefs.HasKey(MASTER_VOLUME_KEY))
+        {
+            // 저장된 볼륨 값 불러오기
+            float masterVol = PlayerPrefs.GetFloat(MASTER_VOLUME_KEY);
+            float bgmVol = PlayerPrefs.GetFloat(BGM_VOLUME_KEY);
+            float sfxVol = PlayerPrefs.GetFloat(SFX_VOLUME_KEY);
+            ApplyAllVolumeSettings(masterVol, bgmVol, sfxVol);
+
+            // 저장된 음소거 상태 불러오기(int를 bool로 변환)
+            bool masterMute = PlayerPrefs.GetInt(MASTER_MUTE_KEY, 0) == 1;
+            bool bgmMute = PlayerPrefs.GetInt(BGM_MUTE_KEY, 0) == 1;
+            bool sfxMute = PlayerPrefs.GetInt(SFX_MUTE_KEY, 0) == 1;
+
+            // 불러온 값으로 음소거 상태 설정
+            SetMute(EVolumeType.Master, masterMute);
+            SetMute(EVolumeType.BGM, bgmMute);
+            SetMute(EVolumeType.SFX, sfxMute);
+
+            Debug.Log("[AudioManager] 저장된 오디오 설정을 불러왔습니다.");
+        }
+        else
+        {
+            // 저장된 설정이 없으면 (최초 실행) 기본값으로 초기화하고 저장
+            Debug.Log("[AudioManager] 저장된 오디오 설정이 없습니다. 기본값으로 초기화합니다.");
+            ResetToDefaultState();
+            SaveVolumeSettings(); // 다음 실행을 위해 기본값을 저장
+        }
     }
     #endregion
 

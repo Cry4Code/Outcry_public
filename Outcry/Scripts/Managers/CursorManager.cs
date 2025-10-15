@@ -110,4 +110,10 @@ public class CursorManager : Singleton<CursorManager>
         mousePosition.z = 0f;
         inGameCursor.position = mousePosition;
     }
+
+    public bool IsLeftThan(Transform transform)
+    {
+        /*Debug.Log($"[CursorManager] mousePosition.x = {mousePosition.x}, transform.x = {transform.position.x}");*/
+        return mousePosition.x < transform.position.x;
+    }
 }

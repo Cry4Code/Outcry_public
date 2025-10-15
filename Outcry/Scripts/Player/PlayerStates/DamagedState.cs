@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class DamagedState : IPlayerState
+public class DamagedState : BasePlayerState
 {
     
     private float startStateTime;
@@ -11,8 +11,10 @@ public class DamagedState : IPlayerState
     private float canInputTime = 0.1f;
     private float t;
     private float damagedTime;
-    
-    public void Enter(PlayerController controller)
+
+    public override eTransitionType ChangableStates { get; }
+
+    public override void Enter(PlayerController controller)
     {
         controller.Move.rb.velocity = Vector2.zero;
         controller.Condition.canStaminaRecovery.Value = true;
@@ -27,7 +29,7 @@ public class DamagedState : IPlayerState
         t = 0;
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         if (Time.time - startStateTime > canInputTime)
         {
@@ -62,7 +64,7 @@ public class DamagedState : IPlayerState
         }
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
         AnimatorStateInfo curAnimInfo = controller.Animator.animator.GetCurrentAnimatorStateInfo(0);
         if (!curAnimInfo.IsName("Damaged"))
@@ -91,7 +93,7 @@ public class DamagedState : IPlayerState
         
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
         controller.Inputs.Player.Move.Enable();
         controller.Inputs.Player.Jump.Enable();

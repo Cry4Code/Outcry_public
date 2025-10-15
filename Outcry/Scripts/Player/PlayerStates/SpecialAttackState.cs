@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class SpecialAttackState : IPlayerState
+public class SpecialAttackState : BasePlayerState
 {
     private float startStateTime;
     private float startAttackTime = 0.01f;
@@ -24,7 +24,9 @@ public class SpecialAttackState : IPlayerState
 
 
     private float t;
-    public async void Enter(PlayerController controller)
+    public override eTransitionType ChangableStates { get; }
+
+    public async override void Enter(PlayerController controller)
     {
         if (!controller.Condition.TryUseStamina(controller.Data.specialAttackStamina))
         {
@@ -83,12 +85,12 @@ public class SpecialAttackState : IPlayerState
         controller.Attack.justAttackStartPosition = startPos;
     }
 
-    public void HandleInput(PlayerController controller)
+    public override void HandleInput(PlayerController controller)
     {
         
     }
 
-    public void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate(PlayerController controller)
     {
         // 멈춤 상태. 별로면 나중에 이부분 빼면 됨
         if (controller.Animator.animator.speed < 1)
@@ -178,8 +180,9 @@ public class SpecialAttackState : IPlayerState
         }
     }
 
-    public void Exit(PlayerController controller)
+    public override void Exit(PlayerController controller)
     {
+        controller.isLookLocked = false;
         controller.Inputs.Player.Move.Enable();
         controller.Condition.isSuperArmor = false;
         controller.transform.rotation = Quaternion.Euler(0, 0, 0);

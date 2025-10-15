@@ -86,5 +86,4 @@ public abstract class SkillSequenceNode : SequenceNode
             return false;
         }
     }
-    
 }

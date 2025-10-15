@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,7 @@ public class HUDUI : UIBase
     //체력칸 -실제 채력을 보여주는 붉은 칸
     //체력바 는 항상 남아있음(안에 체력칸만 사라짐)
     [SerializeField] private UnityEngine.UI.Image staminaFill;
-
+    [SerializeField] private TextMeshProUGUI playerName;
     [SerializeField] private HeartIcon heartPrefab;
     [SerializeField] private Transform heartsParent;
     [SerializeField] private FaceUI faceUI;
@@ -80,6 +81,16 @@ public class HUDUI : UIBase
         BuildHearts(maxHealth);
         UpdateHearts(maxHealth);
         beforeChangeHealth = maxHealth;
+
+        // 닉네임 표시
+        if(UGSManager.Instance.IsAnonymousUser)
+        {
+            playerName.text = "Guest";
+        }
+        else
+        {
+            playerName.text = GameManager.Instance.CurrentUserData.Nickname;
+        }
     }
 
     private void OnHealthChanged(object value) // 체력 변경 시

@@ -5,18 +5,9 @@ using UnityEngine;
 
 public class ScrewAttack : SkillBase
 {
-    // 시간 쪼개기 
-    private float startStateTime;
-    private float startAttackTime = 0.01f;
-    private float animRunningTime = 0f;
-    private float attackAnimationLength;
-
-    // 쿨타임
-    private float lastUsedTime = float.MinValue;
-    
-    
-    public override void Enter(PlayerController controller)
+    public override void Enter()
     {
+        useSuccessed = false;
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
         {
@@ -39,6 +30,7 @@ public class ScrewAttack : SkillBase
             return;
         }
         Debug.Log("[플레이어] 스킬 ScrewAttack 사용!");
+        useSuccessed = true;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
@@ -47,9 +39,6 @@ public class ScrewAttack : SkillBase
         
         animRunningTime = 0f;
         startStateTime = Time.time;
-        attackAnimationLength = 
-            controller.Animator.animator.runtimeAnimatorController
-                .animationClips.First(c => c.name == "ScrewAttack").length;
         controller.Attack.SetDamageList(damages);
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
@@ -57,12 +46,8 @@ public class ScrewAttack : SkillBase
         
     }
 
-    public override void HandleInput(PlayerController controller)
-    {
-        
-    }
 
-    public override void LogicUpdate(PlayerController controller)
+    public override void LogicUpdate()
     {
         if (Time.time - startStateTime > startAttackTime)
         {
@@ -80,20 +65,12 @@ public class ScrewAttack : SkillBase
                 }
             }
 
-            if (animRunningTime >= attackAnimationLength)
+            if (animRunningTime >= animationLength)
             {
                 if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                 else controller.ChangeState<FallState>();
                 return;
             }
         }
-    }
-
-    public override void Exit(PlayerController controller)
-    {
-        Debug.Log("[플레이어] 스킬 ScrewAttack 종료");
-        controller.PlayerInputEnable();
-        lastUsedTime = Time.time;
-        controller.Condition.isCharge = false;
     }
 }
