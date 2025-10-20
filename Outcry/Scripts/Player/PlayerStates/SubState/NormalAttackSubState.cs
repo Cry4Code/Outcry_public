@@ -10,16 +10,6 @@ public class NormalAttackSubState : GroundSubState
         controller.Animator.OnBoolParam(AnimatorHash.PlayerAnimation.SubNormalAttack);
     }
 
-    public override void HandleInput(PlayerController controller)
-    {
-        
-    }
-
-    public override void LogicUpdate(PlayerController controller)
-    {
-        
-    }
-
     public override void Exit(PlayerController controller)
     {
         base.Exit(controller);

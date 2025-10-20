@@ -149,16 +149,22 @@ public class PlayerController : MonoBehaviour
 
     private void Update()
     {
-        Debug.Log($"[플레이어] 상태 : {currentState.GetType().Name}");
-        Debug.Log($"[플레이어] 벽 터치 : {Move.isWallTouched}");
-        // Debug.Log($"[플레이어] 땅 : {PlayerMove.isGrounded} || 일반 점프 : {PlayerMove.isGroundJump} || 이단 점프 : {PlayerMove.isDoubleJump}");
-        currentState.HandleInput(this);
-        currentState.LogicUpdate(this);
+        if (runFSM)
+        {
+            currentState.HandleInput(this);
+            currentState.LogicUpdate(this);
+        }
+        // FSM이 멈춘 이유가 DieState가 아니면 기본 상태로 전환하고 속도 멈춤
+        else if (!IsCurrentState<DieState>())
+        {
+            Move.rb.velocity =  Vector2.zero;
+            ChangeState<IdleState>(); // 기본 상태로 전환
+        }
     }
 
     private void LateUpdate()
     {
-        if(!isLookLocked) Move.Look();
+        if(!isLookLocked && runFSM) Move.Look();
     }
 
     public void ChangeState<T>() where T : BasePlayerState
@@ -199,6 +205,7 @@ public class PlayerController : MonoBehaviour
     {
         Inputs.Player.Move.Disable();
         Inputs.Player.Jump.Disable();
+        Inputs.Player.NormalAttack.Disable();
         Inputs.Player.SpecialAttack.Disable();
         Inputs.Player.AdditionalAttack.Disable();
         Inputs.Player.Potion.Disable();
@@ -210,6 +217,7 @@ public class PlayerController : MonoBehaviour
     {
         Inputs.Player.Move.Enable();
         Inputs.Player.Jump.Enable();
+        Inputs.Player.NormalAttack.Enable();
         Inputs.Player.SpecialAttack.Enable();
         Inputs.Player.AdditionalAttack.Enable();
         Inputs.Player.Potion.Enable();

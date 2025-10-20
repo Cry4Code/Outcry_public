@@ -1,8 +1,8 @@
+using Cysharp.Threading.Tasks;
 using StageEnums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 
 // 게임 전체의 상태를 나타내는 열거형
@@ -27,6 +27,9 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     private int currentSlotIndex = -1; // 현재 플레이 중인 슬롯 번호 저장
 
     public event Action<int, UserData> OnUserDataSaved;
+
+    // 이전 리소스 목록 임시 저장
+    private List<string> assetsToUnloadFromPreviousScene = new List<string>();
 
     protected override void Awake()
     {
@@ -134,7 +137,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         _ = SaveGameAsync();
     }
 
-    public async Task<bool> SaveGameAsync()
+    public async UniTask<bool> SaveGameAsync()
     {
         if (CurrentUserData == null || currentSlotIndex == -1)
         {
@@ -163,24 +166,14 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         if(CurrentUserData.IsTutorialCleared)
         {
+            // 로드하면서 보유한 스킬 장착
+            PlayerManager.Instance.player.Skill.SetSkill(CurrentUserData.SelectSkillId);
+
             GoToLobby();
         }
         else
         {
             StartStage((int)EStageType.Tutorial);
-        }
-    }
-
-    private IEnumerator SaveGameCoroutine()
-    {
-        var saveTask = SaveGameAsync();
-        // Task가 완료될 때까지 코루틴에서 대기
-        yield return new WaitUntil(() => saveTask.IsCompleted);
-
-        if (saveTask.IsFaulted)
-        {
-            Debug.LogError("로딩 중 저장 실패!");
-            // TODO: 저장 실패 시 예외 처리(재시도 UI 표시)?
         }
     }
     #endregion
@@ -189,49 +182,27 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     // 로비(거점) 씬으로 이동
     public void GoToLobby()
     {
-        currentStageData = DataTableManager.Instance.GetCollectionDataById<StageData>((int)EStageType.Village);
-        if (currentStageData == null)
+        StartStage((int)EStageType.Village);
+    }
+
+    /// <summary>
+    /// 이전 스테이지에서 사용했던 리소스들을 안전하게 언로드하는 코루틴
+    /// 이 코루틴은 LoadingScene이 활성화된 후에 실행된다.
+    /// </summary>
+    private IEnumerator UnloadPreviousStageAssetsCoroutine()
+    {
+        // 이전 SceneLoadManager가 언로드하므로 여기서는 씬 언로드가 필요 없다.
+        // 오직 에셋만 언로드
+
+        // 이전 스테이지의 로드 패키지에서 언로드할 리소스 목록을 가져옴
+        // 단, NextLoadPackage는 이미 새로운 로비 패키지로 교체되었으므로
+        // 이전 리소스 목록을 다른 곳에 임시 저장해야 한다.(StartStage에서 처리)
+        if (assetsToUnloadFromPreviousScene != null && assetsToUnloadFromPreviousScene.Count > 0)
         {
-            Debug.LogError($"villageStageData를 찾을 수 없습니다.");
-            // TODO: 타이틀로 돌아가기?
-            return;
+            yield return ResourceManager.Instance.UnloadAllAssetsCoroutine(assetsToUnloadFromPreviousScene);
+            assetsToUnloadFromPreviousScene.Clear(); // 정리 후 비워줌
         }
-
-        CurrentGameState = EGameState.LoadingScene;
-
-        // 로비 이동을 위한 간단한 명세서 생성(미리 로드할 리소스 없음)
-        var package = new SceneLoadPackage(ESceneType.InGameScene);
-        package.AdditiveSceneNames.Add("StageManagers");
-
-        // PlayerSFX 효과음 프리 로드
-        package.PreLoadingTasks.Add(new LoadingTask
-        {
-            Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
-            Coroutine = LoadPlayerSFXCoroutine // 실행할 코루틴 메서드 연결
-        });
-
-        if (!string.IsNullOrEmpty(currentStageData.Map_path))
-        {
-            package.ResourceAddressesToLoad.Add(currentStageData.Map_path);
-        }
-
-        // 유저 데이터 저장
-        if (CurrentUserData != null && currentSlotIndex != -1)
-        {
-            package.PreLoadingTasks.Add(new LoadingTask
-            {
-                Description = "Saving player data...", // 로딩 UI에 표시될 텍스트
-                Coroutine = SaveGameCoroutine           // 실행할 코루틴 메서드 연결
-            });
-        }
-
-        package.ResourceAddressesToLoad.Add(Paths.Prefabs.Player);
-
-        // 생성된 명세서 저장
-        NextLoadPackage = package;
-
-        // LoadingScene 로드
-        SceneLoadManager.Instance.LoadScene(ESceneType.LoadingScene);
+        yield break;
     }
 
     /// <summary>
@@ -249,19 +220,38 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         }
 
         CurrentGameState = EGameState.LoadingScene;
+        Time.timeScale = 1f; // 일시정지 상태였다면 풀어줌
 
         // 스테이지 시작 이벤트 로깅
         UGSManager.Instance.LogStageStart(currentStageData.Stage_name);
 
         // 스테이지 시작을 위한 데이터 설정
         var package = new SceneLoadPackage(ESceneType.InGameScene);
-        package.AdditiveSceneNames.Add("StageManagers");
+        //package.AdditiveSceneNames.Add("StageManagers");
+
+        // 가장 먼저 이전 리소스 언로드 작업 PreLoadingTask에 추가
+        // 이 시점의 assetsToUnloadFromPreviousScene는 이전 스테이지의 리소스 목록을 담고 있다.
+        package.PreLoadingTasks.Add(new LoadingTask
+        {
+            Description = "Cleaning up previous stage...",
+            Coroutine = UnloadPreviousStageAssetsCoroutine
+        });
+
+        // 현재 유저 데이터 저장 작업 추가(로비로 돌아갈 때만 저장)
+        if (stageId == (int)EStageType.Village && CurrentUserData != null && currentSlotIndex != -1)
+        {
+            package.PreLoadingTasks.Add(new LoadingTask
+            {
+                Description = "Saving game data...",
+                Coroutine = () => SaveGameAsync().ToCoroutine()
+            });
+        }
 
         // PlayerSFX 효과음 프리 로드
         package.PreLoadingTasks.Add(new LoadingTask
         {
             Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
-            Coroutine = LoadPlayerSFXCoroutine // 실행할 코루틴 메서드 연결
+            Coroutine = () => LoadPlayerSFXAsync().ToCoroutine() // 실행할 코루틴 메서드 연결
         });
 
         if (!string.IsNullOrEmpty(currentStageData.Map_path))
@@ -282,7 +272,11 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             }
         }
 
+        package.ResourceAddressesToLoad.Add(Paths.Prefabs.Cursor);
         package.ResourceAddressesToLoad.Add(Paths.Prefabs.Player);
+
+        // 새로운 스테이지를 시작하기 전에 다음에 언로드해야 할 리소스 목록 저장
+        assetsToUnloadFromPreviousScene = new List<string>(package.ResourceAddressesToLoad);
 
         // 스테이지 데이터 저장
         NextLoadPackage = package;
@@ -392,25 +386,112 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         // 소모 성공
         return true;
     }
+
+    /// <summary>
+    /// 플레이어 데이터에 스킬을 추가하려고 시도
+    /// </summary>
+    /// <param name="skillId">추가할 스킬의 ID</param>
+    public void GainSkill(int skillId)
+    {
+        // 유저데이터가 없는 경우(로그인/초기화 안됨) 그냥 종료
+        if (CurrentUserData == null) return;
+
+        // AcquiredSkillIds 리스트가 null이면 새로 생성
+        if (CurrentUserData.AcquiredSkillIds == null)
+            CurrentUserData.AcquiredSkillIds = new List<int>();
+
+        // 이미 같은 스킬을 가지고 있으면 중복 추가를 막고 종료
+        if (CurrentUserData.AcquiredSkillIds.Contains(skillId))
+            return;
+
+        //리스트에 skillId 기록
+        CurrentUserData.AcquiredSkillIds.Add(skillId);
+    }
+
+    /// <summary>
+    /// (임시) 현재 장착된 스킬 ID. 
+    /// TODO: 추후 UserData에 정식 필드로 이전: int EquippedSkillId;
+    /// </summary>
+    private int equippedSkillId = -1;
+
+    /// <summary>
+    /// UI 등에서 장착 성공 시 알림을 받고 싶을 때 구독
+    /// </summary>
+    public event Action<int> OnSkillEquipped;
+
+    /// <summary>
+    /// 스킬 장착 시도: 유저가 해당 스킬을 보유하고 있어야 함
+    /// </summary>
+    /// <param name="skillId">장착할 스킬 ID</param>
+    /// <returns>장착 성공 여부</returns>
+    public bool TryEquipSkill(int skillId)
+    {
+        if (CurrentUserData == null)
+        {
+            Debug.LogWarning("[GameManager.TryEquipSkill] CurrentUserData is null.");
+            return false;
+        }
+
+        // 보유 스킬 목록 검사
+        if (CurrentUserData.AcquiredSkillIds == null ||
+            !CurrentUserData.AcquiredSkillIds.Contains(skillId))
+        {
+            Debug.LogWarning($"[GameManager.TryEquipSkill] 보유하지 않은 스킬은 장착할 수 없습니다. (skillId: {skillId})");
+            return false;
+        }
+
+        // 한 개만 장착 가능 → 단순히 교체
+        equippedSkillId = skillId;
+
+        // (옵션) 나중에 UserData에 정식 저장 시 여기에 반영:
+        // TODO: CurrentUserData.EquippedSkillId = skillId;
+
+        Debug.Log($"[GameManager.TryEquipSkill] 스킬 장착 성공: {skillId}");
+        OnSkillEquipped?.Invoke(skillId);
+        return true;
+    }
+
+    /// <summary>
+    /// (임시) 현재 장착된 스킬 ID 조회
+    /// </summary>
+    public int GetEquippedSkillId()
+    {
+        return equippedSkillId;
+    }
+
+    /// <summary>
+    /// (필요 시) 장착 해제
+    /// </summary>
+    public void UnEquipSkill()
+    {
+        equippedSkillId = -1;
+        // TODO: 나중에 UserData.EquippedSkillId = -1; 형태로 이전
+        Debug.Log("[GameManager.UnEquipSkill] 스킬 장착 해제");
+    }
+
     #endregion
 
     /// <summary>
     /// PlayerSFX 레이블을 가진 모든 오디오 클립을 로드하는 코루틴
     /// </summary>
-    private IEnumerator LoadPlayerSFXCoroutine()
+    private async UniTask LoadPlayerSFXAsync()
     {
-        var loadTask = ResourceManager.Instance.LoadAssetsByLabelAsync<AudioClip>("PlayerSFX");
-
-        // Task가 완료될 때까지 코루틴에서 대기합
-        yield return new WaitUntil(() => loadTask.IsCompleted);
-
-        if (loadTask.IsFaulted)
+        try
         {
-            Debug.LogError("플레이어 효과음(PlayerSFX) 로딩에 실패했습니다!");
+            var loadedClips = await ResourceManager.Instance.LoadAssetsByLabelAsync<AudioClip>("PlayerSFX");
+            Debug.Log($"플레이어 효과음 {loadedClips.Count}개 로딩 완료.");
         }
-        else
+        catch (Exception ex)
         {
-            Debug.Log($"플레이어 효과음 {loadTask.Result.Count}개 로딩 완료.");
+            Debug.LogError($"플레이어 효과음(PlayerSFX) 로딩에 실패했습니다! 에러: {ex.Message}");
         }
+    }
+
+    public void QuitGame()
+    {
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false;
+#endif
+        Application.Quit();
     }
 }

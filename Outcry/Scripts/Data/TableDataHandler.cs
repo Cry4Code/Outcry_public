@@ -127,7 +127,7 @@ public static class TableDataHandler
     {
         return new PlayerSkillModel(tableData.Skill_id, tableData.P_Skill_Name,
             tableData.Damages, tableData.BuffValue, tableData.Stamina,
-            tableData.Cooldown, tableData.Duration, tableData.Desc);
+            tableData.Cooldown, tableData.Duration, tableData.Desc, tableData.NeedSoul);
     }
     
     

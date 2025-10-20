@@ -4,10 +4,6 @@ using UnityEngine.InputSystem;
 public class CursorManager : Singleton<CursorManager>
 {
     #region 커서들
-
-    private string cursorPrefabAddress = "Player/InGameCursor.prefab";
-
-    //[SerializeField] private Sprite cursorSprite;
     private Transform inGameCursor; // 인게임용
     private PlayerInputs.PlayerActions playerInputMap;
     private InputAction cursorInput;
@@ -24,31 +20,36 @@ public class CursorManager : Singleton<CursorManager>
     {
         base.Awake();
 
-        mainCam = Camera.main;
         Cursor.visible = false;
     }
 
     protected override void OnDestroy()
     {
         base.OnDestroy();
-        
-        if (!string.IsNullOrEmpty(cursorPrefabAddress))
+
+        // ResourceManager.Instance가 아직 파괴되지 않고 존재하는 경우에만 리소스 해제 시도
+        if (!string.IsNullOrEmpty(Paths.Prefabs.Cursor) && ResourceManager.Instance != null)
         {
-            ResourceManager.Instance.UnloadAddressableAsset(cursorPrefabAddress);
+            ResourceManager.Instance.UnloadAddressableAsset(Paths.Prefabs.Cursor);
         }
     }
 
     /// <summary>
     /// PlayerManager가 플레이어가 준비되었다고 알려주면 호출될 메서드
     /// </summary>
-    public async void InitializeForInGame(PlayerController player)
+    public void InitializeForInGame(PlayerController player)
     {
         // 어드레서블 시스템을 통해 커서 프리팹 비동기 로드
-        GameObject cursorPrefab = await ResourceManager.Instance.LoadAssetAddressableAsync<GameObject>(cursorPrefabAddress);
+        if (isInitialized || player == null)
+        {
+            return;
+        }
+
+        GameObject cursorPrefab = ResourceManager.Instance.GetLoadedAsset<GameObject>(Paths.Prefabs.Cursor);
 
         if (cursorPrefab == null)
         {
-            Debug.LogError($"'{cursorPrefabAddress}' 주소의 커서 프리팹을 로드하는데 실패했습니다.");
+            Debug.LogError($"'{Paths.Prefabs.Cursor}' 주소의 커서 프리팹을 로드하는데 실패했습니다.");
             return;
         }
 
@@ -58,6 +59,7 @@ public class CursorManager : Singleton<CursorManager>
         renderer.sortingOrder = 500;
 
         inGameCursor = cursorObj.transform;
+        inGameCursor.SetParent(CameraManager.Instance.MainCamera.transform, true); // 카메라의 자식으로 설정
         inGameCursor.gameObject.SetActive(false); // 일단 비활성화
 
         if (isInitialized || player == null)
@@ -86,6 +88,7 @@ public class CursorManager : Singleton<CursorManager>
     {
         IsInGame = isInGame;
         inGameCursor.gameObject.SetActive(isInGame);
+
         Cursor.visible = !isInGame;
         if (isInGame)
         {
@@ -97,7 +100,7 @@ public class CursorManager : Singleton<CursorManager>
         }
     }
 
-    private void Update()
+    private void LateUpdate()
     {
         if (inGameCursor == null)
         {

@@ -28,7 +28,13 @@ public class PlayerSkill : MonoBehaviour
 
     public void SetSkill(int skillId)
     {
-        // TODO : 스킬 아이디로 플레이어 스킬 매니저에서 찾아와서 여기다가 넣어주면 됨
+        // SkillId가 0이면 아무런 스킬도 장착하지 않음.
+        if (skillId == 0)
+        {
+            CurrentSkill = null;
+            return;
+        }
+        
         if (DataManager.Instance.AllSkills.TryGetValue(skillId, out var skillBase))
         {
             CurrentSkill = skillBase;

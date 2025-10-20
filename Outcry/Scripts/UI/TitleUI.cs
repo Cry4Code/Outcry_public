@@ -1,11 +1,13 @@
 using StageEnums;
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TitleUI : UIBase
 {
     [SerializeField] private Button guestLoginBtn;
+    [SerializeField] private TextMeshProUGUI guestLoginTxt;
     [SerializeField] private Button emailLoginBtn;
     [SerializeField] private Button settingsBtn;
     [SerializeField] private Button quitBtn;
@@ -23,6 +25,11 @@ public class TitleUI : UIBase
 
     private void Start()
     {
+#if UNITY_WEBGL
+        emailLoginBtn.gameObject.SetActive(false);
+        guestLoginTxt.text = "Start";
+#endif
+
         // UGSManager가 준비되었는지 확인 후 이벤트 구독
         if (UGSManager.Instance != null)
         {
@@ -131,12 +138,12 @@ public class TitleUI : UIBase
     {
         Debug.Log("Guest Login Clicked");
 
-        // TODO: 저장 안됨 경고 팝업 띄우고 확인 누르면 계속 진행
         var popup = UIManager.Instance.Show<ConfirmUI>();
+#if UNITY_WEBGL
         popup.Setup(new ConfirmPopupData
         {
-            Title = "경고",
-            Message = "게스트 계정은 데이터가 저장되지 않습니다.\n 계정연동 후 저장 가능합니다.",
+            Title = "Warning",
+            Message = "Saving is not available in the WebGL version.\n Please launch the Windows version and log in to save your game.",
             Type = EConfirmPopupType.OK_CANCEL,
             OnClickOK = async () =>
             {
@@ -145,6 +152,20 @@ public class TitleUI : UIBase
             },
             OnClickCancel = null
         });
+#else
+        popup.Setup(new ConfirmPopupData
+        {
+            Title = "Warning",
+            Message = "Guest accounts do not save data.\n You can save after linking your account.",
+            Type = EConfirmPopupType.OK_CANCEL,
+            OnClickOK = async () =>
+            {
+                SetButtonsInteractable(false);
+                await UGSManager.Instance.SwitchToNewGuestAccountAsync();
+            },
+            OnClickCancel = null
+        });
+#endif
     }
 
     private async void OnClickEmailLogin()
@@ -168,14 +189,16 @@ public class TitleUI : UIBase
 
     private void OnClickSettings()
     {
-        UIManager.Instance.Show<OptionUI>();
+        var optionPopup = UIManager.Instance.Show<OptionUI>();
+        optionPopup.Setup(new OptionUIData
+        {
+            Type = EOptionUIType.Title,
+            OnClickExitAction = null // 기본 동작(UI 닫기)
+        });
     }
 
     private void OnClickQuit()
     {
-#if UNITY_EDITOR
-        UnityEditor.EditorApplication.isPlaying = false;
-#endif
-        Application.Quit();
+        GameManager.Instance.QuitGame();
     }
 }

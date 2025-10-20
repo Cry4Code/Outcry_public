@@ -10,6 +10,15 @@ public class WindSlash : SkillBase
     private const float ANIMATION_FRAME_RATE = 20f;
     // 앞으로 날라가는 기준 시간
     private const float RUN_FRONT_TIME = (1.0f / ANIMATION_FRAME_RATE) * 8f;
+
+    private float[] attackTimes = 
+    {
+        (1.0f / ANIMATION_FRAME_RATE) * 8f,
+        (1.0f / ANIMATION_FRAME_RATE) * 16f,
+        (1.0f / ANIMATION_FRAME_RATE) * 22f,
+    };
+
+    private int attackTimesIndex = 0;
     
     // 날라가기 관련
     private bool isMoved = false;
@@ -48,11 +57,13 @@ public class WindSlash : SkillBase
         
         Debug.Log("[플레이어] 스킬 WindSlash 사용!");
         useSuccessed = true;
+        attackTimesIndex = 0;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
         controller.Move.rb.velocity = Vector2.zero;
-        controller.Condition.isCharge = true;
+        controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = true;
         /*controller.Animator.ClearTrigger();
         controller.Animator.ClearInt();
         
@@ -71,7 +82,7 @@ public class WindSlash : SkillBase
         isMoved = false;
     }
 
-    public override void LogicUpdate()
+    public async override void LogicUpdate()
     {
         animRunningTime += Time.deltaTime;
 
@@ -91,6 +102,17 @@ public class WindSlash : SkillBase
                 controller.Move.rb.MovePosition(targetPos);
             }
             
+        }
+
+
+        if (attackTimesIndex < attackTimes.Length)
+        {
+            if (animRunningTime >= attackTimes[attackTimesIndex])
+            {
+                attackTimesIndex++;
+                await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject,
+                    new Vector3(2, 0.2f));
+            }    
         }
         
         if (Time.time - startStateTime > startAttackTime)

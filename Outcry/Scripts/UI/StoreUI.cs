@@ -16,12 +16,18 @@ public class StoreUI : UIPopup
 
     [SerializeField] private TextMeshProUGUI infoText;
 
-    //[SerializeField] private ShowSkillPreview previewPlayer; // 프리뷰 오브젝트(씬) 드래그
+    [SerializeField] private ToggleGroup toggleGroup; //토글 자식들을 가져오기 위해서
+
+    private SkillBtn _selectedBtn;
+    private SkillData _selectedData;
+
 
     private void Awake()
     {
         buyBtn.onClick.AddListener(Buy);
         exitBtn.onClick.AddListener(Exit);
+        buyBtn.interactable = false; //버튼 비활성화로 초기화
+
 
     }
 
@@ -37,28 +43,43 @@ public class StoreUI : UIPopup
             icon.SetOutputText(infoText);
             //icon.SetPreviewPlayer(previewPlayer);          // ★ 프리뷰 재생기 주입
 
-            //스킬을 해금하는데 필요한 소울을 가지고&& 스킬을 아직 구매하지 않은 상태라면
-            //해당 소울로 해금할 수 있는 버튼 활성화, 나머지 비활성화
+            icon.SetBuyButton(buyBtn);
+
+            // ★핵심: 선택 이벤트 구독
+            icon.OnSelected += HandleSelected;
+
+            buyBtn.interactable = false;
 
         }
+    }
 
-        if (CanBuy() == true)
-        {
-            buyBtn.interactable = true;   // 버튼 활성화
-        }
-        else
-        {
-            buyBtn.interactable = false;  // 버튼 비활성화
-        }
 
-        //StoreManager.Instance.BindSkillButtonsUnder(btnParents);
+    private void HandleSelected(SkillBtn sender, SkillData data)
+    {
+        _selectedBtn = sender;
+        _selectedData = data;
+        Debug.Log($" 선택됨: id={_selectedData.Skill_id}, name={_selectedData.P_Skill_Name}");
     }
 
     private void Buy()
     {
-        //스킬 미리보기 버튼이 눌려있으면 해당 스킬 구매
+        if (_selectedData == null)
+            return;
 
-        //유저 정보에 스킬 추가 하기
+        int skillId = _selectedData.Skill_id;
+        int soulId = _selectedData.NeedSoul;
+
+        // 이미 가지고 있으면 종료
+        if (GameManager.Instance.CurrentUserData.AcquiredSkillIds.Contains(skillId))
+            return;
+
+
+        if (!GameManager.Instance.TrySpendSouls(soulId, 1))
+        {
+            return;
+        }
+
+        GameManager.Instance.GainSkill(skillId);
     }
 
     private void Exit()
@@ -69,15 +90,6 @@ public class StoreUI : UIPopup
         PlayerManager.Instance.player.PlayerInputEnable();
     }
 
-    private bool CanBuy(/*매개변수로 스킬 번호 또는 스킬 내부 데이터 가져옴*/)
-    {
-        if (activeBtn == true/*임시 코드*/) //스킬을 해금하는데 필요한 소울을 가지고&& 스킬을 아직 구매하지 않은 상태라면
-              //해당 소울로 해금할 수 있는 버튼 활성화, 나머지 비활성화
-        {
-            return activeBtn;
-        }
-        return false;
-    }
 
     private void ActPreview(int btnNum)
     {

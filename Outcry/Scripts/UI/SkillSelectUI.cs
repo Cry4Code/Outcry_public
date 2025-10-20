@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,20 +10,48 @@ public class SkillSelectUI : UIPopup
     //[SerializeField] private SelectBtn;
     [SerializeField] private Button exitBtn;
 
-    [SerializeField] private SkillBtn btnPrefab;
+    [SerializeField] private SkillSelectBtn btnPrefab;
     [SerializeField] private Transform btnParents;
 
     [SerializeField] private bool activeBtn = true;
-
     [SerializeField] private TextMeshProUGUI infoText;
 
-    //[SerializeField] private ShowSkillPreview previewPlayer; // 프리뷰 오브젝트(씬) 드래그
+    [SerializeField] private Button OnSkill;
+    [SerializeField] private Button OnAchieve;
+
+    [SerializeField] private GameObject SkillWindow;
+    [SerializeField] private GameObject AchieveWindow;
+
+    [SerializeField] private GameObject SelectedSkill;
+
+    [SerializeField] private Image sidePreviewImage;
+
+
+    [System.Serializable] public struct SkillIconPair { public int id; public Sprite icon; }
+
+    [Header("Icon Mapping")]
+    [SerializeField] private List<SkillIconPair> iconPairs = new List<SkillIconPair>();
+
+    private Dictionary<int, Sprite> iconMap;
+
+    private SkillSelectBtn _selectedBtn;
+    private SkillData _selectedData;
+
 
     private void Awake()
     {
         //buyBtn.onClick.AddListener(Buy);
         exitBtn.onClick.AddListener(Exit);
+        OnAchieve.onClick.AddListener(OnAchieveWindow);
+        OnSkill.onClick.AddListener(OnSkillWindow);
 
+        // iconMap은 최소한 빈 딕셔너리로
+        iconMap = new Dictionary<int, Sprite>();
+        foreach (var p in iconPairs)
+        {
+            if (p.icon != null)
+                iconMap[p.id] = p.icon; // 같은 id가 있으면 마지막이 유효
+        }
     }
 
     private void Start()
@@ -31,35 +60,59 @@ public class SkillSelectUI : UIPopup
         for (int i = 0; i < skills.Count; i++)
         {
 
-            var icon = Instantiate(btnPrefab, btnParents);
-            icon.name = $"Skill_{i + 1}";//스킬의 갯수 만큼 동적 생성
-            icon.Bind(skills[i]); // ★ 여기서 바로 바인딩
-            icon.SetOutputText(infoText);
-            //icon.SetPreviewPlayer(previewPlayer);          // ★ 프리뷰 재생기 주입
+            var btn = Instantiate(btnPrefab, btnParents);
+            btn.name = $"Skill_{i + 1}";//스킬의 갯수 만큼 동적 생성
+            btn.Bind(skills[i]); // ★ 여기서 바로 바인딩
+            btn.SetOutputText(infoText);
 
-            //스킬을 해금하는데 필요한 소울을 가지고&& 스킬을 아직 구매하지 않은 상태라면
-            //해당 소울로 해금할 수 있는 버튼 활성화, 나머지 비활성화
+            // 2) 아이콘 조회용 변수 (한 번만 선언)
+            Sprite iconSprite = null;
 
+            // 스킬 ID로 먼저 시도
+            if (iconMap != null)
+            {
+                iconMap.TryGetValue(skills[i].Skill_id, out iconSprite);
+
+                // (옵션) 못 찾으면 NeedSoul로 폴백
+                if (iconSprite == null)
+                    iconMap.TryGetValue(skills[i].NeedSoul, out iconSprite);
+
+            }
+
+            // 3) 프리팹 내부 이미지에 주입
+            btn.SetIcon(iconSprite); // null이면 기존 sprite 유지
+
+            btn.SetLinkedExternalImage(sidePreviewImage);
+
+            btn.OnSelected += HandleSelected;//  추가: 버튼의 "선택 이벤트"를 구독
         }
-        /*
-        if (CanBuy() == true)
+
+        DisableUnownedSkillToggles();
+
+    }
+
+    private void OnEnable()
+    {
+        var user = GameManager.Instance.CurrentUserData;
+
+        if (user == null || user.AcquiredSkillIds == null || user.AcquiredSkillIds.Count == 0)
         {
-            buyBtn.interactable = true;   // 버튼 활성화
+            Debug.Log("[SkillSelectUI] 유저가 가진 스킬 없음");
         }
         else
         {
-            buyBtn.interactable = false;  // 버튼 비활성화
+            Debug.Log("[SkillSelectUI] 유저가 가진 스킬 ID 목록: " +
+                string.Join(", ", user.AcquiredSkillIds));
         }
-        */
-        //StoreManager.Instance.BindSkillButtonsUnder(btnParents);
+        DisableUnownedSkillToggles(); // ← 여기서 매번 갱신
     }
 
-    private void Buy()
+    private void SetOwnedVisualOverlay(SkillSelectBtn btn, bool owned)
     {
-        //스킬 미리보기 버튼이 눌려있으면 해당 스킬 구매
-
-        //유저 정보에 스킬 추가 하기
+        btn.toggle.interactable = owned;
+        btn.SetOverlayActive(!owned);
     }
+
 
     private void Exit()
     {
@@ -69,13 +122,46 @@ public class SkillSelectUI : UIPopup
         PlayerManager.Instance.player.PlayerInputEnable();
     }
 
-    private bool CanBuy(/*매개변수로 스킬 번호 또는 스킬 내부 데이터 가져옴*/)
+    // ★ 추가: 이벤트 핸들러 — 눌린 토글 정보 저장
+    private void HandleSelected(SkillSelectBtn sender, SkillData data)
     {
-        if (activeBtn == true/*임시 코드*/) //스킬을 해금하는데 필요한 소울을 가지고&& 스킬을 아직 구매하지 않은 상태라면
-                                        //해당 소울로 해금할 수 있는 버튼 활성화, 나머지 비활성화
-        {
-            return activeBtn;
-        }
-        return false;
+        _selectedBtn = sender;
+        _selectedData = data;
+        // 필요하면 이후 단계에서 _selectedData를 사용해 Buy 등 연결 가능
     }
+
+    private void OnSkillWindow()
+    {
+        SkillWindow.SetActive(true);
+        AchieveWindow.SetActive(false);
+        SelectedSkill.SetActive(true);
+    }
+
+    private void OnAchieveWindow()
+    {
+        SkillWindow.SetActive(false);
+        AchieveWindow.SetActive(true);
+        SelectedSkill.SetActive(false);
+    }
+
+    private void DisableUnownedSkillToggles()
+    {
+        var user = GameManager.Instance.CurrentUserData;
+        if (user == null) return;
+
+        // 현재 UI 내부 버튼 전체 조회
+        var allBtns = btnParents.GetComponentsInChildren<SkillSelectBtn>(includeInactive: true);
+
+        foreach (var btn in allBtns)
+        {
+            if (btn.Data == null) continue;
+
+            bool owned = user.AcquiredSkillIds != null &&
+                         user.AcquiredSkillIds.Contains(btn.Data.Skill_id);
+
+            // 소유하지 않은 스킬은 클릭 불가로 만든다
+            SetOwnedVisualOverlay(btn, owned);
+        }
+    }
+
 }

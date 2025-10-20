@@ -39,6 +39,11 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     
     public int potionCount = 1;
     public int potionHealthRecovery = 3;
+
+    [Header("Damaged Feedback Settings")] 
+    public float flashTime;
+    public float flashSpeed;
+    
     
     
     private PlayerController controller;
@@ -168,6 +173,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         if(!isCharge) invincibleCoroutine = StartCoroutine(Invincible());
         Debug.Log("[플레이어] 플레이어 데미지 받음");
         health.Substract(damage);
+        controller.Animator.DamagedFeedback(flashTime, flashSpeed);
         Debug.Log($"[플레이어] 플레이어 현재 체력 : {health.CurValue()}");            
         if(!controller.IsCurrentState<DamagedState>() && !isSuperArmor) controller.ChangeState<DamagedState>();
     }

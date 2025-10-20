@@ -1,6 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class IdleState : GroundSubState
@@ -53,7 +53,7 @@ public class IdleState : GroundSubState
                 if (hit.collider.CompareTag("Platform"))
                 {
                     Debug.Log("[플레이어] 아래 점프 입력된 후 플랫폼 발견됨");
-                    await TurnOffPlatformCollider(hit.collider);
+                    TurnOffPlatformCollider(hit.collider).Forget();
                     controller.ChangeState<FallState>();
                 }
             }
@@ -86,10 +86,10 @@ public class IdleState : GroundSubState
         base.Exit(controller);
         controller.Animator.OffBoolParam(AnimatorHash.PlayerAnimation.Idle);
     }
-    async Task TurnOffPlatformCollider(Collider2D collider)
+    async UniTaskVoid TurnOffPlatformCollider(Collider2D collider)
     {
         collider.enabled = false;
-        await Task.Delay(500);
+        await UniTask.Delay(500);
         collider.enabled = true;
     }
     

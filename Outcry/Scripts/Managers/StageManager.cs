@@ -20,6 +20,7 @@ public class StageManager : Singleton<StageManager>
 
     // 내부 변수
     private StageData currentStageData;
+    private GameObject currentBoundsObject;
     private CinemachineVirtualCamera stageCamera;
     public CinemachineVirtualCamera StageCamera => stageCamera; //범위 공격 위해서 public으로 노출 필요
     private float stageTimer;
@@ -29,9 +30,6 @@ public class StageManager : Singleton<StageManager>
     private GameObject mapPrefab;
     private GameObject playerPrefab;
     private List<GameObject> enemyPrefabs; // ID로 프리팹을 빠르게 찾기 위한 딕셔너리
-
-    // 이 스테이지에서 로드한 리소스 주소 목록(언로드용)
-    //private List<string> loadedAssetKeys = new List<string>();
 
     // 이벤트
     public static event Action<StageData> OnStageCleared;
@@ -77,34 +75,34 @@ public class StageManager : Singleton<StageManager>
         base.OnDestroy();
 
         // 실제 메모리 해제 여부는 ResourceManager가 결정
-        if (currentStageData != null)
-        {
-            // 맵 리소스 참조 해제 요청
-            if (!string.IsNullOrEmpty(currentStageData.Map_path))
-            {
-                ResourceManager.Instance.UnloadAddressableAsset(currentStageData.Map_path);
-            }
-            // 몬스터 리소스 참조 해제 요청
-            foreach (var monsterId in currentStageData.Monster_ids)
-            {
-                var enemyData = GameManager.Instance.GetEnemyData(monsterId);
-                if (enemyData != null && !string.IsNullOrEmpty(enemyData.Enemy_path))
-                {
-                    ResourceManager.Instance.UnloadAddressableAsset(enemyData.Enemy_path);
-                }
-            }
-        }
+        //if (currentStageData != null)
+        //{
+        //    // 맵 리소스 참조 해제 요청
+        //    if (!string.IsNullOrEmpty(currentStageData.Map_path))
+        //    {
+        //        ResourceManager.Instance.UnloadAddressableAsset(currentStageData.Map_path);
+        //    }
+        //    // 몬스터 리소스 참조 해제 요청
+        //    foreach (var monsterId in currentStageData.Monster_ids)
+        //    {
+        //        var enemyData = GameManager.Instance.GetEnemyData(monsterId);
+        //        if (enemyData != null && !string.IsNullOrEmpty(enemyData.Enemy_path))
+        //        {
+        //            ResourceManager.Instance.UnloadAddressableAsset(enemyData.Enemy_path);
+        //        }
+        //    }
+        //}
 
-        // 플레이어 리소스 참조 해제 요청
-        if (!string.IsNullOrEmpty(Paths.Prefabs.Player))
-        {
-            ResourceManager.Instance.UnloadAddressableAsset(Paths.Prefabs.Player);
-        }
+        //// 플레이어 리소스 참조 해제 요청
+        //if (!string.IsNullOrEmpty(Paths.Prefabs.Player))
+        //{
+        //    ResourceManager.Instance.UnloadAddressableAsset(Paths.Prefabs.Player);
+        //}
 
-        // 스테이지가 종료될 때 로드했던 플레이어 효과음 언로드
-        Debug.Log("[StageManager] Unloading player SFX by label PlayerSFX");
-        // fire-and-forget으로 언로드
-        _ = ResourceManager.Instance.UnloadAssetsByLabelAsync("PlayerSFX");
+        //// 스테이지가 종료될 때 로드했던 플레이어 효과음 언로드
+        //Debug.Log("[StageManager] Unloading player SFX by label PlayerSFX");
+        //// fire-and-forget으로 언로드
+        //_ = ResourceManager.Instance.UnloadAssetsByLabelAsync("PlayerSFX");
     }
 
     public void InitializeStage(StageData stageData, GameObject map, GameObject player, List<GameObject> enemy)
@@ -136,6 +134,12 @@ public class StageManager : Singleton<StageManager>
 
             case (int)EStageType.RuinsOfTheFallenKing:
                 return controllerObject.AddComponent<FallenKingStageController>();
+
+            case (int)EStageType.AbandonedMine:
+                return controllerObject.AddComponent<AbandonedMineStageController>();
+
+            case (int)EStageType.HallOfBlood:
+                return controllerObject.AddComponent<HallOfBloodStageController>();
 
             default:
                 return controllerObject.AddComponent<StageController>();
@@ -186,7 +190,8 @@ public class StageManager : Singleton<StageManager>
 
         // 생성된 맵 내부에서 스폰 지점들을 찾음
         // 맵에서 모든 스폰 포인트 정보를 미리 찾아 Dictionary로 저장 (빠른 조회용)
-        Transform playerSpawnTransform = null;
+        //Transform playerSpawnTransform = null;
+        var playerSpawnPoints = new Dictionary<int, Transform>();
         var enemySpawnPoints = new Dictionary<int, Transform>();
         var obstacleSpawnPoints = new List<Transform>();
 
@@ -197,7 +202,14 @@ public class StageManager : Singleton<StageManager>
             switch (spawnPoint.Type)
             {
                 case ESpawnType.Player:
-                    playerSpawnTransform = spawnPoint.transform;
+                    if (!playerSpawnPoints.ContainsKey(spawnPoint.SpawnIndex))
+                    {
+                        playerSpawnPoints.Add(spawnPoint.SpawnIndex, spawnPoint.transform);
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"SpawnIndex {spawnPoint.SpawnIndex}가 중복됩니다.", spawnPoint.gameObject);
+                    }
                     break;
 
                 case ESpawnType.Enemy:
@@ -230,7 +242,7 @@ public class StageManager : Singleton<StageManager>
         if (currentStageController != null)
         {
             // 컨트롤러에게 스폰에 필요한 모든 정보 넘겨줌
-            currentStageController.Initialize(this, currentStageData, playerPrefab, enemyPrefabs, playerSpawnTransform, enemySpawnPoints, stageCamera, obstacleSpawnPoints);
+            currentStageController.Initialize(this, currentStageData, playerPrefab, enemyPrefabs, playerSpawnPoints, enemySpawnPoints, stageCamera, obstacleSpawnPoints);
             currentStageController.StageSequence().Forget();
         }
         else
@@ -240,7 +252,12 @@ public class StageManager : Singleton<StageManager>
         }
 
         // 카메라 경계 설정
-        CreateCameraBounds(mapInstance, stageCamera);
+        var initialTilemap = mapInstance.GetComponentInChildren<Tilemap>();
+        if (initialTilemap != null)
+        {
+            UpdateCameraBounds(initialTilemap);
+        }
+        //CreateCameraBounds(mapInstance, stageCamera);
 
         // TODO: 스테이지 시작 UI?
 
@@ -358,6 +375,55 @@ public class StageManager : Singleton<StageManager>
     }
 
     /// <summary>
+    /// 지정된 타일맵을 기준으로 카메라 경계를 생성하고 적용하는 메서드
+    /// </summary>
+    /// <param name="boundsTilemap">경계로 사용할 타일맵</param>
+    public void UpdateCameraBounds(Tilemap boundsTilemap)
+    {
+        if (boundsTilemap == null)
+        {
+            Debug.LogWarning("경계를 설정할 타일맵이 null입니다.");
+            return;
+        }
+
+        // 이전에 생성된 경계 오브젝트가 있다면 파괴
+        if (currentBoundsObject != null)
+        {
+            Destroy(currentBoundsObject);
+        }
+
+        boundsTilemap.CompressBounds();
+        var tilemapRenderer = boundsTilemap.GetComponent<TilemapRenderer>();
+        if (tilemapRenderer == null)
+        {
+            return;
+        }
+
+        Bounds worldBounds = tilemapRenderer.bounds;
+
+        // 경계를 담을 새 게임오브젝트 생성
+        currentBoundsObject = new GameObject("CameraBounds_Generated_Polygon");
+        PolygonCollider2D boundingShape = currentBoundsObject.AddComponent<PolygonCollider2D>();
+
+        // 계산된 월드 경계(Bounds)의 네 꼭짓점 좌표 계산
+        Vector2[] points = new Vector2[]
+        {
+            new Vector2(worldBounds.min.x, worldBounds.min.y),
+            new Vector2(worldBounds.min.x, worldBounds.max.y),
+            new Vector2(worldBounds.max.x, worldBounds.max.y),
+            new Vector2(worldBounds.max.x, worldBounds.min.y)
+        };
+        boundingShape.points = points;
+        boundingShape.isTrigger = true;
+
+        // 현재 가상 카메라에 Confiner 설정
+        if (stageCamera != null)
+        {
+            SetupCameraConfiner(stageCamera, boundingShape);
+        }
+    }
+
+    /// <summary>
     /// Cinemachine 가상 카메라에 Confiner를 설정하고 경계(Collider) 연결
     /// </summary>
     private void SetupCameraConfiner(CinemachineVirtualCamera vcam, Collider2D boundingShape)
@@ -432,7 +498,8 @@ public class StageManager : Singleton<StageManager>
         if (stageTimer <= 0)
         {
             // 타임오버 시 플레이어 사망 처리
-            //OnPlayerDiedHandler();
+            PlayerManager.Instance.player.runFSM = false; // FSM 멈추기
+            OnPlayerDiedHandler(true);
         }
     }
 
@@ -456,8 +523,28 @@ public class StageManager : Singleton<StageManager>
             CurrentState = EStageState.Paused;
             Time.timeScale = 0f; // 게임 시간 정지
 
-            OptionUI optionUI = UIManager.Instance.Show<OptionUI>();
-            optionUI.Setup(EOptionUIType.Stage);
+            var optionPopup = UIManager.Instance.Show<OptionUI>();
+            optionPopup.Setup(new OptionUIData
+            {
+                Type = EOptionUIType.Stage, // 나가기 버튼 숨김
+                OnClickExitAction = () =>
+                {
+                    // 거점 빌리지, 튜토리얼에서는 게임 종료
+                    if(GameManager.Instance.CurrentGameState == EGameState.Lobby || currentStageData.ID == (int)EStageType.Tutorial)
+                    {
+                        CurrentState = EStageState.InProgress;
+                        Time.timeScale = 1f; // 게임 시간 다시 시작
+
+                        UIManager.Instance.Hide<OptionUI>();
+
+                        CursorManager.Instance.SetInGame(true);
+                    }
+                    else // 스테이지 플레이 중일 때는 로비로 이동
+                    {
+                        GameManager.Instance.GoToLobby();
+                    }
+                }
+            });
 
             CursorManager.Instance.SetInGame(false);
         }

@@ -45,9 +45,22 @@ public abstract class SkillBase
     public void SettingController(PlayerController controller)
     {
         this.controller = controller;
-        animationLength = 
-            controller.Animator.animator.runtimeAnimatorController
-                .animationClips.First(c => c.name == $"{GetType().Name}").length;
+        
+        var clips = controller.Animator.animator.runtimeAnimatorController.animationClips;
+
+        string animationName = GetType().Name;
+        
+        var matchedClips = clips.Where(c => c.name.Contains(animationName)).ToList();
+        
+        if (matchedClips.Count > 0)
+        {
+            animationLength = matchedClips.Sum(c => c.length);
+        }
+        else
+        {
+            // 매칭되는 게 없으면 기본 동작
+            animationLength = 0;
+        }
     }
     
     public abstract void Enter();
@@ -60,5 +73,6 @@ public abstract class SkillBase
         controller.Move.rb.gravityScale = 1f;
         if(useSuccessed) lastUsedTime = Time.time;
         controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = false;
     }
 }

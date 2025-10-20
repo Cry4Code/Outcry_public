@@ -1,81 +1,61 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class TestManager : Singleton<TestManager>
 {
     public bool triggerForFH = false;
-    // [SerializeField] private PlayerController player;
-    //
-    // [SerializeField] private GameObject monsterPrefab;
-    //
-    // private MonsterModelBase monsterData;
-    //
-    // //todo. monsterid 받아서 instantiate하도록 변경하기.
-    // public bool isSkillTestMode = false;
-    // public int skillTestMonsterId;
-    // public BossMonsterModel SkillTestMonsterData;
-    //
-    // //몬스터용 특수 기믹 용
-    // public float cooltimeForFH = 2f;
-    //
-    // private MonsterBase monster;
-    //
-    // public int EffectIdForTest;
-    // public EffectOrder EffectOrderForTest;
-    // public Canvas canvas;
+    public bool triggerForVL = false;
 
-    // void Awake()
-    // {
-    //     DataManager.Instance.ToString();
-    //     CameraManager.Instance.ToString();
-    //     EffectManager.Instance.ToString();
-    //     DataTableManager.Instance.LoadCollectionData<SoundDataTable>();
-    //     if(!isSkillTestMode)
-    //     {
-    //         if (!DataManager.Instance.MonsterDataList.TryGetMonsterModelData(skillTestMonsterId, out MonsterModelBase monsterData))
-    //         {
-    //             Debug.LogError("TestManager: Monster data not found!");
-    //             return;
-    //         }
-    //     
-    //         GameObject monsterObj = GameObject.Instantiate(monsterPrefab);
-    //         monster = monsterObj.GetComponent<MonsterBase>();
-    //         monster.SetMonsterData(monsterData);
-    //     }
-    //     else
-    //     {
-    //         //스킬 체크용 몬스터
-    //         GameObject monsterObj2 = GameObject.Instantiate(monsterPrefab);
-    //         monster = monsterObj2.GetComponent<MonsterBase>();
-    //         monster.SetMonsterData(SkillTestMonsterData);
-    //     }
-    // }
+    private GameObject vampireLordPrefab;
 
-    // private async void Update()
-    // {
-    //     if (Input.GetKeyDown(KeyCode.UpArrow))
-    //     {
-    //         EffectManager.Instance.PlayEffectsByIdAsync(8888, EffectOrder.Monster,player.gameObject);
-    //     }
-    //
-    //     if (Input.GetKeyDown(KeyCode.DownArrow))
-    //     {
-    //         
-    //         EffectManager.Instance.PlayEffectsByIdAsync(8888, EffectOrder.Monster,player.gameObject, Vector3.right*3);
-    //     }
-    //
-    //     // if (Input.GetKeyDown(KeyCode.LeftArrow))
-    //     // {
-    //     //     CameraManager.Instance.ShakeCamera(0.1f, 1f, 1f, EffectOrder.Player);
-    //     // }
-    //     //
-    //     // if (Input.GetKeyDown(KeyCode.RightArrow))
-    //     // {
-    //     //     CameraManager.Instance.ShakeCamera(10f, 10f, 10f, EffectOrder.SpecialEffect);
-    //     // }
-    // }
+    protected override void Awake()
+    {
+        base.Awake();
+        if (PlayerManager.Instance.player == null)
+        {
+            var playerInstance = FindAnyObjectByType<PlayerController>();
+            if (playerInstance != null)
+                PlayerManager.Instance.RegisterPlayer(playerInstance);
+        }
+
+        DataManager.Instance.ToString();
+    }
+
+    protected void Update()
+    {
+        if (triggerForVL)
+        {
+            //생성 메소드
+            InstantiateVampireLord();
+            triggerForVL = false;
+            Debug.Log("TestManager: Trigger for VL");
+        }
+    }
+
+    private async void InstantiateVampireLord()
+    {
+        if(vampireLordPrefab == null)
+        {
+            vampireLordPrefab =
+                await ResourceManager.Instance.LoadAssetAddressableAsync<GameObject>("Monsters/VampireLord.prefab");
+        }
+        
+        GameObject vlInstance = Instantiate(vampireLordPrefab, Vector3.zero, Quaternion.identity);
+        
+        // 몬스터 데이터 설정
+        if (!DataManager.Instance.MonsterDataList.TryGetMonsterModelData(101205, out MonsterModelBase monsterData))
+        {
+            Debug.LogError("Monster data not found!");
+        }
+        
+        var monster = vlInstance.GetComponent<MonsterBase>();
+        if(monster == null)
+        {
+            Debug.LogError("MonsterBase 컴포넌트가 없습니다!");
+        }
+        monster.SetMonsterData(monsterData);    
+    }
 }

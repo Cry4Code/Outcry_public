@@ -5,9 +5,17 @@ using UnityEngine;
 
 public class Unbreakable : SkillBase
 {
-    // 애니메이션 재생 끝나면 무적처리 해주면 됨
+    // 프레임 쪼개기
+    private const float ANIMATION_FRAME_RATE = 20f;
     
-    public override void Enter()
+    // 십자가 생기는 시간
+    private float invincibleStartTime = (1.0f / ANIMATION_FRAME_RATE) * 2f;
+    
+    // 애니메이션 재생 끝나면 무적처리 해주면 됨
+    private bool isBuffed = false;
+    
+    
+    public async override void Enter()
     {
         useSuccessed = false;
         // 발동 조건 체크 : 지상
@@ -28,15 +36,21 @@ public class Unbreakable : SkillBase
         Debug.Log("[플레이어] 스킬 Unbreakable 사용!");
         useSuccessed = true;
         // 시점 고정
+        controller.PlayerInputDisable();
+        controller.Move.rb.velocity = Vector2.zero;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
         controller.Condition.isCharge = true;
         
         animRunningTime = 0f;
+        isBuffed = false;
+        
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
-        controller.PlayerInputDisable();
+        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.HolySlash , EffectOrder.Player, controller.gameObject,
+            Vector3.up * 0.2f
+        );
     }
 
 
@@ -53,22 +67,37 @@ public class Unbreakable : SkillBase
 
                 if (animTime >= 1.0f)
                 {
-                    controller.Condition.SetInvincible(duration);
                     if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                     else controller.ChangeState<FallState>();
                     return;
                 }
             }
 
+            if (animRunningTime >= invincibleStartTime && !isBuffed)
+            {
+                isBuffed = true;
+                controller.Condition.SetInvincible(duration);
+            }
+
+            /*
             if (animRunningTime >= animationLength)
             {
                 controller.Condition.SetInvincible(duration);
                 if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                 else controller.ChangeState<FallState>();
                 return;
-            }
+            }*/
                 
         }
+    }
+
+    public async override void Exit()
+    {
+        base.Exit();
+        if(isBuffed)
+            await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
+                Vector3.down * 1f
+            );
     }
 
 }

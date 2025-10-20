@@ -32,18 +32,18 @@ public class VampireLordAI : MonsterAIBase
         
         attackSelectorNode.AddChild(specialSkillSequence);
         
-        // 스페셜 스킬 셀럭터 노드 자식들 생성.
-        foreach (int id in monsterModel.specialSkillIds )
-        {
-            DataManager.Instance.SkillSequenceNodeDataList.TryGetSkillSequenceNode(id, out SkillSequenceNode skillNode);
-            DataManager.Instance.MonsterSkillDataList.TryGetMonsterSkillModelData(id, out MonsterSkillModel skillData);
-            if (skillNode != null)
-            {
-                skillNode.InitializeSkillSequenceNode(monster, target);
-                skillNode.nodeName = "S_SkillNode_" + skillData.skillName; //디버깅용 노드 이름 설정.
-                specialSkillSelectorNode.AddChild(skillNode);                
-            }
-        }        
+        // // 스페셜 스킬 셀럭터 노드 자식들 생성.
+        // foreach (int id in monsterModel.specialSkillIds )
+        // {
+        //     DataManager.Instance.SkillSequenceNodeDataList.TryGetSkillSequenceNode(id, out SkillSequenceNode skillNode);
+        //     DataManager.Instance.MonsterSkillDataList.TryGetMonsterSkillModelData(id, out MonsterSkillModel skillData);
+        //     if (skillNode != null)
+        //     {
+        //         skillNode.InitializeSkillSequenceNode(monster, target);
+        //         skillNode.nodeName = "S_SkillNode_" + skillData.skillName; //디버깅용 노드 이름 설정.
+        //         specialSkillSelectorNode.AddChild(skillNode);                
+        //     }
+        // }        
         
         // 일반 스킬 시퀀스 노드
         SequenceNode commonSkillSequence = new SequenceNode();
@@ -54,7 +54,12 @@ public class VampireLordAI : MonsterAIBase
         commonSkillSequence.AddChild(commonWaitActionNode);
         
         attackSelectorNode.AddChild(commonSkillSequence);
-        
+
+        // SkillSequenceNode normalAttackNode = new MeleeAttackSkillSequenceNode(103501);
+        // normalAttackNode.InitializeSkillSequenceNode(monster, target);
+        // normalAttackNode.nodeName = "NormalAttackNode";
+        // commonSkillSelectorNode.AddChild(normalAttackNode);
+
         //일반 스킬 셀럭터 노드 자식들 생성.
         foreach (int id in monsterModel.commonSkillIds)
         {

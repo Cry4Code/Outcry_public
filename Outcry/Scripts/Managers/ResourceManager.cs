@@ -1,8 +1,8 @@
+using Cysharp.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -51,7 +51,7 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 
     // 비동기 Resources 에셋 로드
-    public async Task<T> LoadAssetAsync<T>(string assetName, string path) where T : Object
+    public async UniTask<T> LoadAssetAsync<T>(string assetName, string path) where T : Object
     {
         T result = default;
 
@@ -62,7 +62,7 @@ public class ResourceManager : Singleton<ResourceManager>
             var op = Resources.LoadAsync<T>(assetPath);
             while (!op.isDone)
             {
-                await Task.Yield();
+                await UniTask.Yield();
             }
 
             var obj = op.asset;
@@ -83,7 +83,7 @@ public class ResourceManager : Singleton<ResourceManager>
     #region 어드레서블 로드/언로드
     // 비동기 어드레서블 에셋 로드
     // 이미 로드된 에셋은 캐시에서 즉시 반환하며 참조 카운트 1 증가
-    public async Task<T> LoadAssetAddressableAsync<T>(string key) where T : Object
+    public async UniTask<T> LoadAssetAddressableAsync<T>(string key) where T : Object
     {
         // 이미 로드된 에셋인지 확인 (참조 카운트 확인)
         if (refCounts.TryGetValue(key, out int count))
@@ -213,13 +213,40 @@ public class ResourceManager : Singleton<ResourceManager>
     }
 
     /// <summary>
+    /// 리소스 주소 목록을 받아 모든 에셋의 참조 카운트를 1씩 감소시키는 코루틴
+    /// </summary>
+    public IEnumerator UnloadAllAssetsCoroutine(List<string> assetKeys)
+    {
+        // 유효하지 않거나 비어있는 키는 미리 제거
+        var validKeys = assetKeys?.Where(key => !string.IsNullOrEmpty(key)).ToList();
+        if (validKeys == null || validKeys.Count == 0)
+        {
+            Debug.Log("[ResourceManager] 언로드할 유효한 리소스가 없습니다.");
+            yield break;
+        }
+
+        Debug.Log($"[ResourceManager] {validKeys.Count}개의 리소스 언로드를 시작합니다...");
+
+        // 목록에 있는 각 에셋에 대해 기존 언로드 메서드를 호출
+        foreach (var key in validKeys)
+        {
+            UnloadAddressableAsset(key);
+
+            // 한 프레임에 모든 작업을 처리하지 않도록 다음 프레임까지 대기
+            yield return null;
+        }
+
+        Debug.Log("[ResourceManager] 요청된 모든 리소스 언로드가 완료되었습니다.");
+    }
+
+    /// <summary>
     /// 지정된 레이블을 가진 모든 에셋을 비동기적으로 로드합니다.
     /// 내부적으로 각 에셋의 참조 카운트를 개별적으로 관리합니다.
     /// </summary>
     /// <typeparam name="T">로드할 에셋의 타입</typeparam>
     /// <param name="label">로드할 에셋들의 레이블</param>
     /// <returns>성공적으로 로드된 에셋의 리스트</returns>
-    public async Task<IList<T>> LoadAssetsByLabelAsync<T>(string label) where T : Object
+    public async UniTask<IList<T>> LoadAssetsByLabelAsync<T>(string label) where T : Object
     {
         // 레이블에 해당하는 모든 리소스의 위치(주소) 정보를 먼저 가져옴
         var locationsHandle = Addressables.LoadResourceLocationsAsync(label, typeof(T));
@@ -232,7 +259,7 @@ public class ResourceManager : Singleton<ResourceManager>
         }
 
         // 각 위치 정보(주소)를 이용해 개별 에셋을 로드하는 Task 목록 생성
-        var loadTasks = new List<Task<T>>();
+        var loadTasks = new List<UniTask<T>>();
         foreach (var location in locations)
         {
             // 기존의 개별 에셋 로드 메서드를 호출하여 참조 카운팅 시스템을 그대로 활용
@@ -243,7 +270,8 @@ public class ResourceManager : Singleton<ResourceManager>
         Addressables.Release(locationsHandle);
 
         // 모든 개별 에셋 로드가 완료될 때까지 기다림
-        T[] loadedAssets = await Task.WhenAll(loadTasks);
+        // Task.WhenAll은 loadTasks 리스트에 담긴 모든 개별 로드 작업을 동시에 병렬적으로 시작
+        T[] loadedAssets = await UniTask.WhenAll(loadTasks);
 
         // 로드된 에셋 리스트 반환(null이 포함될 수 있으므로 필터링)
         return loadedAssets.Where(asset => asset != null).ToList();
@@ -253,7 +281,7 @@ public class ResourceManager : Singleton<ResourceManager>
     /// 지정된 레이블을 가진 모든 에셋의 참조 카운트를 1씩 감소시키고 0이 되면 언로드
     /// </summary>
     /// <param name="label">언로드할 에셋들의 레이블</param>
-    public async Task UnloadAssetsByLabelAsync(string label)
+    public async UniTask UnloadAssetsByLabelAsync(string label)
     {
         // 레이블에 해당하는 모든 리소스의 위치(주소) 정보 가져옴
         var locationsHandle = Addressables.LoadResourceLocationsAsync(label);
@@ -271,7 +299,7 @@ public class ResourceManager : Singleton<ResourceManager>
             UnloadAddressableAsset(location.PrimaryKey);
         }
 
-        // 위치 정보 핸들은 더 이상 필요 없으므로 즉시 해제합니다.
+        // 위치 정보 핸들은 더 이상 필요 없으므로 즉시 해제
         Addressables.Release(locationsHandle);
     }
     #endregion

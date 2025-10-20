@@ -14,7 +14,8 @@ public class StageController : MonoBehaviour
     protected StageData stageData;
     protected GameObject playerPrefab;
     protected List<GameObject> enemyPrefabs;
-    protected Transform playerSpawnPoint;
+    //protected Transform playerSpawnPoint;
+    protected Dictionary<int, Transform> playerSpawnPoints;
     protected Dictionary<int, Transform> enemySpawnPoints;
     protected List<Transform> obstacleSpawnPoints;
     protected CinemachineVirtualCamera stageCamera; // 스테이지 카메라 참조 추가
@@ -23,13 +24,13 @@ public class StageController : MonoBehaviour
     protected GameObject playerInstance;
     public List<GameObject> aliveMonsters = new List<GameObject>();
 
-    public virtual void Initialize(StageManager manager, StageData data, GameObject player, List<GameObject> enemys, Transform playerSpawn, Dictionary<int, Transform> enemySpawns, CinemachineVirtualCamera vcam, List<Transform> obstacleSpawns)
+    public virtual void Initialize(StageManager manager, StageData data, GameObject player, List<GameObject> enemys, Dictionary<int, Transform> playerSpawns, Dictionary<int, Transform> enemySpawns, CinemachineVirtualCamera vcam, List<Transform> obstacleSpawns)
     {
         stageManager = manager;
         stageData = data;
         playerPrefab = player;
         enemyPrefabs = enemys;
-        playerSpawnPoint = playerSpawn;
+        playerSpawnPoints = playerSpawns;
         enemySpawnPoints = enemySpawns;
         stageCamera = vcam;
         obstacleSpawnPoints = obstacleSpawns;
@@ -59,17 +60,25 @@ public class StageController : MonoBehaviour
 
     protected virtual void SpawnPlayer()
     {
-        if (playerPrefab != null && playerSpawnPoint != null)
+        SpawnPlayerAt(playerSpawnPoints[0]);
+    }
+
+    protected virtual GameObject SpawnPlayerAt(Transform spawnPoint, float heightOffset = 0f)
+    {
+        if (playerPrefab != null && spawnPoint != null)
         {
-            playerInstance = Instantiate(playerPrefab, playerSpawnPoint.position, Quaternion.identity);
+            Vector3 spawnPosition = spawnPoint.position;
+            spawnPosition.y += heightOffset;
+
+            playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
             PlayerController playerController = playerInstance.GetComponent<PlayerController>();
             if (playerController == null)
             {
                 Debug.LogError("스폰된 플레이어 프리팹에 PlayerController가 없습니다!");
-                return;
+                return null;
             }
 
-            Debug.Log("플레이어 스폰 완료.");
+            Debug.Log($"플레이어 스폰 완료: {spawnPoint.name}");
 
             // PlayerManager에 등록
             PlayerManager.Instance.RegisterPlayer(playerController);
@@ -78,9 +87,7 @@ public class StageController : MonoBehaviour
             if (stageCamera != null)
             {
                 stageCamera.Follow = playerInstance.transform;
-                Debug.Log($"[StageController] Virtual Camera가 '{playerInstance.name}'를 따라가도록 설정했습니다.");
             }
-
             // CursorManager 초기화
             if (CursorManager.Instance != null)
             {
@@ -89,7 +96,9 @@ public class StageController : MonoBehaviour
 
             // 상태 UI 표시
             UIManager.Instance.Show<HUDUI>();
+            return playerInstance;
         }
+        return null;
     }
 
     /// <summary>
@@ -145,6 +154,41 @@ public class StageController : MonoBehaviour
                 aliveMonsters.Add(monsterInstance);
             }
         }
+    }
+
+    /// <summary>
+    /// 지정된 위치에 단일 몬스터를 스폰하는 범용 메서드
+    /// </summary>
+    protected virtual GameObject SpawnMonsterAt(GameObject monsterPrefab, int monsterId, Transform spawnPoint)
+    {
+        if (monsterPrefab == null || spawnPoint == null)
+        {
+            Debug.LogError("몬스터 프리팹 또는 스폰 위치가 null입니다!");
+            return null;
+        }
+
+        GameObject monsterInstance = Instantiate(monsterPrefab, spawnPoint.position, spawnPoint.rotation);
+
+        if (!DataManager.Instance.MonsterDataList.TryGetMonsterModelData(monsterId, out MonsterModelBase monsterData))
+        {
+            Debug.LogError($"ID {monsterId}에 해당하는 몬스터 데이터를 찾을 수 없습니다!");
+            Destroy(monsterInstance);
+            return null;
+        }
+
+        var monster = monsterInstance.GetComponent<MonsterBase>();
+        if (monster == null)
+        {
+            Debug.LogError("MonsterBase 컴포넌트가 없습니다!");
+            Destroy(monsterInstance);
+            return null;
+        }
+
+        monster.SetMonsterData(monsterData);
+        Debug.Log($"SpawnPoint '{spawnPoint.name}' 위치에 몬스터(ID: {monsterId}) 스폰 완료");
+        aliveMonsters.Add(monsterInstance);
+
+        return monsterInstance;
     }
 
     /// <summary>
@@ -209,8 +253,7 @@ public class StageController : MonoBehaviour
         // 플레이어 입력 비활성화
         if (playerInstance != null && PlayerManager.Instance.player != null)
         {
-            // TODO: 다른 입력은 안되는데 좌우 이동은 가능(버그 수정 필요)
-            PlayerManager.Instance.player.PlayerInputDisable();
+            PlayerManager.Instance.player.runFSM = false; // FSM 멈추기
         }
 
         // 현재 살아있는 모든 몬스터 AI 중지

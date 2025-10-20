@@ -4,7 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public class FallenKingStageController : StageController
@@ -17,7 +16,7 @@ public class FallenKingStageController : StageController
     public override async UniTask StageSequence()
     {
         // 스테이지에 필요한 에셋 미리 로드
-        await LoadAssetsCoroutine();
+        await LoadAssetsAsync();
 
         SpawnPlayer();
         SpawnMonstersLogic();
@@ -30,19 +29,16 @@ public class FallenKingStageController : StageController
     /// <summary>
     /// 이 스테이지에서 사용할 어드레서블 에셋을 로드하는 코루틴
     /// </summary>
-    private IEnumerator LoadAssetsCoroutine()
+    private async UniTask LoadAssetsAsync()
     {
-        Task<GameObject> loadTask = ResourceManager.Instance.LoadAssetAddressableAsync<GameObject>(rockObstacleAddress);
-        yield return new WaitUntil(() => loadTask.IsCompleted);
-
-        if (loadTask.Status == TaskStatus.RanToCompletion)
+        try
         {
-            loadedRockObstaclePrefab = loadTask.Result;
+            loadedRockObstaclePrefab = await ResourceManager.Instance.LoadAssetAddressableAsync<GameObject>(rockObstacleAddress);
             Debug.Log($"'{rockObstacleAddress}' 에셋 로딩 성공!");
         }
-        else
+        catch (Exception e)
         {
-            Debug.LogError($"'{rockObstacleAddress}' 에셋 로딩 실패!");
+            Debug.LogError($"'{rockObstacleAddress}' 에셋 로딩 실패! 에러: {e.Message}");
         }
     }
 

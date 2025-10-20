@@ -55,9 +55,10 @@ public class AttackHitbox : MonoBehaviour
                         Debug.Log("[플레이어] 플레이어 패링 성공");
                         countable.CounterAttacked();
                         // controller.Attack.successParry = false;
-                        await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.SuccessParrying, EffectType.Sprite, null, 
-                            controller.transform.position + ((other.transform.position - controller.transform.position).normalized 
-                            * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f));
+                        await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.SuccessParrying, EffectType.Sprite, controller.gameObject, 
+                            /*(other.transform.position - controller.transform.position).normalized 
+                            * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f*/
+                            (Vector3.right * 2f));
                     }
                 }
             }
@@ -80,9 +81,10 @@ public class AttackHitbox : MonoBehaviour
                         controller.Attack.JustSpecialAttack(other.gameObject.GetComponentInChildren<Animator>());
                         countable.CounterAttacked();
                         controller.Attack.successJustAttack = false;
-                        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, null, 
-                            controller.transform.position + ((other.transform.position - controller.transform.position).normalized 
-                                                             * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f));
+                        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject, 
+                            /*((other.transform.position - controller.transform.position).normalized 
+                                                             * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f)*/
+                            (Vector3.right * 2f));
                     } 
                 }
                 else
@@ -97,10 +99,14 @@ public class AttackHitbox : MonoBehaviour
         {
             ShakeCameraUsingState();
             damagable?.TakeDamage(attack.AttackDamage + attack.AdditionalDamage);
-            if (!controller.Attack.successJustAttack) await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack,  EffectOrder.Player, 
-                null, 
-                controller.transform.position + ((other.transform.position - controller.transform.position).normalized 
-                                                 * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f));
+            /*if (!controller.Attack.successJustAttack)*/ 
+            if(controller.IsCurrentState<NormalAttackState>())    
+                await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack,  EffectOrder.Player, 
+                controller.gameObject, 
+                /*((other.transform.position - controller.transform.position).normalized 
+                                                 * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f)*/
+                
+                (Vector3.right * 2f));
             Debug.Log($"[플레이어] 플레이어가 몬스터에게 {attack.AttackDamage + attack.AdditionalDamage} 만큼 데미지 줌");
         } 
     }

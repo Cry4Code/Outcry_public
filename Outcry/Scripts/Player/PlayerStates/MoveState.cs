@@ -19,8 +19,6 @@ public class MoveState : GroundSubState
         controller.Animator.OnBoolParam(AnimatorHash.PlayerAnimation.Move);
         controller.Condition.canStaminaRecovery.Value = true;
         controller.isLookLocked = true;
-        lastSFXTime = 0;
-
     }
 
     public override void HandleInput(PlayerController controller)
@@ -32,9 +30,9 @@ public class MoveState : GroundSubState
 
     public override async void LogicUpdate(PlayerController controller)
     {
-        if (Time.time - lastSFXTime > SFXThresholdTime)
+        if (Time.time - lastSFXTime > SFXThresholdTime && controller.Move.isGrounded)
         {
-            await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.Move, EffectOrder.Player,
+            await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.Move, EffectType.Sound,
                 controller.gameObject);
             lastSFXTime = Time.time;
         }

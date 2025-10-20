@@ -7,8 +7,9 @@ using UnityEngine;
 public class PowerUp : SkillBase
 {
     // 애니메이션 재생 끝나면 공격력 증가해주면 됨
+    private bool isBuffed = false;
     
-    public override void Enter()
+    public async override void Enter()
     {
         useSuccessed = false;
         // 발동 조건 체크 : 지상
@@ -35,16 +36,22 @@ public class PowerUp : SkillBase
         Debug.Log("[플레이어] 스킬 PowerUp 사용!");
         useSuccessed = true;
         // 시점 고정
-        controller.isLookLocked = false;
-        controller.Move.ForceLook(controller.transform.localScale.x < 0);
+        controller.PlayerInputDisable();
+        controller.Move.rb.velocity = Vector2.zero;
+        
         controller.isLookLocked = true;
-        controller.Condition.isCharge = true;
+        controller.Move.ForceLook(controller.transform.localScale.x < 0);
+        controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = true;
         
         animRunningTime = 0f;
+        isBuffed = false;
         
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
-        controller.PlayerInputDisable();
+        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.HolySlash , EffectOrder.Player, controller.gameObject,
+            Vector3.up * 0.2f
+        );
     }
 
     public override void LogicUpdate()
@@ -60,6 +67,7 @@ public class PowerUp : SkillBase
 
                 if (animTime >= 1.0f)
                 {
+                    isBuffed = true;
                     controller.Attack.BuffDamage(buffValue, duration);
                     if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                     else controller.ChangeState<FallState>();
@@ -67,14 +75,26 @@ public class PowerUp : SkillBase
                 }
             }
 
-            if (animRunningTime >= animationLength)
+            /*if (animRunningTime >= animationLength)
             {
                 controller.Attack.BuffDamage(buffValue, duration);
+                await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
+                    Vector3.down * 1.2f
+                );
                 if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
                 else controller.ChangeState<FallState>();
                 return;
-            }
+            }*/
                 
         }
+    }
+
+    public async override void Exit()
+    {
+        base.Exit();
+        if(isBuffed)
+            await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
+                Vector3.down * 1.2f
+            );
     }
 }

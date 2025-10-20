@@ -12,22 +12,33 @@ public class SkillBtn : MonoBehaviour
 
     [SerializeField] public Toggle toggle;
     [SerializeField] private TextMeshProUGUI outputText;
-    [SerializeField] private ShowSkillPreview previewPlayer;
-    public void SetPreviewPlayer(ShowSkillPreview p) { previewPlayer = p; }
+
+    [SerializeField] private Button buyBtn;
+
+    public event Action<SkillBtn, SkillData> OnSelected;  // (sender, data)
 
 
+    public void SetBuyButton(Button button)
+    {
+        buyBtn = button;
+    }
     // 프리팹의 Toggle
     public SkillData Data { get; private set; }
-
     public void SetOutputText(TextMeshProUGUI t) { outputText = t; }
+
+
 
     private void Awake()
     {
+
         toggle.onValueChanged.AddListener(_ => Debug.Log("[RAW] toggle changed"));
 
         var t = GetComponent<Toggle>(); // 프리팹에서 씬을 참조할 수 없어서 직접 부모 오브젝트의 토글 그룹을 추가함
         if (t != null && t.group == null)
             t.group = GetComponentInParent<ToggleGroup>(); // 가장 가까운 부모의 그룹 자동 연결
+
+        toggle.onValueChanged.AddListener(OnToggleChanged); // ★핸들러 연결
+
     }
 
     public void Bind(SkillData data)
@@ -48,9 +59,6 @@ public class SkillBtn : MonoBehaviour
         {
             return;
         }
-        //data.damages 가 배열로 변경됨에 따라서 이를 표현해주기 위해서 반복문을 사용, 또는 if 문을 사용해서 데이터가 존재할 때만 표시되게 변경해주기
-        //outputText.text = $"Skillname: {Data.P_Skill_Name}\n skilldamage : {Data.Damages}\n skillcost: {Data.Stamina}"; 이 코드는 데미지스 배열 변경 전 코드
-
 
 
         //여기 코드는 기본적인 내가 생각할 수 있는 코드
@@ -104,24 +112,36 @@ public class SkillBtn : MonoBehaviour
 
         outputText.text = $"Skillname: {Data.P_Skill_Name}\nSkillDamage: {dmgText}\nSkillCost: {Data.Stamina}";
 
-        //if (previewPlayer != null)//스킬 프리뷰 재생
-        //{
-        //    previewPlayer.Play(Data.Skill_id);
-        //}
 
         Debug.Log($"선택된 스킬 출력에 성공함");
-
         Debug.Log($" ID: {Data.Skill_id} skillName :{Data.P_Skill_Name} Damage:{Data.Damages} " +
             $" Stamina:{Data.Stamina} Cooldewn:{Data.Cooldown}");
 
-        //if (isOn)
-        //{
-        //    previewPlayer.Play(Data.Skill_id);
-        //}
-        //else
-        //{
-        //    previewPlayer.Stop();
-        //}
+
+        if (isOn && Data != null)
+        {
+            OnSelected?.Invoke(this, Data); // ★ StoreUI에게 즉시 전달
+        }
+
+
+        // ★ 추가: 필요 소울 ID 가져오기
+        int requiredSoulId = Data.NeedSoul;
+
+        // ★ 스킬을 이미 가지고 있는지 체크
+        bool alreadyOwned = GameManager.Instance.CurrentUserData.AcquiredSkillIds
+            .Contains(Data.Skill_id);
+
+        // ★ 소울을 가지고 있고, 스킬을 아직 보유하지 않은 경우에만 구매 버튼 활성화
+        if (StoreManager.Instance.HaveSoul(requiredSoulId, 1) && !alreadyOwned)
+        {
+            buyBtn.interactable = true;   // 버튼 활성화
+            Debug.Log($"[SkillBtn] 구매 가능 - {Data.P_Skill_Name}");
+        }
+        else
+        {
+            buyBtn.interactable = false;  // 버튼 비활성화
+            Debug.Log($"[SkillBtn] 구매 불가 - 소울 부족 또는 이미 보유");
+        }
     }
 
 }

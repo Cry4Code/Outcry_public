@@ -5,7 +5,15 @@ using UnityEngine;
 
 public class HolySlash : SkillBase
 {
-  public override void Enter()
+    // 프레임 쪼개기
+    private const float ANIMATION_FRAME_RATE = 20f;
+    // 십자가 생기는 시간
+    private float crossAnimationTime = (1.0f / ANIMATION_FRAME_RATE) * 0f;
+
+    private bool isAnimationPlayed = false;
+    
+    
+  public async override void Enter()
     {
         useSuccessed = false;
         // 발동 조건 체크 : 지상
@@ -31,11 +39,14 @@ public class HolySlash : SkillBase
         }
         Debug.Log("[플레이어] 스킬 HolySlash 사용!");
         useSuccessed = true;
+        isAnimationPlayed = false;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
         controller.Move.rb.velocity = Vector2.zero;
-        controller.Condition.isCharge = true;
+        controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = true;
+        
         
         animRunningTime = 0f;
         startStateTime = Time.time;
@@ -43,12 +54,23 @@ public class HolySlash : SkillBase
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
         controller.PlayerInputDisable();
+        await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject,
+            Vector3.right * 0.5f + Vector3.up * 0.2f
+            );
     }
 
 
     public override void LogicUpdate()
     {
         animRunningTime += Time.deltaTime;
+
+        /*if (animRunningTime >= crossAnimationTime && !isAnimationPlayed)
+        {
+            isAnimationPlayed = true;
+            await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject, 
+                (Vector3.up * 2f));
+        }*/
+        
         
         if (Time.time - startStateTime > startAttackTime)
         {
@@ -57,7 +79,7 @@ public class HolySlash : SkillBase
             if (curAnimInfo.IsTag("AdditionalAttack"))
             { 
                 float animTime = curAnimInfo.normalizedTime;
-                Debug.Log($"[HolySlash] NormalizedTime = {animTime}");
+                
                 if (animTime >= 1.0f)
                 {
                     if (controller.Move.isGrounded) controller.ChangeState<IdleState>();

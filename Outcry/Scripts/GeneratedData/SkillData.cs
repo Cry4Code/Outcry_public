@@ -15,6 +15,7 @@ public class SkillData : IData
     public float Cooldown;
     public float Duration;
     public string Desc;
+    public int NeedSoul;
 }
 
 [Serializable]

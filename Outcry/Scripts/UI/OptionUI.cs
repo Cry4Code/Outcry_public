@@ -1,26 +1,34 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
 public enum EOptionUIType
 {
+    Title,
     Stage,
 }
 
 public class OptionUI : UIPopup
 {
     [SerializeField] private Button volumeBtn;
-    [SerializeField] private Button keyBindBtn;
     [SerializeField] private Button EmailLinkBtn;
     [SerializeField] private Button ExitBtn;
+
+    // 외부에서 전달받은 '나가기' 동작을 저장할 변수
+    private Action onClickExitAction;
 
     private void Awake()
     {
         volumeBtn.onClick.AddListener(OnClickVolume);
-        keyBindBtn.onClick.AddListener(OnClickKeyBind);
         EmailLinkBtn.onClick.AddListener(OnClickEmailLink);
         ExitBtn.onClick.AddListener(OnClickExit);
+    }
+
+    private void Start()
+    {
+#if UNITY_WEBGL
+        EmailLinkBtn.gameObject.SetActive(false);
+#endif
     }
 
     private void OnEnable()
@@ -41,6 +49,29 @@ public class OptionUI : UIPopup
         }
     }
 
+    public void Setup(OptionUIData data)
+    {
+        // 전달받은 동작을 내부 변수에 저장
+        onClickExitAction = data.OnClickExitAction;
+
+        // 타입에 따라 버튼 활성화/비활성화 로직은 그대로 사용
+        switch (data.Type)
+        {
+            case EOptionUIType.Title:
+                ExitBtn.gameObject.SetActive(true);
+                break;
+
+            // 스테이지에서 열었다면 Exit 버튼을 숨김
+            case EOptionUIType.Stage:
+                ExitBtn.gameObject.SetActive(true);
+                break;
+
+            default:
+                ExitBtn.gameObject.SetActive(true);
+                break;
+        }
+    }
+
     /// <summary>
     /// 계정 연동 성공 시 호출될 핸들러
     /// </summary>
@@ -52,8 +83,8 @@ public class OptionUI : UIPopup
         var popup = UIManager.Instance.Show<ConfirmUI>();
         popup.Setup(new ConfirmPopupData
         {
-            Title = "연동 성공",
-            Message = "계정이 성공적으로 연동되었습니다.",
+            Title = "Account Link Successful",
+            Message = "Your account has been successfully linked.",
             Type = EConfirmPopupType.OK
         });
     }
@@ -75,36 +106,10 @@ public class OptionUI : UIPopup
         });
     }
 
-    /// <summary>
-    /// Enum 타입에 따라 OptionUI의 상태 설정
-    /// </summary>
-    public void Setup(EOptionUIType type)
-    {
-        // 타입에 따라 버튼 활성화/비활성화
-        switch (type)
-        {
-            // 스테이지에서 열었다면 Exit 버튼을 숨김
-            case EOptionUIType.Stage:
-                ExitBtn.gameObject.SetActive(false);
-                break;
-
-            default:
-                ExitBtn.gameObject.SetActive(true);
-                break;
-        }
-    }
-
     private void OnClickVolume()
     {
         Debug.Log("Volume Clicked");
         UIManager.Instance.Show<VolumeSettingsUI>();
-    }
-
-    private void OnClickKeyBind()
-    {
-        Debug.Log("Key Bind Clicked");
-
-        // TODO: KeyBindUI 구현 후 연결
     }
 
     private void OnClickEmailLink()
@@ -117,6 +122,19 @@ public class OptionUI : UIPopup
     private void OnClickExit()
     {
         Debug.Log("Exit Clicked");
-        UIManager.Instance.Hide<OptionUI>();
+
+        // 저장된 동작이 있다면 실행하고 없다면 기본 동작(숨기기) 수행
+        if (onClickExitAction != null)
+        {
+            onClickExitAction.Invoke();
+        }
+        else
+        {
+            // 기본 동작 UI 숨기기
+            UIManager.Instance.Hide<OptionUI>();
+        }
+
+        // 실행 후에는 참조 초기화
+        onClickExitAction = null;
     }
 }

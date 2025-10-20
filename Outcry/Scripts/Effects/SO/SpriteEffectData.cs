@@ -34,13 +34,16 @@ public class SpriteEffectData : BaseEffectData
         
         Vector3 adjustedPosition = position;
         Vector3 scale = target.transform.localScale;
-        adjustedPosition.x *= Mathf.Sign(scale.x);
+        /*adjustedPosition.x *= Mathf.Sign(scale.x);
         adjustedPosition.y *= Mathf.Sign(scale.y);
-        adjustedPosition.z *= Mathf.Sign(scale.z);
+        adjustedPosition.z *= Mathf.Sign(scale.z);*/
+        
+        
         
         try
         {
             effectInstance = await ObjectPoolManager.Instance.GetObjectAsync(path, target.transform, adjustedPosition);
+            Debug.Log($"[SpriteEffectData] Position = {effectInstance.transform.position}");
             await UniTask.Delay((int)(Duration * 1000), cancellationToken: token);
         }
         catch (OperationCanceledException)

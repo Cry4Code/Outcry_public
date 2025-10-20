@@ -10,9 +10,12 @@ public class StoreManager : Singleton<StoreManager>
 
     private Dictionary<int, SkillData> skillDict = new Dictionary<int, SkillData>();
 
+
+
     private void Awake()
     {
         DataTableManager.Instance.LoadCollectionData<SkillDataTable>();
+        DataTableManager.Instance.LoadCollectionData<SoulDataTable>();
 
     }
 
@@ -29,8 +32,9 @@ public class StoreManager : Singleton<StoreManager>
             skillDict = new Dictionary<int, SkillData>();
         }
         return skillDict;
-     
     }
+
+
 
     public List<SkillData> GetOrderedSkills() //스킬을 순서대로 정렬
     {
@@ -47,6 +51,28 @@ public class StoreManager : Singleton<StoreManager>
             buttons[i].Bind(skills[i]);
     }
 
+    public bool HaveSoul(int soulId, int amount)
+    {
+        if (GameManager.Instance.CurrentUserData == null) return false;
+
+
+        int index = GameManager.Instance.CurrentUserData.AcquiredSouls.FindIndex(s => s.SoulId == soulId);
+
+        if (index == -1) // 해당 소울을 가지고 있지 않은 경우
+        {
+            return false;
+        }
+
+        if (GameManager.Instance.CurrentUserData.AcquiredSouls[index].Count < amount)
+        {
+            return false;
+        }
+        else
+        {
+            return true;
+        }
+
+    }
 
 
     public void Buy()

@@ -42,7 +42,8 @@ namespace StageEnums
         Tutorial = 0, // 튜토리얼 스테이지 ID를 0으로 약속
         Village = 106000,
         RuinsOfTheFallenKing = 106001,
-        Temp1 = 106002,
+        AbandonedMine = 106002,
+        HallOfBlood = 106003,
     }
 
     public enum ESpawnType

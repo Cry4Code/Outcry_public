@@ -14,6 +14,7 @@ public class UserData
     public string Nickname;
     public bool IsTutorialCleared;
     public List<int> ClearedBossIds;
+    public int SelectSkillId;
     public List<int> AcquiredSkillIds;
     public List<UserSoulData> AcquiredSouls;
 
@@ -24,6 +25,7 @@ public class UserData
         Nickname = nickname;
         IsTutorialCleared = false;
         ClearedBossIds = new List<int>();
+        SelectSkillId = 0;
         AcquiredSkillIds = new List<int>();
         AcquiredSouls = new List<UserSoulData>();
     }

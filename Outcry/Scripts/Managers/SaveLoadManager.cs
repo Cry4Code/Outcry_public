@@ -1,7 +1,6 @@
+using Cysharp.Threading.Tasks;
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 
 public enum ESlotUIType
@@ -41,7 +40,7 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
         }
     }
 
-    public async Task LoadAllUserData()
+    public async UniTask LoadAllUserData()
     {
         // Firebase에서 유저 데이터 로드
         slotsData = await UGSManager.Instance.LoadAllUserDataAsync();

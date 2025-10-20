@@ -1,7 +1,7 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -26,15 +26,10 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
         };
     }
 
-    public async void LoadInitManager()
+    public async UniTaskVoid LoadInitManager()
     {
-        var op = SceneManager.LoadSceneAsync(managerSceneName, LoadSceneMode.Additive);
-        while (!op.isDone)
-        {
-            await Task.Yield();
-        }
-        
-        SceneManager.UnloadSceneAsync(managerSceneName);
+        await SceneManager.LoadSceneAsync(managerSceneName, LoadSceneMode.Additive);
+        await SceneManager.UnloadSceneAsync(managerSceneName);
 
         Debug.Log("<color=yellow>Manager Scene Load Complete.</color>");
     }
@@ -89,18 +84,17 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
     /// <summary>
     /// 로딩 이후 씬 활성화
     /// </summary>
-    public IEnumerator ActivateLoadedScenes(SceneLoadPackage package)
+    public async UniTask ActivateLoadedScenes(SceneLoadPackage package)
     {
         // 이전 씬 정리
         currentScene?.SceneExit();
         prevSceneName = SceneManager.GetActiveScene().name;
 
         // 메인 씬 활성화
-        var mainSceneOp = package.SceneLoadOperations[0];
-        mainSceneOp.allowSceneActivation = true;
-        yield return mainSceneOp;
+        package.SceneLoadOperations[0].allowSceneActivation = true;
+        await package.SceneLoadOperations[0];
 
-        UnityEngine.SceneManagement.Scene newActiveScene = SceneManager.GetSceneByName(package.MainSceneType.ToString());
+        Scene newActiveScene = SceneManager.GetSceneByName(package.MainSceneType.ToString());
         SceneManager.SetActiveScene(newActiveScene);
 
         // 나머지 Additive 씬들도 모두 활성화
@@ -120,21 +114,17 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
         // 이전 씬(LoadingScene) 언로드
         if (!string.IsNullOrEmpty(prevSceneName) && SceneManager.GetSceneByName(prevSceneName).isLoaded)
         {
-            yield return SceneManager.UnloadSceneAsync(prevSceneName);
+            await SceneManager.UnloadSceneAsync(prevSceneName);
         }
 
         Debug.Log($"<color=cyan>SceneLoadManager: '{package.MainSceneType}'으로 씬 전환 완료.</color>");
 
-        FadeManager.Instance.FadeIn();
+        await FadeManager.Instance.FadeIn().ToUniTask();
     }
 
-    public async void LoadAdditiveScene(string sceneName)
+    public async UniTaskVoid LoadAdditiveScene(string sceneName)
     {
-        var op = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
-        while (!op.isDone)
-        {
-            await Task.Yield();
-        }
+        await SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
         Debug.Log($"<color=yellow>Additive Scene '{sceneName}' Load Complete.</color>");
     }
 }

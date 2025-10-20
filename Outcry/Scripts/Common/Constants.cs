@@ -15,6 +15,12 @@ public static class PlayerEffectID
     public const int SuccessParryingSound = 100032;
     public const int Potion = 100040;
 
+    public const int WindSlash = 102000;
+    public const int SuperCrash = 102001;
+    public const int ScrewAttack = 102002;
+    public const int HolySlash = 102003;
+    public const int PowerUp = 102004;
+    public const int Unbreakable = 102005;
 }
 
 
@@ -28,6 +34,9 @@ public static class AddressablePaths
         public const string Stone = "Projectile/Stone.prefab";
         public const string Fireball = "Projectile/Fireball.prefab";
         public const string Laser = "Projectile/Laser.prefab";
+        public const string TurningBlood = "Projectile/TurningBlood.prefab";
+        public const string BlackHole = "Projectile/BlackHole.prefab";
+        public const string Infierno = "Projectile/Infierno.prefab";
     }
 }
 public static class Paths
@@ -39,6 +48,7 @@ public static class Paths
         public const string Projectile = "Prefabs/Projectile/";
         public const string Effect = "Prefabs/Effect/";
         public const string Player = "Player/Player.prefab";
+        public const string Cursor = "Player/InGameCursor.prefab";
     }    
 }
 
@@ -69,42 +79,66 @@ public static class AnimatorHash
 {
     public static class MonsterParameter
     {
+        // 공용
         public static readonly int Running = Animator.StringToHash("Running");
         public static readonly int Walking = Animator.StringToHash("Walking");
         public static readonly int Dead = Animator.StringToHash("Dead");
         public static readonly int Stun = Animator.StringToHash("Stun");
         public static readonly int NormalAttack = Animator.StringToHash("NormalAttack");
         public static readonly int StrongAttack = Animator.StringToHash("StrongAttack");
+        public static readonly int IsArrived = Animator.StringToHash("IsArrived");
+        public static readonly int IsTired = Animator.StringToHash("IsTired");
+        public static readonly int IsReady = Animator.StringToHash("IsReady");
+
+        // GoblinKing
         public static readonly int Stomp = Animator.StringToHash("Stomp");
         public static readonly int MetalBladeHash = Animator.StringToHash("MetalBlade");
         public static readonly int UpperSlash = Animator.StringToHash("UpperSlash");
         public static readonly int Earthquake = Animator.StringToHash("Earthquake");
         public static readonly int HeavyDestroyer = Animator.StringToHash("HeavyDestroyer");
-        public static readonly int IsArrived = Animator.StringToHash("IsArrived");
         public static readonly int ThreePoint = Animator.StringToHash("ThreePoint");
         public static readonly int WhirlWind = Animator.StringToHash("WhirlWind");
         public static readonly int Shark = Animator.StringToHash("Shark");
         public static readonly int RumbleOfRuin = Animator.StringToHash("RumbleOfRuin");
         public static readonly int FinalHorizon = Animator.StringToHash("FinalHorizon");
-        public static readonly int IsTired = Animator.StringToHash("IsTired");
-        public static readonly int IsReady = Animator.StringToHash("IsReady");
+
+        // DreamlikeWitch
+        public static readonly int FireBash = Animator.StringToHash("FireBash");
+        public static readonly int ThunderBall = Animator.StringToHash("ThunderBall");
+        public static readonly int IceMountain = Animator.StringToHash("IceMountain");
+        public static readonly int ThunderBolt = Animator.StringToHash("ThunderBolt");
+        public static readonly int VolcanoDive = Animator.StringToHash("VolcanoDive");
+        public static readonly int FireBall = Animator.StringToHash("FireBall");
+        public static readonly int ThunderStrike = Animator.StringToHash("ThunderStrike");
+        public static readonly int BlackHole = Animator.StringToHash("BlackHole");
+        public static readonly int Infierno = Animator.StringToHash("Infierno");
+
+        //VampireLord
+        public static readonly int BloodSting = Animator.StringToHash("BloodSting");
+        public static readonly int BloodShard = Animator.StringToHash("BloodShard");
+        public static readonly int BloodVeil = Animator.StringToHash("BloodVeil");
+        public static readonly int BloodSpear = Animator.StringToHash("BloodSpear");
+        public static readonly int TurningBlood = Animator.StringToHash("TurningBlood");
     }
 
     public static class MonsterAnimation
     {
+        // 공용
         public const string Idle = "Idle";
         public const string Run = "Run";
         public static readonly int Stun = Animator.StringToHash("Stun");
         public static readonly int Death = Animator.StringToHash("Death");
         public static readonly int NormalAttack = Animator.StringToHash("NormalAttack");
         public static readonly int StrongAttack = Animator.StringToHash("StrongAttack");
+        public static readonly int Spawn = Animator.StringToHash("Spawn");
+
+        // GoblinKing
         public static readonly int Stomp = Animator.StringToHash("Stomp");
         public static readonly int UpperSlash = Animator.StringToHash("UpperSlash");
         public static readonly int Earthquake = Animator.StringToHash("Earthquake");
         public static readonly int HeavyDestroyerStart = Animator.StringToHash("HeavyDestroyerStart");
         public static readonly int HeavyDestroyerLoop = Animator.StringToHash("HeavyDestroyerLoop");
         public static readonly int HeavyDestroyerEnd = Animator.StringToHash("HeavyDestroyerEnd");
-        public static readonly int Spawn = Animator.StringToHash("Spawn");
         public static readonly int Shark = Animator.StringToHash("Shark");
         public static readonly int ThreePoint = Animator.StringToHash("ThreePoint");
         public static readonly int WhirlWind = Animator.StringToHash("WhirlWind");
@@ -116,6 +150,27 @@ public static class AnimatorHash
         public static readonly int FinalHorizonMiddle = Animator.StringToHash("FinalHorizonMiddle");
         public static readonly int FinalHorizonAttack = Animator.StringToHash("FinalHorizonAttack");
         public static readonly int FinalHorizonEnd = Animator.StringToHash("FinalHorizonEnd");
+
+        // DreamlikeWitch
+        public static readonly int FireBash = Animator.StringToHash("FireBash");
+        public static readonly int ThunderBall = Animator.StringToHash("ThunderBall");
+        public static readonly int IceMountain = Animator.StringToHash("IceMountain");
+        public static readonly int ThunderBolt = Animator.StringToHash("ThunderBolt");
+        public static readonly int VolcanoDive = Animator.StringToHash("VolcanoDive");
+        public static readonly int FireBall = Animator.StringToHash("FireBall");
+        public static readonly int ThunderStrike = Animator.StringToHash("ThunderStrike");
+        public static readonly int BlackHole = Animator.StringToHash("BlackHole");
+        public static readonly int Infierno = Animator.StringToHash("Infierno");
+
+        //VampireLord
+        public static readonly int BloodStingStart = Animator.StringToHash("BloodStingStart");
+        public static readonly int BloodStingLoop = Animator.StringToHash("BloodStingLoop");
+        public static readonly int BloodStingEnd = Animator.StringToHash("BloodStingEnd");
+        public static readonly int BloodShard = Animator.StringToHash("BloodShard");
+        public static readonly int BloodVeil = Animator.StringToHash("BloodVeil");
+        public static readonly int BloodSpear = Animator.StringToHash("BloodSpear");
+        public static readonly int TurningBlood = Animator.StringToHash("TurningBlood");
+
     }
 
     public static class PlayerAnimation

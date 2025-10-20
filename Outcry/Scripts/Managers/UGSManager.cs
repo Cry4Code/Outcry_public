@@ -1,6 +1,6 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Unity.Services.Analytics;
 using Unity.Services.Authentication;
 using Unity.Services.Authentication.PlayerAccounts;
@@ -33,7 +33,7 @@ public class UGSManager : Singleton<UGSManager>
     public event Action OnLinkSuccess;
 
     // 로그아웃 비동기 작업을 제어하기 위함
-    private TaskCompletionSource<bool> signOutTcs;
+    private UniTaskCompletionSource<bool> signOutUcs;
 
     private string localContentVersion = "1.0.0";
 
@@ -63,7 +63,7 @@ public class UGSManager : Singleton<UGSManager>
         // 이것이 로그인 콜백을 즉시 처리하고 창을 앞으로 가져오는데 도움
         Application.runInBackground = true;
 
-        _ = InitializeUGSAsync();
+        InitializeUGSAsync().Forget();
     }
 
     protected override void OnDestroy()
@@ -83,7 +83,7 @@ public class UGSManager : Singleton<UGSManager>
     }
 
     #region INITIALIZATION
-    public async Task InitializeUGSAsync()
+    public async UniTask InitializeUGSAsync()
     {
         if (IsInit)
         {
@@ -145,7 +145,7 @@ public class UGSManager : Singleton<UGSManager>
     {
         Debug.LogError($"Sign-in failed: {e.Message} (Error Code: {e.ErrorCode})");
 
-        string title = "로그인 실패";
+        string title = "Login Failed";
         string message;
         int errorCode = e.ErrorCode;
 
@@ -153,26 +153,26 @@ public class UGSManager : Singleton<UGSManager>
         // static readonly 필드는 switch-case에서 사용할 수 없으므로 if-else if 구문으로 처리
         if (errorCode == AuthenticationErrorCodes.InvalidParameters)
         {
-            message = "로그인 정보가 올바르지 않습니다.";
+            message = "Incorrect login information.";
         }
         else if (errorCode == AuthenticationErrorCodes.AccountAlreadyLinked)
         {
-            message = "이미 다른 계정에 연결된 소셜 계정입니다.";
+            message = "This social account is already linked to another account.";
         }
         else // 위에서 정의한 특정 인증 에러가 아닌 경우 (네트워크 오류 등)
         {
             string lowerCaseMessage = e.Message.ToLower();
             if (lowerCaseMessage.Contains("timeout"))
             {
-                message = "서버 응답 시간이 초과되었습니다.\n네트워크 연결을 확인 후 다시 시도해주세요.";
+                message = "Server response time has timed out.\nPlease check your network connection and try again.";
             }
             else if (lowerCaseMessage.Contains("network") || lowerCaseMessage.Contains("transport") || lowerCaseMessage.Contains("connection"))
             {
-                message = "네트워크 연결에 문제가 발생했습니다.\n인터넷 상태를 확인해주세요.";
+                message = "A network connection error occurred.\nPlease check your internet status.";
             }
             else
             {
-                message = $"알 수 없는 오류가 발생했습니다.\n잠시 후 다시 시도해주세요. (Code: {errorCode})";
+                message = $"An unknown error occurred.\nPlease try again later. (Code: {errorCode})";
             }
         }
 
@@ -186,7 +186,7 @@ public class UGSManager : Singleton<UGSManager>
     /// 현재 계정을 완전히 로그아웃하고 로컬 세션까지 삭제한 뒤
     /// 완전히 새로운 게스트 계정으로 로그인합니다.
     /// </summary>
-    public async Task SwitchToNewGuestAccountAsync()
+    public async UniTask SwitchToNewGuestAccountAsync()
     {
         // 현재 로그인 상태인지 확인
         if (IsLoggedIn)
@@ -204,7 +204,7 @@ public class UGSManager : Singleton<UGSManager>
         await SignInAnonymouslyAsync();
     }
 
-    public async Task<bool> SignInAnonymouslyAsync()
+    public async UniTask<bool> SignInAnonymouslyAsync()
     {
         if (!IsInit || IsLoggedIn)
         {
@@ -226,7 +226,7 @@ public class UGSManager : Singleton<UGSManager>
     /// <summary>
     /// Unity Player Accounts 로그인 절차 시작(UI 버튼에서 호출)
     /// </summary>
-    public async Task<bool> SignInWithUPAAsync()
+    public async UniTask<bool> SignInWithUPAAsync()
     {
         if (!IsInit)
         {
@@ -295,8 +295,8 @@ public class UGSManager : Singleton<UGSManager>
             {
                 OnLoginFailure?.Invoke(this, new LoginErrorArgs
                 {
-                    Title = "계정 연동 실패",
-                    Message = "선택하신 Unity 계정은 이미 다른 게임 데이터와 연결되어 있습니다."
+                    Title = "Linking Failed",
+                    Message = "The selected Unity account is already linked to other game data."
                 });
             }
             else
@@ -304,8 +304,8 @@ public class UGSManager : Singleton<UGSManager>
                 // 그 외 다른 인증 관련 에러 처리
                 OnLoginFailure?.Invoke(this, new LoginErrorArgs
                 {
-                    Title = "계정 연동 실패",
-                    Message = $"인증에 실패했습니다. (코드: {ex.ErrorCode})"
+                    Title = "Linking Failed",
+                    Message = $"Authentication failed. (코드: {ex.ErrorCode})"
                 });
             }
         }
@@ -314,8 +314,8 @@ public class UGSManager : Singleton<UGSManager>
             Debug.LogException(ex);
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "요청 실패",
-                Message = $"서버 요청에 실패했습니다. 네트워크 상태를 확인해주세요. (코드: {ex.ErrorCode})"
+                Title = "Request Failed",
+                Message = $"Server request failed.\nPlease check your network status. (코드: {ex.ErrorCode})"
             });
         }
         finally
@@ -328,7 +328,7 @@ public class UGSManager : Singleton<UGSManager>
     /// <summary>
     /// 게스트 계정을 Unity Player Accounts와 연결
     /// </summary>
-    public async Task LinkWithUPAAsync()
+    public async UniTask LinkWithUPAAsync()
     {
         if (!IsLoggedIn)
         {
@@ -348,8 +348,8 @@ public class UGSManager : Singleton<UGSManager>
             Debug.LogError("This UPA is already linked with another account.");
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "계정 연동 실패",
-                Message = "이미 다른 게임 계정에 연결된 유니티 계정입니다."
+                Title = "Linking Failed",
+                Message = "This Unity account is already linked to another game account."
             });
         }
         catch (PlayerAccountsException ex)
@@ -358,8 +358,8 @@ public class UGSManager : Singleton<UGSManager>
             Debug.LogError($"Link with UPA failed: {ex.Message}");
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "계정 연동 실패",
-                Message = "이미 Unity 계정에 로그인되어 있습니다."
+                Title = "Linking Failed",
+                Message = "You are already logged in to a Unity account."
             });
         }
         catch (Exception e)
@@ -368,8 +368,8 @@ public class UGSManager : Singleton<UGSManager>
             
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "계정 연동 실패",
-                Message = $"알 수 없는 오류가 발생했습니다.\n네트워크 상태를 확인하고 다시 시도해주세요."
+                Title = "Linking Failed",
+                Message = $"An unknown error occurred.\nPlease check your network status and try again."
             });
         }
     }
@@ -385,7 +385,7 @@ public class UGSManager : Singleton<UGSManager>
     /// <summary>
     /// 비동기적으로 로그아웃하고 완료될 때까지 기다림
     /// </summary>
-    public async Task SignOutAsync()
+    public async UniTask SignOutAsync()
     {
         if (!IsLoggedIn)
         {
@@ -399,7 +399,7 @@ public class UGSManager : Singleton<UGSManager>
         }
 
         // TaskCompletionSource 초기화
-        signOutTcs = new TaskCompletionSource<bool>();
+        signOutUcs = new UniTaskCompletionSource<bool>();
 
         // 로그아웃 완료를 처리할 이벤트 구독
         AuthenticationService.Instance.SignedOut += OnSignOutCompletedForTask;
@@ -408,7 +408,7 @@ public class UGSManager : Singleton<UGSManager>
         AuthenticationService.Instance.SignOut(true);
 
         // 멤버 필드의 Task가 완료되기를 대기
-        await signOutTcs.Task;
+        await signOutUcs.Task;
     }
 
     /// <summary>
@@ -420,7 +420,7 @@ public class UGSManager : Singleton<UGSManager>
         AuthenticationService.Instance.SignedOut -= OnSignOutCompletedForTask;
 
         // null 체크 후 Task를 성공 상태로 전환
-        signOutTcs?.SetResult(true);
+        signOutUcs?.TrySetResult(true);
     }
     #endregion
 
@@ -507,7 +507,7 @@ public class UGSManager : Singleton<UGSManager>
     #endregion
 
     #region CLOUD SAVE
-    public async Task<bool> SaveUserDataAsync(int slotIndex, UserData data)
+    public async UniTask<bool> SaveUserDataAsync(int slotIndex, UserData data)
     {
         if (!IsLoggedIn)
         {
@@ -525,7 +525,7 @@ public class UGSManager : Singleton<UGSManager>
         catch (Exception e) { Debug.LogError($"Error saving user data: {e}"); return false; }
     }
 
-    public async Task<Dictionary<int, UserData>> LoadAllUserDataAsync()
+    public async UniTask<Dictionary<int, UserData>> LoadAllUserDataAsync()
     {
         var allSlotsData = new Dictionary<int, UserData>();
         if (!IsLoggedIn)
@@ -554,7 +554,7 @@ public class UGSManager : Singleton<UGSManager>
     private struct UserAttributes { }
     private struct AppAttributes { }
 
-    public async Task CheckForContentUpdateAsync()
+    public async UniTask CheckForContentUpdateAsync()
     {
         if (!IsInit)
         {
@@ -583,7 +583,7 @@ public class UGSManager : Singleton<UGSManager>
         }
     }
 
-    private async Task UpdateAddressablesCatalogAsync()
+    private async UniTask UpdateAddressablesCatalogAsync()
     {
         var handle = Addressables.CheckForCatalogUpdates(false);
         await handle.Task;

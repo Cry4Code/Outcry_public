@@ -38,7 +38,7 @@ public class EffectManager : Singleton<EffectManager>
         EffectDatabase.Initialize();
         
         if (EffectCanvas == null)
-            SetEffectCanvase();
+            SetEffectCanvas();
     }
     
     /// <summary>
@@ -58,13 +58,13 @@ public class EffectManager : Singleton<EffectManager>
             return;
         }
 
-        //기존 이펙트 모두 취소
+        /*//기존 이펙트 모두 취소
         foreach (var cts in effectCtsDict.Values)
         {
             cts.Cancel();
         }
         effectCtsDict.Clear();
-        currentEffectsDict.Clear();
+        currentEffectsDict.Clear();*/
         
         currentEffectOrder = order; //현재 이펙트 순위 갱신
         
@@ -171,7 +171,7 @@ public class EffectManager : Singleton<EffectManager>
         currentEffectOrder = EffectOrder.None;
     }
     
-    private void SetEffectCanvase(string canvasName = "EffectCanvas")
+    private void SetEffectCanvas(string canvasName = "EffectCanvas")
     {
         if (EffectCanvas == null)
         {

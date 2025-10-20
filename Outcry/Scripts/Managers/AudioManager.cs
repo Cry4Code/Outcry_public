@@ -4,7 +4,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Audio;
 
@@ -177,7 +176,7 @@ public class AudioManager : Singleton<AudioManager>
     /// <summary>
     /// 새로운 BGM 재생. 이전 BGM은 페이드 아웃 후 메모리에서 해제.
     /// </summary>
-    public async Task PlayBGM(int id, bool loop = true, float fadeDuration = 0.5f)
+    public async UniTask PlayBGM(int id, bool loop = true, float fadeDuration = 0.5f)
     {
         if (!soundDict.TryGetValue(id, out SoundData sound) || string.IsNullOrEmpty(sound.Sound_path))
         {
@@ -227,7 +226,7 @@ public class AudioManager : Singleton<AudioManager>
     /// <summary>
     /// 현재 재생 중인 BGM을 페이드 아웃하며 정지하고 리소스 해제
     /// </summary>
-    public async Task StopBGM(float fadeDuration = 1.0f)
+    public async UniTask StopBGM(float fadeDuration = 1.0f)
     {
         if (bgmSource.isPlaying)
         {
@@ -236,7 +235,7 @@ public class AudioManager : Singleton<AudioManager>
     }
 
     // 페이드 아웃 코루틴
-    private async Task FadeOutAndStop(float duration)
+    private async UniTask FadeOutAndStop(float duration)
     {
         float startVolume = bgmSource.volume;
         float timer = 0f;

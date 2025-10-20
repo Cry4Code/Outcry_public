@@ -35,7 +35,8 @@ public class ScrewAttack : SkillBase
         controller.Move.ForceLook(controller.transform.localScale.x < 0);
         controller.isLookLocked = true;
         controller.Move.rb.velocity = Vector2.zero;
-        controller.Condition.isCharge = true;
+        controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = true;
         
         animRunningTime = 0f;
         startStateTime = Time.time;

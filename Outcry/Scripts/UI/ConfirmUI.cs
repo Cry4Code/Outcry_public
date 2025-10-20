@@ -33,8 +33,8 @@ public class ConfirmUI : UIPopup
         messageTxt.text = data.Message;
 
         // 버튼 텍스트 설정
-        okBtnTxt.text = "확인";
-        cancelBtnTxt.text = "취소";
+        okBtnTxt.text = "OK";
+        cancelBtnTxt.text = "Cancel";
 
         // 버튼 클릭 액션 저장
         onClickOkAction = data.OnClickOK;

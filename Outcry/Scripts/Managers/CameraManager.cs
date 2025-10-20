@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using Cinemachine;
 using UnityEngine;
 
@@ -11,6 +10,8 @@ public class CameraManager : Singleton<CameraManager>
     
     private EffectOrder currentShakeOrder;
     private Coroutine shakeCoroutine;
+
+    public Camera MainCamera;
 
     protected override void Awake()
     {

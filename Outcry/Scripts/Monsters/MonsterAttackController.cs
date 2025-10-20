@@ -1,7 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -66,19 +65,11 @@ public class MonsterAttackController : MonoBehaviour, ICountable
     }
 
     /// <summary>
-    /// 투사체 생성 메서드
-    /// 투사체 파괴는 각 투사체가 자체적으로 함.
+    /// 투사체 생성 메서드 (몬스터 로컬 좌표) 투사체 파괴는 각 투사체가 자체적으로 함.
     /// </summary>
-    /// <param name="fullPath"></param>
-    /// <param name="localPos"></param>
-    /// <param name="faceRight"></param>
-    /// <param name="damage"></param>
-    /// <param name="isCountable"></param>
+    /// <param name="fullPath"></param> <param name="localPos"></param> <param name="faceRight"></param> <param name="damage"></param> <param name="isCountable"></param>
     public void InstantiateProjectile(string fullPath, Vector3 localPos, bool faceRight, int damage, bool isCountable = true)
-    {
-        // 투사체 월드 좌표로 변환        
-        //parent.transform.position = transform.TransformPoint(localPos); ---- null 에러 해결
-
+    {        
         // 투사체 생성
         GameObject go = ObjectPoolManager.Instance.GetObject(fullPath);
         if (go == null)
@@ -89,6 +80,39 @@ public class MonsterAttackController : MonoBehaviour, ICountable
         
         // 월드 위치 배치 (localPos는 몬스터 기준 로컬 좌표)
         Vector3 worldPos = transform.TransformPoint(localPos);
+        go.transform.position = worldPos;
+        go.transform.rotation = Quaternion.identity;
+
+        // 스프라이트 좌/우 스케일 결정
+        var scale = go.transform.localScale;
+        scale.x = Mathf.Abs(scale.x) * (faceRight ? 1f : -1f);
+        go.transform.localScale = scale;
+
+        // 투사체 Init 호출
+        if (!go.TryGetComponent<ProjectileBase>(out var projectileBase))
+        {
+            Debug.LogError($"{go.name} 에 ProjectileBase가 없습니다!");
+            return;
+        }
+        projectileBase.SetPoolKey(fullPath);
+        projectileBase.Init(damage, isCountable);
+    }
+
+    /// <summary>
+    /// 투사체 생성 메서드 (월드 좌표) 투사체 파괴는 각 투사체가 자체적으로 함.
+    /// </summary>
+    /// <param name="fullPath"></param> <param name="worldPos"></param> <param name="faceRight"></param> <param name="damage"></param> <param name="isCountable"></param>
+    public void InstantiateProjectileAtWorld(string fullPath, Vector3 worldPos, bool faceRight, int damage, bool isCountable = true)
+    {
+        // 투사체 생성
+        GameObject go = ObjectPoolManager.Instance.GetObject(fullPath);
+        if (go == null)
+        {
+            Debug.LogError($"[Projectile] 풀에서 꺼내기 실패 : {fullPath}");
+            return;
+        }
+
+        // 월드 위치 배치
         go.transform.position = worldPos;
         go.transform.rotation = Quaternion.identity;
 

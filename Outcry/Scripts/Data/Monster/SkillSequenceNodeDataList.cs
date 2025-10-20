@@ -14,23 +14,8 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
     public override void Initialize()
     {
         dataList = new List<SkillSequenceNode>();
-        
-        //스킬 시퀀스 노드 생성
-        dataList.Add(new MetalBladeSkillSequenceNode(103001));
-        dataList.Add(new HeavyDestroyerSkillSequenceNode(103002));
-        dataList.Add(new ThreePointSkillSequenceNode(103003));
-        dataList.Add(new EarthquakeSkillSequenceNode(103004));
-        dataList.Add(new StompSkillSequenceNode(103005));
-        dataList.Add(new UpperSlashSkillSequenceNode(103006));
-        dataList.Add(new NormalAttackSkillSequenceNode(103000));
-        dataList.Add(new WhirlWindSkillSequenceNode(103008));
-        dataList.Add(new SharkSkillSequenceNode(103007));
-        
-        dataList.Add(new RumbleOfRuinSkillSequenceNode(103009));
-        dataList.Add(new FinalHorizonSkillSequenceNode(103010));
 
         #region 일반 몬스터
-
         // Goblin Rogue
         dataList.Add(new GoblinCommonAttackSkillSequenceNode(103101));
         dataList.Add(new GoblinRogueStrongAttackSkillSequenceNode(103102));
@@ -42,9 +27,65 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
         // Goblin Firekeeper
         dataList.Add(new GoblinCommonAttackSkillSequenceNode(103201));
         dataList.Add(new GoblinFirekeeperStrongAttackSkillSequenceNode(103202));
-
         #endregion
 
+        #region 고블린 킹
+        // common skills
+        dataList.Add(new MetalBladeSkillSequenceNode(103001));
+        dataList.Add(new HeavyDestroyerSkillSequenceNode(103002));
+        dataList.Add(new ThreePointSkillSequenceNode(103003));
+        dataList.Add(new EarthquakeSkillSequenceNode(103004));
+        dataList.Add(new StompSkillSequenceNode(103005));
+        dataList.Add(new UpperSlashSkillSequenceNode(103006));
+        dataList.Add(new NormalAttackSkillSequenceNode(103000));
+        dataList.Add(new WhirlWindSkillSequenceNode(103008));
+        dataList.Add(new SharkSkillSequenceNode(103007));
+        
+        // special skills
+        dataList.Add(new RumbleOfRuinSkillSequenceNode(103009));
+        dataList.Add(new FinalHorizonSkillSequenceNode(103010));
+        #endregion
+
+        #region 몽환의 마녀
+        // common skills
+        dataList.Add(new MeleeAttackSkillSequenceNode(103401,
+            AnimatorHash.MonsterParameter.NormalAttack, AnimatorHash.MonsterAnimation.NormalAttack));
+        dataList.Add(new MeleeAttackSkillSequenceNode(103403,
+            AnimatorHash.MonsterParameter.FireBash, AnimatorHash.MonsterAnimation.FireBash));
+        dataList.Add(new MeleeAttackSkillSequenceNode(103404,
+            AnimatorHash.MonsterParameter.ThunderBall, AnimatorHash.MonsterAnimation.ThunderBall));
+        dataList.Add(new MeleeAttackSkillSequenceNode(103406,
+            AnimatorHash.MonsterParameter.IceMountain, AnimatorHash.MonsterAnimation.IceMountain));
+        dataList.Add(new MeleeAttackSkillSequenceNode(103407,
+            AnimatorHash.MonsterParameter.ThunderBolt, AnimatorHash.MonsterAnimation.ThunderBolt));
+        // // FireBall(103405) // 보스가 플레이어 위치까지 투사체를 발사하는 스킬
+        //dataList.Add(new ProjectileSpawnSkillSequenceNode(103405,
+        //    AnimatorHash.MonsterParameter.FireBall, AnimatorHash.MonsterAnimation.FireBall, RangeMode.Outside, SpawnMode.Front,
+        //    new SpawnRequest(AddressablePaths.Projectile.FireBall, 8, offset)))  // 파이어 볼 이름 수정 요청 (일반 고블린이랑 겹침)
+        // Thunder Strike(103402) // 체널링 // 보스가 플레이어 위치에 투사체를 생성하는 스킬
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103409,
+            AnimatorHash.MonsterParameter.BlackHole, AnimatorHash.MonsterAnimation.BlackHole, RangeMode.Outside, SpawnMode.AtTarget,
+            new SpawnRequest(AddressablePaths.Projectile.BlackHole, 9)));
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103409,
+            AnimatorHash.MonsterParameter.Infierno, AnimatorHash.MonsterAnimation.Infierno, RangeMode.Outside, SpawnMode.AtTarget,
+            new SpawnRequest(AddressablePaths.Projectile.Infierno, 12)));
+        // VolcanoDive (103410)	// 이동하면서 나갈 스킬
+
+        // special skills
+        // Meteor(103411)
+        #endregion
+
+        //VampireLord
+        dataList.Add(new MeleeAttackSkillSequenceNode(103501, 
+            AnimatorHash.MonsterParameter.NormalAttack, AnimatorHash.MonsterAnimation.NormalAttack)); //일반공격
+        dataList.Add(new TurningBloodSkillSequenceNode(103505)); //TurningBlood
+        dataList.Add(new BloodStingSkillSequenceNode(103506)); //BloodSting
+        dataList.Add(new MeleeAttackSkillSequenceNode(103507, 
+            AnimatorHash.MonsterParameter.BloodShard, AnimatorHash.MonsterAnimation.BloodShard)); //BloodShard
+        dataList.Add(new MeleeAttackSkillSequenceNode(103508, 
+            AnimatorHash.MonsterParameter.BloodVeil, AnimatorHash.MonsterAnimation.BloodVeil)); //BloodVeil
+        dataList.Add(new MeleeAttackSkillSequenceNode(103509, 
+            AnimatorHash.MonsterParameter.BloodSpear, AnimatorHash.MonsterAnimation.BloodSpear)); //BloodSpear
     }
 
     /// <summary>
@@ -103,6 +144,15 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
                 break;
             case GoblinFirekeeperStrongAttackSkillSequenceNode:
                 skillSequenceNode = new GoblinFirekeeperStrongAttackSkillSequenceNode(skillId);
+                break;
+            case MeleeAttackSkillSequenceNode node:
+                skillSequenceNode = new MeleeAttackSkillSequenceNode(node);
+                break;
+            case BloodStingSkillSequenceNode:
+                skillSequenceNode = new BloodStingSkillSequenceNode(skillId);
+                break;
+            case TurningBloodSkillSequenceNode:
+                skillSequenceNode = new TurningBloodSkillSequenceNode(skillId);
                 break;
             default:
                 skillSequenceNode = null;

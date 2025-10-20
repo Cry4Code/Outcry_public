@@ -10,6 +10,7 @@ public class PlayerSkillModel
     public float cooldown;
     public float duration;
     public string desc;
+    public int needSoul;
 
     public PlayerSkillModel(
         int skillId,
@@ -19,7 +20,8 @@ public class PlayerSkillModel
         int stamina,
         float cooldown,
         float duration,
-        string desc)
+        string desc,
+        int needSoul)
     {
         this.skillId = skillId;
         this.skillName = skillName;
@@ -29,5 +31,6 @@ public class PlayerSkillModel
         this.cooldown = cooldown;
         this.duration = duration;
         this.desc = desc;
+        this.needSoul = needSoul;
     }
 }

@@ -32,7 +32,7 @@ public class PlayerMove : MonoBehaviour
     [HideInInspector] public bool isGroundJump = false; // 지상에서 첫 점프 했는지
     [HideInInspector] public bool isDoubleJump = false; // 더블점프 했는지
     
-    [HideInInspector] public bool isGrounded = true;
+    [HideInInspector] public bool isGrounded = false;
     [HideInInspector] public bool isWallTouched = false;
     [HideInInspector] public float inAirTime = 0f;
     
@@ -60,7 +60,7 @@ public class PlayerMove : MonoBehaviour
         if(boxCollider == null)
             boxCollider = GetComponent<BoxCollider2D>();
         Controller = GetComponent<PlayerController>();
-        
+        isGrounded = false;
     }
 
     private void Start()

@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -5,10 +6,27 @@ using UnityEngine;
 public class PlayerAnimator : MonoBehaviour
 {
     [HideInInspector] public Animator animator;
-
+    [HideInInspector] public SpriteRenderer spriteRenderer;
+    
+    #region 피격 피드백 관련 변수
+    
+    private MaterialPropertyBlock mpb;
+    private string mpbColorKey = "_Color";
+    private Color originalColor;
+    private Coroutine damagedFlashCoroutine;
+    
+    #endregion
+    
     private void Awake()
     {
         animator = GetComponent<Animator>();
+        spriteRenderer = GetComponent<SpriteRenderer>();
+    }
+
+    private void Start()
+    {
+        originalColor = spriteRenderer.color;
+        mpb = new MaterialPropertyBlock();
     }
 
     /// <summary>
@@ -69,4 +87,39 @@ public class PlayerAnimator : MonoBehaviour
         animator.SetInteger(AnimatorHash.PlayerAnimation.NormalAttackCount, 0);
     }
 
+    public void DamagedFeedback(float flashTime, float flashSpeed)
+    {
+        if (damagedFlashCoroutine != null)
+        {
+            StopCoroutine(damagedFlashCoroutine);
+            ApplyColor(originalColor);
+        }
+
+        damagedFlashCoroutine = StartCoroutine(FlashRoutine(flashTime, flashSpeed));
+    }
+
+    private IEnumerator FlashRoutine(float flashTime, float flashSpeed)
+    {
+        float elapsed = 0f;
+
+        while (elapsed < flashTime)
+        {
+            elapsed += Time.deltaTime;
+            float t = Mathf.PingPong(elapsed * flashSpeed, 1f);
+
+            Color lerped = Color.Lerp(originalColor, Color.red, t);
+            ApplyColor(lerped);
+
+            yield return null;
+        }
+
+        ApplyColor(originalColor);
+    }
+
+    private void ApplyColor(Color color)
+    {
+        spriteRenderer.GetPropertyBlock(mpb);
+        mpb.SetColor(mpbColorKey, color);
+        spriteRenderer.SetPropertyBlock(mpb);
+    }
 }
