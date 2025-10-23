@@ -12,6 +12,7 @@ public class MeleeAttackSkillSequenceNode : SkillSequenceNode
         this.nodeName = "MeleeAttackSkillSequenceNode" + skillId;
         this.animatorTriggerHash = animatorTriggerHash;
         this.animatorNameHash = animatorNameHash;
+        isAnimationStarted = false;
     }
 
     public MeleeAttackSkillSequenceNode(MeleeAttackSkillSequenceNode node) : base(node.skillId)
@@ -68,10 +69,12 @@ public class MeleeAttackSkillSequenceNode : SkillSequenceNode
             //todo. player damage 처리
             monster.AttackController.SetDamages(skillData.damage1);
             skillTriggered = true;
+            return NodeState.Running;
         }
 
-        if (Time.time - lastUsedTime < 0.1f) //시작 직후는 무조건 Running
+        if (!isAnimationStarted)
         {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, animatorNameHash);
             return NodeState.Running;
         }
 
@@ -87,6 +90,7 @@ public class MeleeAttackSkillSequenceNode : SkillSequenceNode
 
             monster.AttackController.SetDamages(0); //데미지 초기화.
             skillTriggered = false;
+            isAnimationStarted = false;
             state = NodeState.Success;
         }
 

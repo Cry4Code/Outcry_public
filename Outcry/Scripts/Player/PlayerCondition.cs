@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
 using UnityEngine.InputSystem.EnhancedTouch;
@@ -19,6 +20,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     private float k; // k = (최대 스태미나) / (최대 회복시간)^2
 
     [Header("Invincible Settings")] 
+    public bool GodMode;
     private bool isInvincible;
     public float invincibleTime; // 한 대 맞았을 때 무적 초 (일단은 1초)
     public bool isCharge = false;
@@ -156,6 +158,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     public void TakeDamage(int damage)
     {
         Debug.Log($"[TakeDamage] 불림. invincibleCoroutine = {invincibleCoroutine != null} |  isCharge = {isCharge} | isSuperArmor = {isSuperArmor}");
+        if (GodMode) return;
         if (isInvincible) return;
         if (isDead.Value)
         {
@@ -174,6 +177,8 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         Debug.Log("[플레이어] 플레이어 데미지 받음");
         health.Substract(damage);
         controller.Animator.DamagedFeedback(flashTime, flashSpeed);
+        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.Damaged, EffectOrder.Player, controller.gameObject)
+            .Forget();
         Debug.Log($"[플레이어] 플레이어 현재 체력 : {health.CurValue()}");            
         if(!controller.IsCurrentState<DamagedState>() && !isSuperArmor) controller.ChangeState<DamagedState>();
     }
@@ -214,6 +219,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
 
     public bool TryUseStamina(int useStamina)
     {
+        if (GodMode) return true;
         if (stamina.CurValue() - useStamina >= 0)
         {
             canStaminaRecovery.Value = false;

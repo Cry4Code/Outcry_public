@@ -71,7 +71,11 @@ public abstract class SkillBase
         Debug.Log($"[플레이어] 스킬 종료");
         controller.PlayerInputEnable();
         controller.Move.rb.gravityScale = 1f;
-        if(useSuccessed) lastUsedTime = Time.time;
+        if (useSuccessed)
+        {
+            lastUsedTime = Time.time;
+            UGSManager.Instance.LogSkillUsage(StageManager.Instance.CurrentStageData.Stage_id, skillId);
+        }
         controller.Condition.isCharge = false;
         controller.Condition.isSuperArmor = false;
     }

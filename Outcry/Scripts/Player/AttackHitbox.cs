@@ -81,6 +81,11 @@ public class AttackHitbox : MonoBehaviour
                         controller.Attack.JustSpecialAttack(other.gameObject.GetComponentInChildren<Animator>());
                         countable.CounterAttacked();
                         controller.Attack.successJustAttack = false;
+                        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+                        if (stageId != StageID.Village)
+                        {
+                            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.JustSpecialAttack);
+                        }
                         await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject, 
                             /*((other.transform.position - controller.transform.position).normalized 
                                                              * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f)*/

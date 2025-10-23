@@ -16,13 +16,16 @@ public abstract class SkillSequenceNode : SequenceNode
     
     protected float lastUsedTime;
     protected bool skillTriggered = false;
+    protected bool isAnimationStarted = false;
     protected bool isRunning = false;
+    protected bool effectStarted = false;
 
     public bool IsRunning => isRunning;
     public int SkillId => skillId;
 
     public override NodeState Tick()
     {
+        Debug.Log("[몬스터BT] SkillSequenceNode Tick 실행: " + nodeName);
         NodeState state = base.Tick();
         isRunning = (state == NodeState.Running);   // 실행 중일 때, 외부에 상황 노출
         return state;
@@ -85,5 +88,25 @@ public abstract class SkillSequenceNode : SequenceNode
             Debug.Log($"Using skill: {animationName} from {skillData.skillName} (ID: {skillData.skillId})");
             return false;
         }
+    }
+    
+    /// <summary>
+    /// Stun 등의 애니메이션으로 인해 Idle 애니메이션으로 복귀했는지 확인.
+    /// </summary>
+    /// <returns></returns>
+    protected bool IsIdleAnimationPlaying()
+    {
+        if(AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.Idle))
+        {
+            //Idle 애니메이션이 재생 중
+            return true;
+        }
+
+        if (AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.Tired))
+        {
+            return true;
+        }
+
+        return false;
     }
 }

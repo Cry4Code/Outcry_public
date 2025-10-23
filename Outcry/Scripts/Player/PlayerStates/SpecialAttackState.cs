@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class SpecialAttackState : BasePlayerState
@@ -21,6 +22,8 @@ public class SpecialAttackState : BasePlayerState
 
     private Vector2 lastSpeed;
     private bool hasLastSpeed;
+    
+    private bool isSpecialAttacking = false;
 
 
     private float t;
@@ -28,6 +31,7 @@ public class SpecialAttackState : BasePlayerState
 
     public async override void Enter(PlayerController controller)
     {
+        isSpecialAttacking = false;
         if (!controller.Condition.TryUseStamina(controller.Data.specialAttackStamina))
         {
             if (controller.Move.isGrounded)
@@ -41,7 +45,7 @@ public class SpecialAttackState : BasePlayerState
                 return;
             }
         }
-        
+        isSpecialAttacking = true;
         controller.isLookLocked = false;
         controller.Move.ForceLook(CursorManager.Instance.mousePosition.x - controller.transform.position.x < 0);
         controller.Move.rb.velocity = Vector2.zero;
@@ -58,8 +62,8 @@ public class SpecialAttackState : BasePlayerState
         controller.Attack.SetDamage(controller.Data.specialAttackDamage);
         controller.Attack.isStartJustAttack = true;
         controller.Condition.isSuperArmor = true;
-        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.SpecialAttack, EffectOrder.Player,
-            controller.gameObject);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.SpecialAttack, EffectType.Sound,
+            controller.gameObject).Forget();
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.SpecialAttack);
         
         
@@ -186,5 +190,10 @@ public class SpecialAttackState : BasePlayerState
         controller.Inputs.Player.Move.Enable();
         controller.Condition.isSuperArmor = false;
         controller.transform.rotation = Quaternion.Euler(0, 0, 0);
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (isSpecialAttacking &&  stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.SpecialAttack);
+        }
     }
 }

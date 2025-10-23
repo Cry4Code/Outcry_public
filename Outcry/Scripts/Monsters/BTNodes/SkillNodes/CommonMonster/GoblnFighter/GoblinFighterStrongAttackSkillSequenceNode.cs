@@ -96,6 +96,13 @@ public class GoblinFighterStrongAttackSkillSequenceNode : SkillSequenceWithChase
             return NodeState.Running;
         }
 
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.StrongAttack);
+            return NodeState.Running;
+        }
+
         // 애니메이션 중 Running 리턴 고정
         bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.StrongAttack);
         if (isSkillAnimationPlaying)

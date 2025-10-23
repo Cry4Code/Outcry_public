@@ -190,4 +190,12 @@ public class EffectManager : Singleton<EffectManager>
         else
             return currentEffectsDict.ContainsKey((effectId, type));
     }
+
+    /// <summary>
+    /// 버튼 소리 내기
+    /// </summary>
+    public void ButtonSound()
+    {
+        PlayEffectByIdAndTypeAsync(UIEffectID.Click, EffectType.Sound).Forget();
+    }
 }

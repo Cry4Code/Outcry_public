@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class DreamlikeWitchAI : MonsterAIBase
+public class PhantomWitchAI : MonsterAIBase
 {
     protected override void InitializeBehaviorTree()
     {
@@ -51,7 +51,7 @@ public class DreamlikeWitchAI : MonsterAIBase
         commonSkillSelector.nodeName = "CommonSkillSelectorNode";
         commonSkillSequence.AddChild(commonSkillSelector);
 
-        WaitActionNode commonWait = new WaitActionNode(Figures.Monster.COMMON_SKILL_INTERVAL);
+        WaitActionNode commonWait = new WaitActionNode(Figures.Monster.BOSS2_COMMON_SKILL_INTERVAL);
         commonWait.nodeName = "CommonSkillWaitNode";
         commonSkillSequence.AddChild(commonWait);
 
@@ -62,8 +62,19 @@ public class DreamlikeWitchAI : MonsterAIBase
             if (skillData != null)
             {
                 skillNode.InitializeSkillSequenceNode(monster, target);
-                skillNode.nodeName = "C_SkillNode_" + skillData.skillName;
-                commonSkillSelector.AddChild(skillNode);
+
+                float range = skillData.range;
+
+                var approachNode = new ApproachInRangeActionNode(monster.Rb2D, monster.transform, target.transform,
+                    monster.MonsterData.chaseSpeed, range, monster.Animator, monster.MonsterAI);
+                
+                var approchThenSkillNode = new SequenceNode { nodeName = $"S_Seq_{skillData.skillName}" };
+                approchThenSkillNode.AddChild(approachNode);
+                approchThenSkillNode.AddChild(skillNode);
+
+                approachNode.nodeName = $"S_Approach_{skillData.skillName}";
+                skillNode.nodeName = $"S_SkillNode_{skillData.skillName}";
+                commonSkillSelector.AddChild(approchThenSkillNode);
             }
         }
         #endregion

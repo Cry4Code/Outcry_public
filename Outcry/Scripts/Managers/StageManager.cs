@@ -20,6 +20,7 @@ public class StageManager : Singleton<StageManager>
 
     // 내부 변수
     private StageData currentStageData;
+    public StageData CurrentStageData => currentStageData;
     private GameObject currentBoundsObject;
     private CinemachineVirtualCamera stageCamera;
     public CinemachineVirtualCamera StageCamera => stageCamera; //범위 공격 위해서 public으로 노출 필요
@@ -33,6 +34,7 @@ public class StageManager : Singleton<StageManager>
 
     // 이벤트
     public static event Action<StageData> OnStageCleared;
+    public Action<float> OnTimeChanged;
 
     public StageController currentStageController; // 현재 스테이지 컨트롤러 참조
 
@@ -40,6 +42,7 @@ public class StageManager : Singleton<StageManager>
     {
         base.Awake();
         EffectManager.Instance.ToString();
+        UIManager.Instance.ToString();
         CurrentState = EStageState.None; // 대기 상태에서 시작
     }
 
@@ -57,6 +60,7 @@ public class StageManager : Singleton<StageManager>
     {
         EventBus.Subscribe(EventBusKey.ChangePlayerDead, OnPlayerDiedHandler);
         EventBus.Subscribe(EventBusKey.ChangeEnemyDead, OnEnemyDiedHandler);
+        
     }
 
     private void OnDisable()
@@ -73,36 +77,6 @@ public class StageManager : Singleton<StageManager>
         }
 
         base.OnDestroy();
-
-        // 실제 메모리 해제 여부는 ResourceManager가 결정
-        //if (currentStageData != null)
-        //{
-        //    // 맵 리소스 참조 해제 요청
-        //    if (!string.IsNullOrEmpty(currentStageData.Map_path))
-        //    {
-        //        ResourceManager.Instance.UnloadAddressableAsset(currentStageData.Map_path);
-        //    }
-        //    // 몬스터 리소스 참조 해제 요청
-        //    foreach (var monsterId in currentStageData.Monster_ids)
-        //    {
-        //        var enemyData = GameManager.Instance.GetEnemyData(monsterId);
-        //        if (enemyData != null && !string.IsNullOrEmpty(enemyData.Enemy_path))
-        //        {
-        //            ResourceManager.Instance.UnloadAddressableAsset(enemyData.Enemy_path);
-        //        }
-        //    }
-        //}
-
-        //// 플레이어 리소스 참조 해제 요청
-        //if (!string.IsNullOrEmpty(Paths.Prefabs.Player))
-        //{
-        //    ResourceManager.Instance.UnloadAddressableAsset(Paths.Prefabs.Player);
-        //}
-
-        //// 스테이지가 종료될 때 로드했던 플레이어 효과음 언로드
-        //Debug.Log("[StageManager] Unloading player SFX by label PlayerSFX");
-        //// fire-and-forget으로 언로드
-        //_ = ResourceManager.Instance.UnloadAssetsByLabelAsync("PlayerSFX");
     }
 
     public void InitializeStage(StageData stageData, GameObject map, GameObject player, List<GameObject> enemy)
@@ -111,7 +85,7 @@ public class StageManager : Singleton<StageManager>
         mapPrefab = map;
         playerPrefab = player;
         enemyPrefabs = enemy; // 전달받은 모든 몬스터 정보 저장
-
+        
         StartCoroutine(StageFlowRoutine());
     }
 
@@ -152,6 +126,11 @@ public class StageManager : Singleton<StageManager>
         Debug.Log($"[StageManager] 이번 스테이지의 총 몬스터 수는 {count}마리로 설정되었습니다.");
     }
 
+    public float GetElapsedTime()
+    {
+        return currentStageData.Time_limit - stageTimer;
+    }
+
     #region 스테이지 흐름 코루틴
     // 스테이지의 전체적인 흐름을 관리하는 메인 코루틴
     private IEnumerator StageFlowRoutine()
@@ -164,6 +143,8 @@ public class StageManager : Singleton<StageManager>
         stageTimer = currentStageData.Time_limit;
         //stageTimer = 10f; // TEST
         Debug.Log("스테이지 시작!");
+        
+        OnTimeChanged = UIManager.Instance.GetUI<HUDUI>().ChangeTimerBar;
     }
 
     // 스폰 및 등장 연출 코루틴
@@ -178,8 +159,8 @@ public class StageManager : Singleton<StageManager>
             color = mapInstance.GetComponentInChildren<BgColor>().gameObject;
             black = mapInstance.GetComponentInChildren<BgBlack>().gameObject;
 
-            ColorBgs = new List<Renderer>(color.GetComponentsInChildren<Renderer>());
-            BlackBgs = new List<Renderer>(black.GetComponentsInChildren<Renderer>());
+            ColorBgs = new List<Renderer>(color.GetComponentsInChildren<Renderer>(true));
+            BlackBgs = new List<Renderer>(black.GetComponentsInChildren<Renderer>(true));
         }
 
         if (mapInstance == null)
@@ -273,6 +254,7 @@ public class StageManager : Singleton<StageManager>
     private IEnumerator VictoryRoutine()
     {
         CurrentState = EStageState.Finished;
+        
 
         currentStageController?.OnStageVictory();
 
@@ -281,8 +263,11 @@ public class StageManager : Singleton<StageManager>
             // StageData에 보스 ID
             // TODO: 처치한 보스 ID를 GameManager의 UserData에 추가
             OnStageCleared?.Invoke(currentStageData);
+            UGSManager.Instance.LogStageResult(currentStageData.Stage_id, true, currentStageData.Time_limit - stageTimer, 0);
         }
 
+        
+        
         Debug.Log("스테이지 클리어!");
         Time.timeScale = 0.5f;
         yield return new WaitForSecondsRealtime(2.0f);
@@ -293,12 +278,16 @@ public class StageManager : Singleton<StageManager>
         if (currentStageData != null && currentStageData.Stage_id != (int)EStageType.Tutorial)
         {
             // TODO: 클리어 보상 UI(보상 중복 보유 가능 여부에 따라 달라질 예정)
+            int bossId = currentStageData.Monster_ids[0];
+            Sprite soulSprite = GameManager.Instance.GetSprite(bossId);
+
             var popup = UIManager.Instance.Show<ConfirmUI>();
             popup.Setup(new ConfirmPopupData
             {
-                Title = "소울 획득",
-                Message = $"{currentStageData.Boss_names[0]}의 영혼을 획득했습니다.",
-                Type = EConfirmPopupType.ACQUIRE_OK,
+                Title = "",
+                Message = $"{currentStageData.Boss_names[0]} Vanquished.",
+                Type = EConfirmPopupType.SOUL_ACQUIRE_OK,
+                ItemSprite = soulSprite
             });
         }
     }
@@ -309,6 +298,29 @@ public class StageManager : Singleton<StageManager>
         CurrentState = EStageState.Finished;
 
         currentStageController?.OnStageDefeat();
+        
+        if (currentStageData != null && currentStageController != null)
+        {
+            float monsterFullHp = -1f;
+            float lastMonsterHp = -1f;
+            if (DataManager.Instance.MonsterDataList.TryGetMonsterModelData(currentStageData.Monster_ids[0], out var monsterData))
+            {
+                monsterFullHp = monsterData.health;
+            }
+            if (currentStageController.aliveMonsters[0].TryGetComponent(out MonsterCondition condition))
+            {
+                lastMonsterHp = condition.CurrentHealth.CurValue();
+            }
+
+            if (monsterFullHp < 0 || lastMonsterHp < 0)
+            {
+                Debug.LogError("[LogStageResult] Cannot Find MonsterModelData or Alive MonsterCondition");
+            }
+            else
+            {
+                UGSManager.Instance.LogStageResult(currentStageData.Stage_id, false, currentStageData.Time_limit - stageTimer, (int)((lastMonsterHp/monsterFullHp) * 100));
+            }
+        }
 
         Debug.Log("스테이지 실패!");
         yield return new WaitForSeconds(1.0f);
@@ -461,7 +473,7 @@ public class StageManager : Singleton<StageManager>
     }
 
     // 보스 사망 이벤트가 방송되면 실행될 핸들러
-    private void OnEnemyDiedHandler(object data)
+    public void OnEnemyDiedHandler(object data)
     {
         // 이벤트 데이터가 true(사망)이고 게임이 진행 중일 때만 로직 실행
         if ((bool)data && CurrentState == EStageState.InProgress)
@@ -501,6 +513,10 @@ public class StageManager : Singleton<StageManager>
             PlayerManager.Instance.player.runFSM = false; // FSM 멈추기
             OnPlayerDiedHandler(true);
         }
+        else
+        {
+            OnTimeChanged?.Invoke(stageTimer);
+        }
     }
 
     public void TogglePause()
@@ -524,27 +540,44 @@ public class StageManager : Singleton<StageManager>
             Time.timeScale = 0f; // 게임 시간 정지
 
             var optionPopup = UIManager.Instance.Show<OptionUI>();
-            optionPopup.Setup(new OptionUIData
+            if (GameManager.Instance.CurrentGameState == EGameState.Lobby || currentStageData.ID == (int)EStageType.Tutorial)
             {
-                Type = EOptionUIType.Stage, // 나가기 버튼 숨김
-                OnClickExitAction = () =>
+                optionPopup.Setup(new OptionUIData
                 {
-                    // 거점 빌리지, 튜토리얼에서는 게임 종료
-                    if(GameManager.Instance.CurrentGameState == EGameState.Lobby || currentStageData.ID == (int)EStageType.Tutorial)
+                    Type = EOptionUIType.Lobby,
+                    ExitText = "Quit Game",
+                    OnClickExitAction = () =>
+                    {
+                        GameManager.Instance.QuitGame();
+                    },
+                    OnClickStageOptionExitAction = () =>
                     {
                         CurrentState = EStageState.InProgress;
                         Time.timeScale = 1f; // 게임 시간 다시 시작
-
                         UIManager.Instance.Hide<OptionUI>();
-
                         CursorManager.Instance.SetInGame(true);
                     }
-                    else // 스테이지 플레이 중일 때는 로비로 이동
+                });
+            }
+            else // 스테이지 플레이 중일 때는 로비로 이동
+            {
+                optionPopup.Setup(new OptionUIData
+                {
+                    Type = EOptionUIType.Stage,
+                    ExitText = "Back to Lobby",
+                    OnClickExitAction = () =>
                     {
                         GameManager.Instance.GoToLobby();
+                    },
+                    OnClickStageOptionExitAction = () =>
+                    {
+                        CurrentState = EStageState.InProgress;
+                        Time.timeScale = 1f; // 게임 시간 다시 시작
+                        UIManager.Instance.Hide<OptionUI>();
+                        CursorManager.Instance.SetInGame(true);
                     }
-                }
-            });
+                });
+            }
 
             CursorManager.Instance.SetInGame(false);
         }

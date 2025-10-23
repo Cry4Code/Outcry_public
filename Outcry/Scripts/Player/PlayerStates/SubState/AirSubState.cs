@@ -21,7 +21,7 @@ public class AirSubState : BasePlayerState
         {
             if(!controller.Move.isDoubleJump)
             {
-                controller.ChangeState<DoubleJumpState>();
+                TryChangeState(eTransitionType.DoubleJumpState, controller);
                 return;
             }
         }
@@ -29,35 +29,35 @@ public class AirSubState : BasePlayerState
         if (controller.Inputs.Player.NormalAttack.triggered && moveInput.y < 0)
         {
             controller.isLookLocked = true;
-            controller.ChangeState<DownAttackState>();
+            TryChangeState(eTransitionType.DownAttackState, controller);
             return;
         }
         if (controller.Inputs.Player.NormalAttack.triggered && !controller.Attack.HasJumpAttack)
         {
             controller.isLookLocked = true;
-            controller.ChangeState<NormalJumpAttackState>();
+            TryChangeState(eTransitionType.NormalJumpAttackState, controller);
             return;
         }
         
         if (controller.Inputs.Player.SpecialAttack.triggered)
         {
             controller.isLookLocked = false;
-            controller.ChangeState<SpecialAttackState>();
+            TryChangeState(eTransitionType.SpecialAttackState, controller);
             return;
         }
         if (controller.Inputs.Player.Dodge.triggered)
         {
-            controller.ChangeState<DodgeState>();
+            TryChangeState(eTransitionType.DodgeState, controller);
             return;
         }
         if (controller.Inputs.Player.Parry.triggered)
         {
-            controller.ChangeState<StartParryState>();
+            TryChangeState(eTransitionType.StartParryState, controller);
             return;
         }
-        if (controller.Inputs.Player.AdditionalAttack.triggered)
+        if (controller.Skill.CurrentSkill != null && controller.Inputs.Player.AdditionalAttack.triggered)
         {
-            controller.ChangeState<AdditionalAttackState>();
+            TryChangeState(eTransitionType.AdditionalAttackState, controller);
             return;
         }
     }

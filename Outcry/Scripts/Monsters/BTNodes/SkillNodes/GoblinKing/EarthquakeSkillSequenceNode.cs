@@ -13,6 +13,7 @@ public class EarthquakeSkillSequenceNode : SkillSequenceNode
     // 애니메이션 클립 초당 프레임 수
     private const float ANIMATION_FRAME_RATE = 20f;
     // 투사체 생성 프레임
+    private const float STOMP_TIME = (1.0f / ANIMATION_FRAME_RATE) * 12; // 13프레임이 지난 시점에 땅을 구름
     private const float INSTANTIATE_STONE1_TIME = (1.0f / ANIMATION_FRAME_RATE) * 19;   // 20프레임이 지난 시점
     private const float INSTANTIATE_STONE2_TIME = (1.0f / ANIMATION_FRAME_RATE) * 25;   // 26프레임이 지난 시점
     private const float INSTANTIATE_STONE3_TIME = (1.0f / ANIMATION_FRAME_RATE) * 31;   // 32프레임이 지난 시점
@@ -99,6 +100,7 @@ public class EarthquakeSkillSequenceNode : SkillSequenceNode
         // 스킬 트리거 켜기
         if (!skillTriggered)
         {
+            effectStarted = false;
             lastUsedTime = Time.time;
             FlipCharacter();
             monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.Earthquake);
@@ -113,6 +115,13 @@ public class EarthquakeSkillSequenceNode : SkillSequenceNode
         // 시작 직후 Running 강제
         if (Time.time - lastUsedTime < 0.1f) // 시작 직후는 무조건 Running
         {
+            return NodeState.Running;
+        }
+
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.Earthquake);
             return NodeState.Running;
         }
 
@@ -137,13 +146,20 @@ public class EarthquakeSkillSequenceNode : SkillSequenceNode
         // 몬스터가 바라보는 방향
         bool faceRight = monster.transform.localScale.x >= 0f;
 
+        if (animationElapsedTime >= STOMP_TIME && !effectStarted)
+        {
+            effectStarted = true;
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage1BossEffectID.Stomp, EffectType.Sound, monster.gameObject).Forget();
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
+        }
+
         // 애니메이션의 동작 시간에 투사체(Stone) 생성 로직 실행
         // 돌 데미지는 skillData.damage2
         if (animationElapsedTime >= INSTANTIATE_STONE1_TIME && !isSpawned1)
         {
             isSpawned1 = true;
             Debug.Log($"{skillData.skillName} : stone 생성 - 위치 {position1}");
-            monster.AttackController.InstantiateProjectile(projectilePath, position1, faceRight, skillData.damage2);    // 스킬 반복 실행 시 수정            
+            monster.AttackController.InstantiateProjectile(projectilePath, position1, faceRight, skillData.damage2);    // 스킬 반복 실행 시 수정
         }      
 
         if (animationElapsedTime >= INSTANTIATE_STONE2_TIME && !isSpawned2)

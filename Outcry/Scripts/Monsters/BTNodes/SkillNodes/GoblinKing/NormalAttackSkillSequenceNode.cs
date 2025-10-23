@@ -1,9 +1,25 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class NormalAttackSkillSequenceNode : SkillSequenceNode
 {
+    // 애니메이션 클립 초당 프레임 수
+    private const float ANIMATION_FRAME_RATE = 20f;
+
+    private float[] attackSoundTime = new[]
+    {
+        (1f / ANIMATION_FRAME_RATE) * 8f,
+        (1f / ANIMATION_FRAME_RATE) * 28f,
+        (1f / ANIMATION_FRAME_RATE) * 37f
+    };
+
+    private int attackSoundIndex = 0;
+    private float startTime = 0;
+    
+    
+    
     public NormalAttackSkillSequenceNode(int skillId) : base(skillId)
     {
         this.nodeName = "NormalAttackSkillSequenceNode";
@@ -51,6 +67,9 @@ public class NormalAttackSkillSequenceNode : SkillSequenceNode
 
         if (!skillTriggered)
         {
+            attackSoundIndex = 0;
+            startTime = 0;
+            effectStarted = false;
             lastUsedTime = Time.time;
             FlipCharacter();
             monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.NormalAttack);
@@ -59,14 +78,32 @@ public class NormalAttackSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
         }
 
-        if (Time.time - lastUsedTime < 0.1f) //시작 직후는 무조건 Running
+        if (!effectStarted)
         {
+            effectStarted = true;
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject);
+        }
+
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.NormalAttack);
             return NodeState.Running;
         }
 
         bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.NormalAttack);
         if (isSkillAnimationPlaying)
         {
+            startTime += Time.deltaTime;
+            if (attackSoundIndex < attackSoundTime.Length)
+            {
+                if (startTime >= attackSoundTime[attackSoundIndex])
+                {
+                    attackSoundIndex++;
+                    EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage1BossEffectID.NormalAttack * 10 + (Random.Range(0, 2)), EffectType.Sound,
+                        monster.gameObject).Forget();
+                }    
+            }
+            
             Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
             state = NodeState.Running;
         }
@@ -76,6 +113,7 @@ public class NormalAttackSkillSequenceNode : SkillSequenceNode
 
             monster.AttackController.SetDamages(0); //데미지 초기화.
             skillTriggered = false;
+            isAnimationStarted = false;
             state = NodeState.Success;
         }
 

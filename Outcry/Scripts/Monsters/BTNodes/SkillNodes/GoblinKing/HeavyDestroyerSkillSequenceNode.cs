@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
@@ -61,6 +62,7 @@ public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
         // SkillAction() 이 불렸을 때 이미 실행중이 아니면
         if (!skillTriggered)
         {
+            effectStarted = false;
             monster.MonsterAI.TryConsumePotionEdge(); // 포션 엣지-레치 소모
 
             targetPosX = target.transform.position.x; // 타겟 x 좌표 초기화
@@ -81,7 +83,20 @@ public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
             stateEnterTime = Time.time;
             cooldownTimer = 0f; // 스킬을 사용했으므로 쿨다운 타이머 리셋
+            return NodeState.Running;
+        }
 
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.HeavyDestroyerStart);
+            return NodeState.Running;
+        }
+
+        // 시작 직후 Running 강제
+        if (Time.time - lastUsedTime < 0.1f)
+        {
+            return NodeState.Running;
         }
 
         // 각 애니메이션 클립에 실행될 로직들
@@ -89,6 +104,11 @@ public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
         if (AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.HeavyDestroyerStart))
         {
             Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
+            if (!effectStarted)
+            {
+                effectStarted = true;
+                EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
+            }
             state = NodeState.Running;
         }
         //루프 애니메이션이 실행되는 동안 이동과 실행중 반환, 도착할 시 파라미터 설정
@@ -109,12 +129,14 @@ public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
             {
                 isArrived = true; // isArrived 라는 bool 값을 이동이 끝났을 때 true 로 바꿔줘서 애니메이션이 끝났는지 다른곳에서 확인할 수 있게 해줌
                 animator.SetTrigger(AnimatorHash.MonsterParameter.IsArrived);
+                EffectManager.Instance.PlayEffectsByIdAsync(skillId * 10, EffectOrder.Monster, monster.gameObject).Forget();
             }
 
             //일정 시간 이상 추적 시 강제 종료
             if (Time.time - stateEnterTime > FORCED_EXIT_TIME)
             {
                 animator.SetTrigger(AnimatorHash.MonsterParameter.IsArrived);
+                EffectManager.Instance.PlayEffectsByIdAsync(skillId * 10, EffectOrder.Monster, monster.gameObject).Forget();
                 FieldReset();
                 return NodeState.Success;
 
@@ -124,10 +146,18 @@ public class HeavyDestroyerSkillSequenceNode : SkillSequenceNode
         //isArrived 를 통해서 이전 모든 애니메이션이 실행 된 상태에서, 엔드 애니메이션 까지 실행중이 아니면 == 모든 애니메이션이 실행됨 => 필드를 초기화 하고 성공 반환 
         else if (!AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.HeavyDestroyerEnd) && isArrived)
         {
+            /*EffectManager.Instance.PlayEffectsByIdAsync(skillId * 10, EffectOrder.Monster, monster.gameObject).Forget();*/
             FieldReset();
             state = NodeState.Success;
         }
-        else 
+        else if (IsIdleAnimationPlaying())
+        {
+            // 스턴 등의 이유로 Idle 애니메이션으로 복귀했을 때 필드 초기화 후 성공 반환
+            Debug.Log("[몬스터BT] HeavyDestroyerSkillSequenceNode: 스킬 도중 Idle 애니메이션으로 복귀 감지");
+            FieldReset();
+            state = NodeState.Success;
+        }
+        else
         {
             state = NodeState.Running;
         }

@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -22,10 +23,8 @@ public class DataManager : Singleton<DataManager>
     
     public PlayerSkillDataList  PlayerSkillDataList => playerSkillDataList;
     
-    
     public Dictionary<int, SkillBase> AllSkills = new Dictionary<int, SkillBase>();
 
-    
     protected override void Awake() {
         base.Awake();
 

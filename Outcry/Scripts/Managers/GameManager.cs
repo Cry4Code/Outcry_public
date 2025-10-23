@@ -3,6 +3,7 @@ using StageEnums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 // 게임 전체의 상태를 나타내는 열거형
@@ -20,6 +21,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     public EGameState CurrentGameState { get; set; }
     public UserData CurrentUserData { get; private set; }
     public SceneLoadPackage NextLoadPackage { get; private set; }
+    public bool HasEnteredDungeon { get; set; } = false;
 
     private StageData currentStageData;
     private EnemyData currentEnemyData;
@@ -30,6 +32,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
     // 이전 리소스 목록 임시 저장
     private List<string> assetsToUnloadFromPreviousScene = new List<string>();
+
+    private Dictionary<int, Sprite> spriteDict = new Dictionary<int, Sprite>();
 
     protected override void Awake()
     {
@@ -59,6 +63,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         DataTableManager.Instance.LoadCollectionData<StageDataTable>();
         DataTableManager.Instance.LoadCollectionData<SoundDataTable>();
         DataTableManager.Instance.LoadCollectionData<EnemyDataTable>();
+
+        LoadAllSpritesAsync().Forget();
 
         Debug.Log("GameManager Initialized.");
 
@@ -110,6 +116,12 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         Debug.Log($"{slotIndex}번 슬롯에서 새 게임을 시작합니다.");
 
         UIManager.Instance.Show<NicknameUI>();
+    }
+
+    public void StartNewGameAsaGuest()
+    {
+        CurrentUserData = new UserData("Guest");
+        StartStage((int)EStageType.Tutorial);
     }
 
     public void CreateNewGame(string nickname)
@@ -166,9 +178,6 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         if(CurrentUserData.IsTutorialCleared)
         {
-            // 로드하면서 보유한 스킬 장착
-            PlayerManager.Instance.player.Skill.SetSkill(CurrentUserData.SelectSkillId);
-
             GoToLobby();
         }
         else
@@ -189,7 +198,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     /// 이전 스테이지에서 사용했던 리소스들을 안전하게 언로드하는 코루틴
     /// 이 코루틴은 LoadingScene이 활성화된 후에 실행된다.
     /// </summary>
-    private IEnumerator UnloadPreviousStageAssetsCoroutine()
+    private IEnumerator UnloadPreviousStageAssetsCoroutine(List<string> assetsToUnload)
     {
         // 이전 SceneLoadManager가 언로드하므로 여기서는 씬 언로드가 필요 없다.
         // 오직 에셋만 언로드
@@ -197,10 +206,10 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         // 이전 스테이지의 로드 패키지에서 언로드할 리소스 목록을 가져옴
         // 단, NextLoadPackage는 이미 새로운 로비 패키지로 교체되었으므로
         // 이전 리소스 목록을 다른 곳에 임시 저장해야 한다.(StartStage에서 처리)
-        if (assetsToUnloadFromPreviousScene != null && assetsToUnloadFromPreviousScene.Count > 0)
+        if (assetsToUnload != null && assetsToUnload.Count > 0)
         {
-            yield return ResourceManager.Instance.UnloadAllAssetsCoroutine(assetsToUnloadFromPreviousScene);
-            assetsToUnloadFromPreviousScene.Clear(); // 정리 후 비워줌
+            yield return ResourceManager.Instance.UnloadAllAssetsCoroutine(assetsToUnload);
+            assetsToUnload.Clear(); // 정리 후 비워줌
         }
         yield break;
     }
@@ -219,23 +228,45 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             return;
         }
 
+        // 스테이지 시작 시 로비, 튜토리얼이 아닌 다른 스테이지(던전)에 입장하는 것이라면 플래그 true 설정
+        if (stageId != (int)EStageType.Village && stageId != (int)EStageType.Tutorial)
+        {
+            HasEnteredDungeon = true;
+            Debug.Log("던전에 입장했습니다. HasEnteredDungeon 플래그를 true로 설정합니다.");
+        }
+
         CurrentGameState = EGameState.LoadingScene;
         Time.timeScale = 1f; // 일시정지 상태였다면 풀어줌
 
-        // 스테이지 시작 이벤트 로깅
-        UGSManager.Instance.LogStageStart(currentStageData.Stage_name);
+        // 스테이지 시작 이벤트 로깅 (마을 아닐 때만)
+        if(currentStageData.Stage_id != StageID.Village)
+            UGSManager.Instance.LogStageStart(currentStageData.Stage_id);
 
         // 스테이지 시작을 위한 데이터 설정
         var package = new SceneLoadPackage(ESceneType.InGameScene);
         //package.AdditiveSceneNames.Add("StageManagers");
 
         // 가장 먼저 이전 리소스 언로드 작업 PreLoadingTask에 추가
-        // 이 시점의 assetsToUnloadFromPreviousScene는 이전 스테이지의 리소스 목록을 담고 있다.
-        package.PreLoadingTasks.Add(new LoadingTask
+        // 이전 스테이지에서 로드한 리소스가 있을 경우에만 언로드 작업을 추가합니다.
+        List<string> assetsForUnloading;
+
+        if (assetsToUnloadFromPreviousScene != null)
         {
-            Description = "Cleaning up previous stage...",
-            Coroutine = UnloadPreviousStageAssetsCoroutine
-        });
+            assetsForUnloading = new List<string>(assetsToUnloadFromPreviousScene);
+        }
+        else
+        {
+            assetsForUnloading = new List<string>();
+        }
+
+        if (assetsForUnloading.Count > 0)
+        {
+            package.PreLoadingTasks.Add(new LoadingTask
+            {
+                Description = "Cleaning up previous stage...",
+                Coroutine = () => UnloadPreviousStageAssetsCoroutine(assetsForUnloading)
+            });
+        }
 
         // 현재 유저 데이터 저장 작업 추가(로비로 돌아갈 때만 저장)
         if (stageId == (int)EStageType.Village && CurrentUserData != null && currentSlotIndex != -1)
@@ -394,25 +425,34 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     public void GainSkill(int skillId)
     {
         // 유저데이터가 없는 경우(로그인/초기화 안됨) 그냥 종료
-        if (CurrentUserData == null) return;
+        if (CurrentUserData == null)
+        {
+            return;
+        }
 
         // AcquiredSkillIds 리스트가 null이면 새로 생성
         if (CurrentUserData.AcquiredSkillIds == null)
-            CurrentUserData.AcquiredSkillIds = new List<int>();
+        {
+            Debug.LogError("[GameManager.GainSkill] AcquiredSkillIds is null. Initializing new list.");
+            return;
+        }
 
         // 이미 같은 스킬을 가지고 있으면 중복 추가를 막고 종료
         if (CurrentUserData.AcquiredSkillIds.Contains(skillId))
+        {
             return;
+        }
 
         //리스트에 skillId 기록
         CurrentUserData.AcquiredSkillIds.Add(skillId);
+
+        SaveGame();
     }
 
     /// <summary>
     /// (임시) 현재 장착된 스킬 ID. 
-    /// TODO: 추후 UserData에 정식 필드로 이전: int EquippedSkillId;
     /// </summary>
-    private int equippedSkillId = -1;
+    private int equippedSkillId = 0;
 
     /// <summary>
     /// UI 등에서 장착 성공 시 알림을 받고 싶을 때 구독
@@ -440,35 +480,78 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             return false;
         }
 
+        // 이미 같은 스킬 장착 중이면 조용히 성공 반환 (중복 이벤트 방지)
+        if (equippedSkillId == skillId)
+        {
+            return true;
+        }
+
         // 한 개만 장착 가능 → 단순히 교체
         equippedSkillId = skillId;
+        CurrentUserData.SelectSkillId = skillId;
+        Debug.Log($"[GameManager.TryEquipSkill]유저데이터에 스킬 장착 성공: {skillId}");
+        PlayerManager.Instance.player.Skill.SetSkill(skillId);
+        Debug.Log($"[GameManager.TryEquipSkill]플레이어에 스킬 장착 성공: {skillId}");
 
-        // (옵션) 나중에 UserData에 정식 저장 시 여기에 반영:
-        // TODO: CurrentUserData.EquippedSkillId = skillId;
-
-        Debug.Log($"[GameManager.TryEquipSkill] 스킬 장착 성공: {skillId}");
         OnSkillEquipped?.Invoke(skillId);
+
+        EventBus.Publish("SkillEquipped", skillId);
+
+        SaveGame();
+
         return true;
     }
+    #endregion
 
+    #region Sprites 관리
     /// <summary>
-    /// (임시) 현재 장착된 스킬 ID 조회
+    /// ResourceManager를 통해 Sprites 레이블을 가진 모든 스프라이트를 비동기 로드
     /// </summary>
-    public int GetEquippedSkillId()
+    private async UniTask LoadAllSpritesAsync()
     {
-        return equippedSkillId;
+        // ResourceManager에게 Sprites 레이블을 가진 모든 Sprite 에셋을 로드해달라고 요청
+        var loadedSprites = await ResourceManager.Instance.LoadAssetsByLabelAsync<Sprite>("Sprites");
+
+        if (loadedSprites == null || loadedSprites.Count == 0)
+        {
+            Debug.LogWarning("[DataManager] 'SoulSprites' 레이블로 로드된 스프라이트가 없습니다.");
+            return;
+        }
+
+        // 로드된 스프라이트들 순회
+        foreach (var sprite in loadedSprites)
+        {
+            // 스프라이트의 이름(Addressable 주소)을 ID로 변환
+            if (int.TryParse(sprite.name, out int id))
+            {
+                // 조회용 Dictionary에 ID와 스프라이트 추가
+                if (!spriteDict.ContainsKey(id))
+                {
+                    spriteDict.Add(id, sprite);
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"[DataManager] 스프라이트 이름({sprite.name})을 ID로 변환할 수 없습니다.");
+            }
+        }
+
+        Debug.Log($"[DataManager] {spriteDict.Count}개의 스프라이트 준비 완료.");
     }
 
     /// <summary>
-    /// (필요 시) 장착 해제
+    /// ID로 미리 로드된 스프라이트 즉시 반환
     /// </summary>
-    public void UnEquipSkill()
+    public Sprite GetSprite(int id)
     {
-        equippedSkillId = -1;
-        // TODO: 나중에 UserData.EquippedSkillId = -1; 형태로 이전
-        Debug.Log("[GameManager.UnEquipSkill] 스킬 장착 해제");
-    }
+        if (spriteDict.TryGetValue(id, out Sprite sprite))
+        {
+            return sprite;
+        }
 
+        Debug.LogWarning($"[DataManager] ID: {id}에 해당하는 스프라이트를 찾을 수 없습니다. 미리 로드되었는지 확인해주세요.");
+        return null;
+    }
     #endregion
 
     /// <summary>

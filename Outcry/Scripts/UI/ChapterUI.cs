@@ -1,5 +1,6 @@
 using StageEnums;
 using System.Collections;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -25,8 +26,8 @@ public class ChapterUI : UIPopup
         exitBtn.onClick.AddListener(OnExitButtonClicked);
 
         // TEMP
-        AbandonedMineBtn.interactable = false;
-        HallOfBloodBtn.interactable = false;
+        AbandonedMineBtn.interactable = true;
+        HallOfBloodBtn.interactable = true;
     }
 
     private void OnEnable()
@@ -71,6 +72,7 @@ public class ChapterUI : UIPopup
                 yield break; // 코루틴을 즉시 중단
             }
 
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(UIEffectID.OpenChapterMap, EffectType.Sound).Forget();
             mapAnimator.Play(UNROLL_ANIM_NAME);
 
             // 애니메이터가 상태를 전환할 때까지 한 프레임 기다림

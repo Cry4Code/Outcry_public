@@ -9,19 +9,24 @@ using UnityEngine.Tilemaps;
 
 public class HallOfBloodStageController : StageController
 {
+    public WayPoint[] WayPoints;
+
+    public ZoneMarker Phase3BossZone;
+    
     // 보스 페이즈 관리용
     private enum EBossPhase { Phase1, TransitionToPhase2, Phase2, TransitionToPhase3, Phase3 }
     private EBossPhase currentPhase;
 
     [Header("테스트 옵션")]
     [Tooltip("체크하면 보스 HP와 상관없이 페이즈 2 시작")]
-    public bool forceStartPhase2ForTesting = false;
+    public bool StartPhase2Trigger = false;
     private bool testTriggered = false; // 테스트가 중복 실행되지 않도록 방지
 
     // 페이즈별 오브젝트
     private GameObject phase1Map;
     private GameObject phase2Map;
     private GameObject phase2And3Platforms;
+    public GameObject BloodMoon { get; private set; }
 
     private CinemachineBrain cinemachineBrain;
     private CinemachineVirtualCamera playerFollowCamera;
@@ -56,8 +61,11 @@ public class HallOfBloodStageController : StageController
         phase1Map = mapRoot.GetComponentInChildren<Phase1MapMarker>(true)?.gameObject;
         phase2Map = mapRoot.GetComponentInChildren<Phase2MapMarker>(true)?.gameObject;
         phase2And3Platforms = mapRoot.GetComponentInChildren<Phase2PlatformsMarker>(true)?.gameObject;
+        BloodMoon = mapRoot.GetComponentInChildren<BloodMoonMarker>(true)?.gameObject;
         autoScrollCamera = mapRoot.GetComponentInChildren<AutoScrollCameraMarker>(true)?.GetComponent<CinemachineVirtualCamera>();
         cameraScroller = mapRoot.GetComponentInChildren<CameraAutoScroller>(true);
+        WayPoints = mapRoot.GetComponentsInChildren<WayPoint>(true);
+        Phase3BossZone = mapRoot.GetComponentInChildren<ZoneMarker>(true);
         phase3StartTrigger = mapRoot.GetComponentInChildren<Phase3StartTriggerMarker>(true)?.gameObject;
         if (phase3StartTrigger != null)
         {
@@ -77,7 +85,7 @@ public class HallOfBloodStageController : StageController
     // 테스트용 트리거 감지
     private void Update()
     {
-        if (forceStartPhase2ForTesting && !testTriggered)
+        if (!testTriggered)
         {
             testTriggered = true; // 중복 실행 방지
             Debug.Log("테스트 옵션으로 페이즈 2를 시작합니다.");
@@ -96,16 +104,15 @@ public class HallOfBloodStageController : StageController
             cinemachineBrain = Camera.main.GetComponent<CinemachineBrain>();
         }
 
-        // 보스 몬스터 추가되면 주석 제거
-        //if (enemys != null && enemys.Count >= 2)
-        //{
-        //    walkingBossPrefab = enemys[0];
-        //    flyingBossPrefab = enemys[1];
-        //}
-        //else
-        //{
-        //    Debug.LogError("보스 프리팹이 충분하지 않습니다! (걷는 보스, 나는 보스 총 2개가 필요합니다.)");
-        //}
+        if (enemys != null && enemys.Count >= 2)
+        {
+            walkingBossPrefab = enemys[0];
+            flyingBossPrefab = enemys[1];
+        }
+        else
+        {
+            Debug.LogError("보스 프리팹이 충분하지 않습니다! (걷는 보스, 나는 보스 총 2개가 필요합니다.)");
+        }
 
         if (phase1Map != null) phase1Map.SetActive(true);
         if (phase2Map != null) phase2Map.SetActive(false);
@@ -121,9 +128,7 @@ public class HallOfBloodStageController : StageController
 
         // 보스 HP가 50% 이하가 되거나 테스트 옵션이 켜질 때까지 대기
         await UniTask.WaitUntil(() =>
-            /*(bossMonster != null && !bossMonster.GetComponent<MonsterCondition>().IsDead.Value) // 보스가 살아있는지 확인
-            && (bossMonster.GetComponent<MonsterCondition>().CurrentHealth <= bossMonster.Condition.MaxHealth * 0.5f)
-            || */forceStartPhase2ForTesting,
+            StartPhase2Trigger,
             cancellationToken: this.GetCancellationTokenOnDestroy());
 
         if (this.GetCancellationTokenOnDestroy().IsCancellationRequested)
@@ -140,7 +145,10 @@ public class HallOfBloodStageController : StageController
         // 플레이어가 마지막 발판 트리거에 닿을 때까지 대기
         await UniTask.WaitUntil(() => currentPhase == EBossPhase.TransitionToPhase3, cancellationToken: this.GetCancellationTokenOnDestroy());
 
-        if (this.GetCancellationTokenOnDestroy().IsCancellationRequested) return;
+        if (this.GetCancellationTokenOnDestroy().IsCancellationRequested)
+        {
+            return;
+        }
 
         // 페이즈 3
         await Phase3_Sequence();
@@ -152,20 +160,19 @@ public class HallOfBloodStageController : StageController
         currentPhase = EBossPhase.Phase1;
         Debug.Log("페이즈 1 시작");
 
-        // TODO: 배경음악 변경
-        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase1);
 
         SpawnPlayerAt(playerSpawnPoints[0], 3f);
 
-        // 보스 몬스터 추가 후 주석 제거
-        //int walkingBossId = stageData.Monster_ids[0];
-        //Transform phase1SpawnPoint = enemySpawnPoints[0];
-        //GameObject bossInstance = SpawnMonsterAt(walkingBossPrefab, walkingBossId, phase1SpawnPoint);
+        int walkingBossId = stageData.Monster_ids[0];
+        Transform phase1SpawnPoint = enemySpawnPoints[0];
+        GameObject bossInstance = SpawnMonsterAt(walkingBossPrefab, walkingBossId, phase1SpawnPoint);
+        SettingBossHpBar();
 
-        //if (bossInstance != null)
-        //{
-        //    bossMonster = bossInstance.GetComponent<MonsterBase>();
-        //}
+        if (bossInstance != null)
+        {
+            bossMonster = bossInstance.GetComponent<MonsterBase>();
+        }
     }
 
     private async UniTask TransitionToPhase2()
@@ -173,7 +180,12 @@ public class HallOfBloodStageController : StageController
         currentPhase = EBossPhase.TransitionToPhase2;
         Debug.Log("페이즈 2로 전환 시작");
 
-        // TODO: 화면 진동 효과
+        // 페이즈 전환 효과음
+        EffectManager.Instance.PlayEffectsByIdAsync(1035100, EffectOrder.SpecialEffect).Forget();
+
+        // 화면 진동 효과
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(9900, EffectType.Camera).Forget();
+
         await FadeManager.Instance.FadeOut();
 
         // 카메라 경계를 페이즈 2용으로 업데이트
@@ -201,10 +213,12 @@ public class HallOfBloodStageController : StageController
         // 전환이 완료되었으므로 오버라이드 규칙을 즉시 제거하여 다른 전환에 영향을 주지 않도록 한다
         CinemachineCore.GetBlendOverride = null;
 
+        // 이전 보스 제거
+        int prevHP = bossMonster.Condition.CurrentHealth.CurValue();
         if (bossMonster != null)
         {
+            StageManager.Instance.OnEnemyDiedHandler(true);
             aliveMonsters.Remove(bossMonster.gameObject);
-            Destroy(bossMonster.gameObject);
             Debug.Log("페이즈 1 보스를 제거했습니다.");
         }
 
@@ -216,14 +230,19 @@ public class HallOfBloodStageController : StageController
 
         Vector3 playerNewPos = phase2PlayerSpawnPoint.position;
         playerInstance.transform.position = playerNewPos;
+        PlayerManager.Instance.player.runFSM = false;
 
-        // 보스 몬스터 추가 후 주석 제거
-        //int flyingBossId = stageData.Monster_ids[1];
-        //GameObject newBossInstance = SpawnMonsterAt(flyingBossPrefab, flyingBossId, phase2MonsterSpawnPoint);
-        //if (newBossInstance != null)
-        //{
-        //    bossMonster = newBossInstance.GetComponent<MonsterBase>();
-        //}
+        int flyingBossId = stageData.Monster_ids[1];
+        GameObject newBossInstance = SpawnMonsterAt(flyingBossPrefab, flyingBossId, phase2MonsterSpawnPoint);
+        if (newBossInstance != null)
+        {
+            bossMonster = newBossInstance.GetComponent<MonsterBase>();
+            UniTask.DelayFrame(1).ContinueWith(() =>
+            {
+                SettingBossHpBar();
+                ChangeBossHp(bossMonster, prevHP);
+            }).Forget();
+        }
 
         await FadeManager.Instance.FadeIn();
 
@@ -243,7 +262,9 @@ public class HallOfBloodStageController : StageController
         currentPhase = EBossPhase.Phase2;
         Debug.Log("페이즈 2 시작");
 
-        // TODO: 배경음악 변경
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase2);
+
+        PlayerManager.Instance.player.runFSM = true;
 
         cameraScroller.StartScroll();
 
@@ -267,6 +288,14 @@ public class HallOfBloodStageController : StageController
     private async UniTask Phase3_Sequence()
     {
         currentPhase = EBossPhase.Phase3;
+        
+        //VampireLordFlyingAI로 페이즈 3 전환 알림
+        var vampireLordFlyingAI = bossMonster.MonsterAI as VampireLordFlyingAI;
+        if (vampireLordFlyingAI)
+        {
+            vampireLordFlyingAI.TransitionToPhase3();
+        }
+            
         Debug.Log("페이즈 3 시작");
 
         cameraScroller.StopScroll();
@@ -288,10 +317,10 @@ public class HallOfBloodStageController : StageController
         autoScrollCamera.gameObject.SetActive(false);
         cameraScroller.gameObject.SetActive(false);
 
-        if (phase3DeathPlane != null) phase3DeathPlane.SetActive(true);
-
-        // TODO: 3페이즈 보스 AI 패턴 시작
-        // bossMonster.GetComponent<FlyingBossAI>().StartPhase3Pattern();
+        if (phase3DeathPlane != null)
+        {
+            phase3DeathPlane.SetActive(true);
+        }
 
         await UniTask.Yield();
     }

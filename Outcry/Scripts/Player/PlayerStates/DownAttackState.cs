@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class DownAttackState : DownAttackSubState
@@ -31,6 +32,8 @@ public class DownAttackState : DownAttackSubState
     {
         if (controller.Move.isGrounded)
         {
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.NormalAttackSound, EffectType.Sound,
+                controller.gameObject).Forget();
             controller.ChangeState<IdleState>();
             return;
         }
@@ -40,5 +43,10 @@ public class DownAttackState : DownAttackSubState
     {
         base.Exit(controller);
         controller.Move.rb.gravityScale = 1f;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.JumpDownAttack);
+        }
     }
 }

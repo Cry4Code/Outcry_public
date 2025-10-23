@@ -77,7 +77,7 @@ public class TitleUI : UIBase
         // 게스트 로그인은 바로 튜토리얼 시작
         if(UGSManager.Instance.IsAnonymousUser)
         {
-            GameManager.Instance.StartStage((int)EStageType.Tutorial);
+            GameManager.Instance.StartNewGameAsaGuest();
             return;
         }
 
@@ -137,7 +137,7 @@ public class TitleUI : UIBase
     private void OnClickGuestLogin()
     {
         Debug.Log("Guest Login Clicked");
-
+        EffectManager.Instance.ButtonSound();
         var popup = UIManager.Instance.Show<ConfirmUI>();
 #if UNITY_WEBGL
         popup.Setup(new ConfirmPopupData
@@ -171,7 +171,7 @@ public class TitleUI : UIBase
     private async void OnClickEmailLogin()
     {
         Debug.Log("Email Login Clicked");
-
+        EffectManager.Instance.ButtonSound();
         // 로그인 시도 플래그 true로 설정하고 버튼 비활성화
         isAttemptingUPALogin = true;
 
@@ -189,9 +189,11 @@ public class TitleUI : UIBase
 
     private void OnClickSettings()
     {
+        EffectManager.Instance.ButtonSound();
         var optionPopup = UIManager.Instance.Show<OptionUI>();
         optionPopup.Setup(new OptionUIData
         {
+            ExitText = "Exit",
             Type = EOptionUIType.Title,
             OnClickExitAction = null // 기본 동작(UI 닫기)
         });

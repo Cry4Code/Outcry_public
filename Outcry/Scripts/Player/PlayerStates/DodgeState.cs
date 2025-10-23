@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class DodgeState : BasePlayerState
@@ -12,11 +13,13 @@ public class DodgeState : BasePlayerState
     private float dodgePower = 20f;
     private float dodgeAnimationLength;
     private Vector2 dodgeDirection;
+    private bool isDodged;
 
     public override eTransitionType ChangableStates { get; }
 
     public override void Enter(PlayerController controller)
     {
+        isDodged = false;
         if (!controller.Condition.TryUseStamina(controller.Data.dodgeStamina))
         {
             if (controller.Move.isGrounded)
@@ -30,7 +33,7 @@ public class DodgeState : BasePlayerState
                 return;
             }
         }
-        
+        isDodged = true;
         var moveInputs = controller.Inputs.Player.Move.ReadValue<Vector2>();
         controller.isLookLocked = true;
         if (moveInputs.x != 0)
@@ -58,6 +61,7 @@ public class DodgeState : BasePlayerState
         /*controller.Move.rb.velocity = Vector2.zero;*/
         /*controller.Move.rb.AddForce(dodgeDirection, ForceMode2D.Impulse);*/
         
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.Dodge, EffectType.Sound, controller.gameObject).Forget();
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.Dodge);
         controller.Condition.SetInvincible(controller.Data.dodgeInvincibleTime);
         startStateTime = Time.time;
@@ -104,5 +108,10 @@ public class DodgeState : BasePlayerState
     public override void Exit(PlayerController controller)
     {
         controller.Inputs.Player.Move.Enable();
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (isDodged &&  stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.Dodge);
+        }
     }
 }

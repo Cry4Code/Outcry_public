@@ -54,7 +54,7 @@ public class GroundSubState : BasePlayerState
             TryChangeState(eTransitionType.PotionState, controller);
             return;
         }
-        if (controller.Inputs.Player.AdditionalAttack.triggered)
+        if (controller.Skill.CurrentSkill != null && controller.Inputs.Player.AdditionalAttack.triggered)
         {
             TryChangeState(eTransitionType.AdditionalAttackState, controller);
             return;

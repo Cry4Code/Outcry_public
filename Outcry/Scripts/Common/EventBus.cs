@@ -32,4 +32,12 @@ public class EventBus
             action.Invoke(data);
         }
     }
+
+    public static void Clear(string eventKey)
+    {
+        if (listeners.TryGetValue(eventKey, out var action))
+        {
+            action = null;
+        }
+    }
 }

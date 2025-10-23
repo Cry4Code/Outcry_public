@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using Cinemachine;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -103,14 +104,16 @@ public class FinalHorizonSkillSequenceNode : SkillSequenceNode
         }
         
         //체력이 일정 이하일때
-        bool isLowHealth = monster.Condition.CurrentHealth < skillData.triggerHealth * monster.Condition.MaxHealth;
+        bool isLowHealth = monster.Condition.CurrentHealth.CurValue() < skillData.triggerHealth * monster.Condition.MaxHealth;
         Debug.Log($"Skill {skillData.skillName} (ID: {skillData.skillId}) {isLowHealth} : {monster.Condition.CurrentHealth} / {monster.Condition.MaxHealth} < {skillData.triggerHealth}");
-        if (!isLowHealth) return false;
+        return isLowHealth; // 체력만 체크하는 것으로 변경되었습니다.
         
-        //쿨타임 체크
+        /*if (!isLowHealth) return false;*/
+
+        /*//쿨타임 체크
         bool isCooldownComplete = Time.time - lastUsedTime >= skillData.cooldown;
         Debug.Log($"Skill {skillData.skillName} (ID: {skillData.skillId}) cooldownComplete={isCooldownComplete} : {Time.time - lastUsedTime} / {skillData.cooldown}");
-        return isCooldownComplete;
+        return isCooldownComplete;*/
     }
 
     //1. 바람 이펙트로 기 모으기
@@ -210,6 +213,7 @@ public class FinalHorizonSkillSequenceNode : SkillSequenceNode
             isLaserEffectTriggered = true;
             
             monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.IsReady);
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId, EffectType.Sound).Forget();
             
             for (float x = minX; x <= maxX; x += LASER_LENGTH)
             {

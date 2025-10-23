@@ -9,11 +9,13 @@ public class StartParryState : BasePlayerState
     private float startAttackTime = 0.01f;
     private float t;
     private float parryTime;
+    private bool isParryStarted = false;
 
     public override eTransitionType ChangableStates { get; }
 
     public async override void Enter(PlayerController controller)
     {
+        isParryStarted = false;
         if (!controller.Condition.TryUseStamina(controller.Data.parryStamina))
         {
             if (controller.Move.isGrounded)
@@ -27,6 +29,7 @@ public class StartParryState : BasePlayerState
                 return;
             }
         }
+        isParryStarted = true;
         await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.StartParrying, EffectType.Sound, controller.gameObject);
         controller.isLookLocked = false;
         controller.Move.ForceLook(CursorManager.Instance.mousePosition.x - controller.transform.position.x < 0);
@@ -89,5 +92,10 @@ public class StartParryState : BasePlayerState
     {
         if(!controller.Attack.successParry) controller.Condition.NoMoreInvincible();
         controller.Attack.isStartParry = false;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (isParryStarted &&  stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.StartParrying);
+        }
     }
 }

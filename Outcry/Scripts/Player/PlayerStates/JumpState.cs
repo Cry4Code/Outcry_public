@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class JumpState : AirSubState
@@ -17,6 +18,9 @@ public class JumpState : AirSubState
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.Jump);
         /*controller.isLookLocked = true; */
         controller.isLookLocked = false; 
+        
+        
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.Jump * 10 + (Random.Range(0, 4)), EffectType.Sound, controller.gameObject).Forget();
         
         if (controller.Move.isWallTouched)
         {

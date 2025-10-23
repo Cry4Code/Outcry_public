@@ -127,7 +127,14 @@ public class BloodStingSkillSequenceNode : SkillSequenceNode
             FieldReset();
             state = NodeState.Success;
         }
-        else 
+        else if (IsIdleAnimationPlaying())
+        {
+            // 스턴 등의 이유로 Idle 애니메이션으로 복귀했을 때 필드 초기화 후 성공 반환
+            Debug.Log("[몬스터BT] HeavyDestroyerSkillSequenceNode: 스킬 도중 Idle 애니메이션으로 복귀 감지");
+            FieldReset();
+            state = NodeState.Success;
+        }
+        else
         {
             state = NodeState.Running;
         }

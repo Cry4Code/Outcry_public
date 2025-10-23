@@ -1,12 +1,24 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 [Serializable]
 public class UpperSlashSkillSequenceNode : SkillSequenceNode
 {
     private int animationHash = AnimatorHash.MonsterParameter.UpperSlash;  
+    
+    // 애니메이션 클립 초당 프레임 수
+    private const float ANIMATION_FRAME_RATE = 20f;
+
+    private float[] attackSoundTime = new[]
+    {
+        (1f / ANIMATION_FRAME_RATE) * 19f
+    };
+    private int attackSoundIndex = 0;
+    private float elapsedTime = 0;
     
     public UpperSlashSkillSequenceNode(int skillId) : base(skillId)
     {
@@ -58,6 +70,9 @@ public class UpperSlashSkillSequenceNode : SkillSequenceNode
 
         if (!skillTriggered)
         {
+            elapsedTime = 0;
+            attackSoundIndex = 0;
+            effectStarted = false;
             lastUsedTime = Time.time;
             FlipCharacter();
             monster.Animator.SetTrigger(animationHash);
@@ -67,15 +82,38 @@ public class UpperSlashSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
         }
 
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.UpperSlash);
+            return NodeState.Running;
+        }
+
         // 시작 직후 Running 강제
         if (Time.time - lastUsedTime < 0.1f)
-        {            
+        {
             return NodeState.Running;
+        }        
+
+        if (!effectStarted)
+        {
+            effectStarted = true;
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
         }
 
         bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.UpperSlash);
         if (isSkillAnimationPlaying)
         {
+            elapsedTime += Time.deltaTime;
+            if (attackSoundIndex < attackSoundTime.Length)
+            {
+                if (elapsedTime >= attackSoundTime[attackSoundIndex])
+                {
+                    attackSoundIndex++;
+                    EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage1BossEffectID.NormalAttack * 10 + (Random.Range(0, 2)), EffectType.Sound,
+                        monster.gameObject).Forget();
+                }    
+            }
             Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
             state = NodeState.Running;
         }

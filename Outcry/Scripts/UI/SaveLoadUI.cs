@@ -8,7 +8,9 @@ public class SaveLoadUI : UIPopup
 {
     [SerializeField] private TextMeshProUGUI titleText;
     [SerializeField] private Button[] slotBtns;
+    [SerializeField] private Button[] deleteBtns;
     [SerializeField] private TMP_Text[] nicknameTexts;
+    [SerializeField] private TMP_Text[] skillCountsTexts;
     [SerializeField] private GameObject[] emptySlotObjects;
     [SerializeField] private GameObject[] characterSlotObjects;
     [SerializeField] private Button exitBtn;
@@ -21,7 +23,19 @@ public class SaveLoadUI : UIPopup
         for(int i = 0; i < slotBtns.Length; i++)
         {
             int slotIndex = i; // 클로저 문제 방지
-            slotBtns[i].onClick.AddListener(() => SaveLoadManager.Instance.SelectSlot(slotIndex));
+            slotBtns[i].onClick.AddListener(() =>
+            {
+                SaveLoadManager.Instance.SelectSlot(slotIndex);
+            });
+
+            // deleteBtns 배열이 null이 아니고 인덱스가 유효할 때만 리스너 추가
+            if (deleteBtns != null && i < deleteBtns.Length && deleteBtns[i] != null)
+            {
+                deleteBtns[i].onClick.AddListener(() =>
+                {
+                    SaveLoadManager.Instance.DeleteSlotData(slotIndex);
+                });
+            }
         }
 
         exitBtn.onClick.AddListener(OnClickExit);
@@ -60,7 +74,8 @@ public class SaveLoadUI : UIPopup
     /// </summary>
     private void UpdateUI(ESlotUIType type, Dictionary<int, UserData> data)
     {
-        titleText.text = type.ToString();
+        //titleText.text = type.ToString();
+        titleText.text = "Save / Load";
 
         // 버튼 활성화
         foreach (var button in slotBtns)
@@ -73,6 +88,7 @@ public class SaveLoadUI : UIPopup
             if (data.TryGetValue(i, out UserData slotData))
             {
                 nicknameTexts[i].text = slotData.Nickname;
+                skillCountsTexts[i].text = $"Skills: {slotData.AcquiredSkillIds.Count}";
 
                 emptySlotObjects[i].SetActive(false);
                 characterSlotObjects[i].SetActive(true);

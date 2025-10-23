@@ -23,17 +23,6 @@ public class CursorManager : Singleton<CursorManager>
         Cursor.visible = false;
     }
 
-    protected override void OnDestroy()
-    {
-        base.OnDestroy();
-
-        // ResourceManager.Instance가 아직 파괴되지 않고 존재하는 경우에만 리소스 해제 시도
-        if (!string.IsNullOrEmpty(Paths.Prefabs.Cursor) && ResourceManager.Instance != null)
-        {
-            ResourceManager.Instance.UnloadAddressableAsset(Paths.Prefabs.Cursor);
-        }
-    }
-
     /// <summary>
     /// PlayerManager가 플레이어가 준비되었다고 알려주면 호출될 메서드
     /// </summary>

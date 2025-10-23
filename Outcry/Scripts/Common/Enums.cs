@@ -23,6 +23,9 @@ namespace SoundEnums
         Lobby = 104001,
         Tutorial = 104002,
         RuinsOfTheFallenKing = 104003,
+        AbandonedMine = 104004,
+        HallOfBloodPhase1 = 104005,
+        HallOfBloodPhase2 = 104006,
     }
 }
 

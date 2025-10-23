@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -91,19 +92,21 @@ public abstract class ProjectileBase : MonoBehaviour, ICountable
     /// 오브젝트 반환 요청 메서드, 파괴 시 이 메서드를 호출
     /// </summary>
     /// <param name="fallbackSeconds"></param>
-    public void RequestRelease(float fallbackSeconds = 0.15f)
+    /// <param name="callback">파괴되고 나서 반환 직전에 실행할 함수</param>
+    public void RequestRelease(float fallbackSeconds = 0.15f, Action callback = null)
     {
         if (isReleasing) return;
         OnPrepareRelease();
-        StartCoroutine(ReleaseAfterCurrentState(fallbackSeconds));
+        StartCoroutine(ReleaseAfterCurrentState(fallbackSeconds, callback));
     }
 
     /// <summary>
     /// 애니메이션 길이 만큼 대기 후 릴리스, 애니메이터가 없을 시 대신 입력값만큼 대기
     /// </summary>
     /// <param name="fallbackSeconds"></param>
+    /// <param name="callback">파괴되고 나서 반환 직전에 실행할 함수</param>
     /// <returns></returns>
-    protected IEnumerator ReleaseAfterCurrentState(float fallbackSeconds = 0.15f)
+    protected IEnumerator ReleaseAfterCurrentState(float fallbackSeconds = 0.15f, Action callback = null)
     {
         if (isReleasing) yield break;
         isReleasing = true;
@@ -125,6 +128,7 @@ public abstract class ProjectileBase : MonoBehaviour, ICountable
             yield return new WaitForSeconds(fallbackSeconds);
         }
 
+        callback?.Invoke();
         // 최종 반환
         if (!string.IsNullOrEmpty(poolKey))        
             ObjectPoolManager.Instance.ReleaseObject(poolKey, gameObject);

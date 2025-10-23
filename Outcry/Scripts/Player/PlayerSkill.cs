@@ -18,14 +18,6 @@ public class PlayerSkill : MonoBehaviour
         this.controller = controller;
     }
 
-    private void Start()
-    {
-        if (skillCode != 0)
-        {
-            SetSkill(skillCode);
-        }
-    }
-
     public void SetSkill(int skillId)
     {
         // SkillId가 0이면 아무런 스킬도 장착하지 않음.

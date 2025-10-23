@@ -1,35 +1,36 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
-public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
+public class ThunderStrikeSkillSequenceNode : SkillSequenceNode
 {
-    private float stateEnterTime;
-    private int nextActionIndex;
-    private float[] actionFrames;
+    private string projectilePath;
+    private float stateEnterTime;   // 시작 직후 바로 투사체 생성, 프레임 계산 불필요
+    private bool isSpawned;
 
-    private const float ANIMATION_FRAME_RATE = 20f;
-    // 행동 프레임, 상승은 시작 직후 바로 시작
-    private const float FLY_END_TIME = (1.0f / ANIMATION_FRAME_RATE) * 9;
-    private const float DROP_START_TIME = (1.0f / ANIMATION_FRAME_RATE) * 13;
-    private const float DROP_END_TIME = (1.0f / ANIMATION_FRAME_RATE) * 26;
-
-    public VolcanoDiveSkillSequenceNode(int skillId) : base(skillId)
+    private bool isAnimationStarted = false;
+    private int animatorNameHash;
+    public ThunderStrikeSkillSequenceNode(int skillId) : base(skillId)
     {
-        this.nodeName = "VolcanoDiveSkillSequenceNode";
+        this.nodeName = "ThunderStrikeSkillSequenceNode";
     }
 
-    public override void InitializeSkillSequenceNode(MonsterBase monster, PlayerController target)
+    public override async void InitializeSkillSequenceNode(MonsterBase monster, PlayerController target)
     {
         base.InitializeSkillSequenceNode(monster, target);
-        actionFrames = new float[3];
-        actionFrames[0] = FLY_END_TIME;
-        actionFrames[1] = DROP_START_TIME;
-        actionFrames[2] = DROP_END_TIME;
+        projectilePath = AddressablePaths.Projectile.ThunderStrike;
+        isAnimationStarted = false;
+        animatorNameHash = AnimatorHash.MonsterParameter.ThunderStrike;
+        await ObjectPoolManager.Instance.RegisterPoolAsync(projectilePath);
     }
 
     protected override bool CanPerform()
     {
+        // 포션-오버라이드 발동 시, 다른 조건 상관없이 즉시 발동
+        if (monster.MonsterAI.blackBoard.PotionOverrideEdge)
+            return true;
+
         bool result;
         bool isInRange;
         bool isCooldownComplete;
@@ -38,7 +39,8 @@ public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
         float rangeSqr = skillData.range * skillData.range;
         float distanceSqr = Vector2.SqrMagnitude(distance);
 
-        if (distanceSqr <= rangeSqr)
+        // 사거리 체크 (range 이상일 때)
+        if (distanceSqr >= rangeSqr)
         {
             isInRange = true;
         }
@@ -47,7 +49,7 @@ public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
             isInRange = false;
         }
 
-        // 쿨다운 체크
+        //쿨다운 확인
         if (Time.time - lastUsedTime >= skillData.cooldown)
         {
             isCooldownComplete = true;
@@ -71,12 +73,20 @@ public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
         {
             lastUsedTime = Time.time;
             FlipCharacter();
-            monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.VolcanoDive);
+            monster.MonsterAI.TryConsumePotionEdge(); // 포션 레치 소모
+            monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.ThunderStrike);
             monster.AttackController.SetDamages(skillData.damage1);
 
             skillTriggered = true;
             stateEnterTime = Time.time; // 상태 시작 시간 저장
-            nextActionIndex = 0;
+            isSpawned = false;
+        }
+
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, animatorNameHash);
+            return NodeState.Running;
         }
 
         // 시작 직후 Running 강제
@@ -86,7 +96,8 @@ public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
         }
 
         // 애니메이션 중 Running 리턴 고정
-        bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.VolcanoDive);
+        bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.ThunderStrike);
+        
         if (isSkillAnimationPlaying)
         {
             Debug.Log($"[{monster.name}] Running skill: {skillData.skillName} (ID: {skillData.skillId})");
@@ -98,28 +109,20 @@ public class VolcanoDiveSkillSequenceNode : SkillSequenceNode
 
             monster.AttackController.SetDamages(0); //데미지 초기화
             skillTriggered = false;
+            isAnimationStarted = false;
             return NodeState.Success;
         }
 
-        // 애니메이션 경과 시간 계산
-        float elapsedTime = Time.time - stateEnterTime;
         // 몬스터가 바라보는 방향
         bool faceRight = monster.transform.localScale.x >= 0f;
 
-        // todo. 실제 행동 로직
-        while (nextActionIndex < 3 /* 행동의 갯수 */ && elapsedTime >= actionFrames[nextActionIndex])
+        // 투사체 생성
+        if (!isSpawned) // 시작 직후 바로 생성, 프레임 계산 불필요
         {
-            switch (nextActionIndex)
-            {
-                case 0:     // 상승
-                    break;
-                case 1:     // 공중에 체류
-                    break;
-                case 2:     // 하강
-                default:
-                    break;
-            }
-            nextActionIndex++;
+            isSpawned = true;
+            Vector3 spawnPos = target.transform.position;
+            Debug.Log($"{skillData.skillName} : ThunderStrike spawned - position {spawnPos}");
+            monster.AttackController.InstantiateProjectileAtWorld(projectilePath, spawnPos, faceRight, skillData.damage1);
         }
 
         return state;

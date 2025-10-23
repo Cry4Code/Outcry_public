@@ -33,7 +33,7 @@ public class Condition
         curValue.Value = Mathf.Max(curValue.Value - value, 0);
     }
 
-    public float CurValue()
+    public int CurValue()
     {
         return curValue.Value;
     }

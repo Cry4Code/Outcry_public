@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -11,12 +13,37 @@ public class HUDUI : UIBase
     //체력바 는 항상 남아있음(안에 체력칸만 사라짐)
     [SerializeField] private UnityEngine.UI.Image staminaFill;   // 스태미너 바 이미지
     [SerializeField] private TextMeshProUGUI playerName;         // 플레이어 이름 텍스트
-    [SerializeField] private Image healthcase;                   // 체력바 테두리용 이미지 (Sliced 가능)
+    [SerializeField] private Image healthCase;                   // 체력바 테두리용 이미지 (Sliced 가능)
     [SerializeField] private RectTransform healthFillRect;       // ★ 변경: 체력칸(RectTransform 직접 제어)
     [SerializeField] private Animator animator;
+    [SerializeField] private Image skillImage;
+    [SerializeField] private float maxHeartBeatSoundDelay;
+    [SerializeField] private float minHeartBeatSoundDelay;
+    [SerializeField] private float heartBeatStartHp;
+    [SerializeField] private GameObject bossHpLine; // 처음에 bossHpLine 자체를 숨김
+    [SerializeField] private Image bossHpBar; // 체력 부분 (image.type = filled)
+    [SerializeField] private int maxBossHp; // 보스의 최대 체력
+    [SerializeField] private Image bossTimerBar; // 타이머 (image.type = filled)
+    [SerializeField] private float maxTimer; // 최대 시간
+    [SerializeField] private Image bossPortraitSprite;
+    public bool isTimerSet = false;
+    
+    private float heartBeatSoundDelay;
+    private float heartBeatConst;
+
+    // ★★★ 아이콘 매핑용 테이블과 기본 아이콘 ★★★
+    [System.Serializable]
+    private struct SkillIconEntry
+    {
+        public int skillId;
+        public Sprite icon;
+    }
+    [SerializeField] private List<SkillIconEntry> skillIconTable;   // 인스펙터에서 (id, sprite) 페어 추가
+    private Dictionary<int, Sprite> skillIconDict;                  // 런타임 조회용 딕셔너리
+    [SerializeField] private Sprite defaultSkillIcon;               // 매핑 실패 시 표시할 기본 아이콘(없으면 비활성)
 
     private bool prevUnder50;
-
+    private float lastHeartBeatTime = 0f;
 
     [SerializeField] private FaceUI faceUI;                      // 얼굴 UI (죽을 때 애니메이션 재생)
 
@@ -28,14 +55,14 @@ public class HUDUI : UIBase
 
     private Coroutine coHealthLerp;  // ★ 추가: 체력바 부드러운 줄이기용 코루틴
     private float fullHealthWidth;   // ★ 추가: 초기 체력바 전체 길이 저장용
-
-
+    private int selectedskillid = 0;
 
     private void OnEnable()
     {
         // 체력 / 스태미너 변경 이벤트 구독
         EventBus.Subscribe(EventBusKey.ChangeHealth, OnHealthChanged);
         EventBus.Subscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
+        EventBus.Subscribe("SkillEquipped", OnSkillEquipped);
     }
 
     private void OnDisable()
@@ -43,12 +70,28 @@ public class HUDUI : UIBase
         // 구독 해제
         EventBus.Unsubscribe(EventBusKey.ChangeHealth, OnHealthChanged);
         EventBus.Unsubscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
+        EventBus.Unsubscribe("SkillEquipped", OnSkillEquipped);
+        EventBus.Unsubscribe(EventBusKey.ChangeBossHealth, ChangeBossHpBar);
+        ReleaseTimer();
     }
 
     //최대 체력만큼 체력바 생성, 체력칸 채움
     private void Awake()
     {
-        // 필요 시 초기화 로직 작성 가능
+        // ★ 매핑 리스트 → 딕셔너리로 변환
+        if (skillIconTable != null && skillIconTable.Count > 0)
+        {
+            skillIconDict = new Dictionary<int, Sprite>(skillIconTable.Count);
+            for (int i = 0; i < skillIconTable.Count; i++)
+            {
+                var e = skillIconTable[i];
+                skillIconDict[e.skillId] = e.icon;
+            }
+        }
+
+        // 상수 q = (최대딜레이 - 최소딜레이) / 심장박동 시작하는 체력
+        heartBeatConst = (maxHeartBeatSoundDelay - minHeartBeatSoundDelay) / heartBeatStartHp;
+        bossHpLine.SetActive(false);
     }
 
     private void Start()
@@ -65,15 +108,62 @@ public class HUDUI : UIBase
         if (healthFillRect != null)
             fullHealthWidth = healthFillRect.sizeDelta.x;
 
-
-        // 닉네임 표시
-        if (UGSManager.Instance.IsAnonymousUser)
+        if (GameManager.Instance.CurrentUserData != null)
         {
-            playerName.text = "Guest";
+            playerName.text = GameManager.Instance.CurrentUserData.Nickname;
+
+            selectedskillid = GameManager.Instance.CurrentUserData.SelectSkillId;
+            ApplySkillIcon(selectedskillid);
+        }
+
+    }
+
+    private void Update()
+    {
+        if (prevUnder50 && Time.time - lastHeartBeatTime > heartBeatSoundDelay)
+        {
+            EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.LowHp, EffectOrder.Player,
+                PlayerManager.Instance.player.gameObject).Forget();
+            lastHeartBeatTime = Time.time;
+        }
+    }
+
+    
+
+    // ★ 외부에서 원할 때 호출할 수 있는 공개 메서드 (업데이트 시기 자유)
+    public void RefreshSkillIconFromUserData()
+    {
+        int id = GameManager.Instance.CurrentUserData.SelectSkillId;
+        ApplySkillIcon(id);
+    }
+
+    private void ApplySkillIcon(int skillId)
+    {
+        if (skillImage == null) return;
+
+        Sprite icon = null;
+        if (skillIconDict != null && skillIconDict.TryGetValue(skillId, out var sp) && sp != null)
+        {
+            icon = sp;
         }
         else
         {
-            playerName.text = GameManager.Instance.CurrentUserData.Nickname;
+            icon = defaultSkillIcon; // 없으면 기본 아이콘 또는 null
+        }
+
+        if (icon != null)
+        {
+            skillImage.enabled = true;
+            skillImage.sprite = icon;
+            // 필요하면 원본 크기로:
+            // skillImage.SetNativeSize();
+            // 비율 유지:
+            skillImage.preserveAspect = true;
+        }
+        else
+        {
+            // 아이콘이 전혀 없으면 숨김
+            skillImage.enabled = false;
         }
     }
 
@@ -121,6 +211,11 @@ public class HUDUI : UIBase
         {
             animator.SetBool("Under50", isUnder50);
             prevUnder50 = isUnder50;
+        }
+
+        if (isUnder50)
+        {
+            heartBeatSoundDelay = changedHealth * (heartBeatConst) + minHeartBeatSoundDelay;
         }
 
 
@@ -180,4 +275,52 @@ public class HUDUI : UIBase
         Debug.Log($" 현재 스태미너 비율 {ratio}");
     }
 
+    private void OnSkillEquipped(object payload)
+    {
+        if (payload is int id)
+        {
+            ApplySkillIcon(id);              // ← 전역 읽지 말고 payload=정답 사용
+                                             // 또는 RefreshSkillIconFromUserData(); (원하면 이걸로)
+        }
+    }
+
+    public void SettingMaxTimer(float maxTime)
+    {
+        maxTimer = maxTime;
+        bossTimerBar.fillAmount = 1;
+        isTimerSet = true;
+    }
+
+    public void ReleaseTimer()
+    {
+        isTimerSet = false;
+    }
+
+    public void ChangeTimerBar(float currentTime)
+    {
+        if(isTimerSet)
+            bossTimerBar.fillAmount = currentTime / maxTimer;
+    }
+
+    public void SettingBossHp(int maxHp)
+    {
+       maxBossHp = maxHp;
+       bossHpLine.SetActive(true);
+       bossHpBar.fillAmount = 1;
+    }
+
+    public void ChangeBossHpBar(object data)
+    {
+        int currentHp = (int)data;
+        bossHpBar.fillAmount = (float)currentHp / maxBossHp;
+    }
+
+    public void SetBossProtrait(int id)
+    {
+        Sprite bossSprite = GameManager.Instance.GetSprite(id);
+        if(bossSprite != null)
+        {
+            bossPortraitSprite.sprite = bossSprite;
+        }
+    }
 }

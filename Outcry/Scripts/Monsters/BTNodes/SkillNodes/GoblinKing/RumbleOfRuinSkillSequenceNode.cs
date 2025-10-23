@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
@@ -66,7 +67,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         }
         
         //체력이 일정 이하일때
-        bool isLowHealth = monster.Condition.CurrentHealth < skillData.triggerHealth * monster.Condition.MaxHealth;
+        bool isLowHealth = monster.Condition.CurrentHealth.CurValue() < skillData.triggerHealth * monster.Condition.MaxHealth;
         Debug.Log($"Skill {skillData.skillName} (ID: {skillData.skillId}) {isLowHealth} : {monster.Condition.CurrentHealth} / {monster.Condition.MaxHealth} < {skillData.triggerHealth}");
         if (isLowHealth) return true;
         
@@ -237,6 +238,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
     {
         if (!isThrowRockTriggerd) //아직 돌 던지기 시작 전
         {
+            effectStarted = false;
             // 0. 돌 던지기 시작됨.
             isThrowRockTriggerd = true;
             
@@ -263,7 +265,8 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         {
             Debug.Log($"[몬스터] {skillData.skillName} (ID: {skillData.skillId}) SkillAction: Throw Rock!");
             isRockInstantiated = true;
-            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId, EffectType.Sprite, monster.gameObject);
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId * 10, EffectType.Sound, monster.gameObject).Forget();
+            EffectManager.Instance.PlayEffectsByIdAsync(skillData.skillId, EffectOrder.SpecialEffect, monster.gameObject).Forget();
             return NodeState.Running;
         }
         
@@ -279,12 +282,20 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
             return NodeState.Running;
         }
         
+        // 5-1. 돌 날라가는 이펙트 끝나면 한 번 터지는 사운드
+        if (!effectStarted)
+        {
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId * 10 + 1, EffectType.Sound, monster.gameObject).Forget();
+            effectStarted = true;
+        }
+        
         //6. 돌이 애니메이션이 끝나면 카메라 진동 및 데미지.
         if (!isCameraShaked && !EffectManager.Instance.IsEffectPlaying(skillData.skillId, EffectType.Sprite))
         {
             //6-1. 카메라 진동 주기
             Debug.Log($"[몬스터] (ID: {skillData.skillId}) 카메라 진동! 데미지!");
-            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId, EffectType.Camera);
+            
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillData.skillId, EffectType.Camera).Forget();
             isCameraShaked = true;
             
             //6-2. 플레이어가 데미지 입기
@@ -299,6 +310,7 @@ public class RumbleOfRuinSkillSequenceNode : SkillSequenceNode
         //7. 카메라 진동이 끝날 때까지 대기.
         if (EffectManager.Instance.IsEffectPlaying(skillData.skillId, EffectType.Camera))
         {
+            
             return NodeState.Running;   
         }
         

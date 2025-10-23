@@ -155,7 +155,7 @@ public class PlayerController : MonoBehaviour
             currentState.LogicUpdate(this);
         }
         // FSM이 멈춘 이유가 DieState가 아니면 기본 상태로 전환하고 속도 멈춤
-        else if (!IsCurrentState<DieState>())
+        else if (!IsCurrentState<DieState>() && !IsCurrentState<IdleState>())
         {
             Move.rb.velocity =  Vector2.zero;
             ChangeState<IdleState>(); // 기본 상태로 전환
@@ -223,5 +223,14 @@ public class PlayerController : MonoBehaviour
         Inputs.Player.Potion.Enable();
         Inputs.Player.Parry.Enable();
         Inputs.Player.Dodge.Enable();
+    }
+
+    /// <summary>
+    /// 조건 : animParameter는 Trigger 형태여야 함.
+    /// </summary>
+    /// <param name="animParameter"></param>
+    public void ForceChangeAnimation(int animParameter)
+    {
+        Animator.animator.SetTrigger(animParameter);
     }
 }

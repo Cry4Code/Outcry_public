@@ -80,6 +80,13 @@ public class PlayerAnimator : MonoBehaviour
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.Jump);
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.DoubleJump);
         animator.ResetTrigger(AnimatorHash.PlayerAnimation.NormalAttack);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.DownAttack);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.SpecialAttack);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.Dodge);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.StartParry);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.SuccessParry);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.Potion);
+        animator.ResetTrigger(AnimatorHash.PlayerAnimation.AdditionalAttack);
     }
 
     public void ClearInt()

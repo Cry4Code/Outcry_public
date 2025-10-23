@@ -58,6 +58,48 @@ public class StageController : MonoBehaviour
         SpawnMonstersLogic();
     }
 
+    
+    /// <summary>
+    ///  보스가 생성될 때 한 번 불러주면 됨
+    /// </summary>
+    protected void SettingBossHpBar()
+    {
+        
+        if (stageData.Stage_id != StageID.Tutorial && stageData.Stage_id != StageID.Village)
+        {
+            
+            HUDUI hudUI = UIManager.Instance.GetUI<HUDUI>();
+
+            int monsterId = aliveMonsters[0].GetComponent<MonsterBase>().MonsterData.monsterId;
+
+            // 체력바 설정
+            if (DataManager.Instance.MonsterDataList.TryGetMonsterModelData(monsterId,
+                    out var monsterModel))
+            {
+                hudUI.SettingBossHp(monsterModel.health);
+                hudUI.SetBossProtrait(stageData.Monster_ids[0]);
+                EventBus.Unsubscribe(EventBusKey.ChangeBossHealth, UIManager.Instance.GetUI<HUDUI>().ChangeBossHpBar);
+                EventBus.Subscribe(EventBusKey.ChangeBossHealth, UIManager.Instance.GetUI<HUDUI>().ChangeBossHpBar);
+            }
+
+            // 타이머 설정
+            hudUI.SettingMaxTimer(stageData.Time_limit);
+        }
+    }
+
+    /// <summary>
+    /// 보스 체력을 임의로 조절
+    /// </summary>
+    /// <param name="newHp">새로 지정할 체력</param>
+    public void ChangeBossHp(MonsterBase mon, int newHp)
+    {
+        if (stageData.Stage_id != StageID.Tutorial && stageData.Stage_id != StageID.Village)
+        {
+            mon.Condition.CurrentHealth.SetCurValue(newHp);
+            UIManager.Instance.GetUI<HUDUI>().ChangeBossHpBar(newHp);
+        }
+    }
+
     protected virtual void SpawnPlayer()
     {
         SpawnPlayerAt(playerSpawnPoints[0]);
@@ -96,6 +138,13 @@ public class StageController : MonoBehaviour
 
             // 상태 UI 표시
             UIManager.Instance.Show<HUDUI>();
+
+            // 보유한 스킬 장착
+            if (GameManager.Instance.CurrentUserData != null)
+            {
+                PlayerManager.Instance.player.Skill.SetSkill(GameManager.Instance.CurrentUserData.SelectSkillId);
+            }
+
             return playerInstance;
         }
         return null;

@@ -88,6 +88,8 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
     {
         Debug.Log($"Slot {slotIndex} selected in {currentType} mode by Manager.");
 
+        EffectManager.Instance.ButtonSound();
+
         switch (currentType)
         {
             case ESlotUIType.Load:
@@ -105,5 +107,59 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
                 GameManager.Instance.SaveGameToSlot(slotIndex);
                 break;
         }
+    }
+
+    /// <summary>
+    /// UI로부터 슬롯 데이터 삭제 이벤트를 받아서 처리
+    /// </summary>
+    public void DeleteSlotData(int slotIndex)
+    {
+        Debug.Log($"Deletion requested for slot {slotIndex}.");
+        EffectManager.Instance.ButtonSound();
+
+        // 삭제 여부를 확인 팝업
+        ConfirmUI popup = UIManager.Instance.Show<ConfirmUI>();
+        popup.Setup(new ConfirmPopupData
+        {
+            Title = "Warning",
+            Message = "Are you sure you want to delete this?",
+            OkButtonText = "Delete",
+            Type = EConfirmPopupType.OK_CANCEL,
+
+            // 삭제 버튼을 눌렀을 때 실행될 로직
+            OnClickOK = async () =>
+            {
+                // UGS 서비스를 통해 클라우드 데이터 삭제를 시도하고 결과 기다림
+                bool success = await UGSManager.Instance.DeleteUserDataAsync(slotIndex);
+
+                // 삭제 결과에 따라 후속 처리
+                if (success)
+                {
+                    // 성공: 로컬에 캐싱된 데이터에서도 해당 슬롯 정보 제거
+                    if (slotsData != null && slotsData.ContainsKey(slotIndex))
+                    {
+                        slotsData.Remove(slotIndex);
+                    }
+
+                    // 성공: 데이터가 변경되었음을 UI에 알려 화면 갱신
+                    OnSlotsDataUpdated?.Invoke(currentType, slotsData);
+
+                    Debug.Log($"Slot {slotIndex} data deleted successfully.");
+                }
+                else
+                {
+                    // 실패: 사용자에게 삭제 실패를 알리는 팝업을 띄움
+                    Debug.LogError($"Failed to delete data for slot {slotIndex}.");
+
+                    var failPopup = UIManager.Instance.Show<ConfirmUI>();
+                    failPopup.Setup(new ConfirmPopupData
+                    {
+                        Title = "Error",
+                        Message = "Failed to delete.\nPlease check your network connection and try again.",
+                        Type = EConfirmPopupType.OK // 확인 버튼만 있는 팝업
+                    });
+                }
+            }
+        });
     }
 }

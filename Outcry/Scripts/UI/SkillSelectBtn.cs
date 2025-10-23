@@ -1,7 +1,9 @@
+using Cysharp.Threading.Tasks;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using TMPro;
 using Unity.VisualScripting;
 using UnityEngine;
@@ -12,7 +14,7 @@ public class SkillSelectBtn : MonoBehaviour
 {
 
     [SerializeField] public Toggle toggle;
-    [SerializeField] private TextMeshProUGUI outputText;
+    [SerializeField] private TextMeshProUGUI SkillName;
 
     [SerializeField] private Image iconImage;
     [SerializeField] private GameObject overlay;
@@ -23,8 +25,6 @@ public class SkillSelectBtn : MonoBehaviour
 
     // 프리팹의 Toggle
     public SkillData Data { get; private set; }
-
-    public void SetOutputText(TextMeshProUGUI t) { outputText = t; }
 
     public void SetLinkedExternalImage(Image target)
     {
@@ -41,6 +41,16 @@ public class SkillSelectBtn : MonoBehaviour
             t.group = GetComponentInParent<ToggleGroup>(); // 가장 가까운 부모의 그룹 자동 연결
 
 
+    }
+
+    private void Start()
+    {
+        if (SkillName != null && Data != null)
+        {
+            string result = Regex.Replace(Data.P_Skill_Name, "([A-Z])", "\n$1");
+            result = result.TrimStart('\n');
+            SkillName.text = result;
+        }
     }
 
     public void Bind(SkillData data)
@@ -66,12 +76,13 @@ public class SkillSelectBtn : MonoBehaviour
     {
         Debug.Log($"토글 체인지드 호출됨");
 
-
         if (!isOn || Data == null)
         {
             return;
         }
 
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(UIEffectID.EquipSkill, EffectType.Sound).Forget();
+        
         // ★ 추가: 선택 이벤트 발행 (내 자신과 데이터 전달)
         OnSelected?.Invoke(this, Data);
 
@@ -86,7 +97,7 @@ public class SkillSelectBtn : MonoBehaviour
         if (linkedExternalImage && iconImage && iconImage.sprite)
             linkedExternalImage.sprite = iconImage.sprite;
 
-
+        
     }
 
 

@@ -1,33 +1,39 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
 public enum EOptionUIType
 {
     Title,
+    Lobby,
     Stage,
 }
 
 public class OptionUI : UIPopup
 {
     [SerializeField] private Button volumeBtn;
-    [SerializeField] private Button EmailLinkBtn;
-    [SerializeField] private Button ExitBtn;
+    [SerializeField] private Button emailLinkBtn;
+    [SerializeField] private Button exitBtn;
+    [SerializeField] private TextMeshProUGUI exitText;
+    [SerializeField] private Button stageOptionExitBtn;
 
-    // 외부에서 전달받은 '나가기' 동작을 저장할 변수
+    // 외부에서 전달받은 나가기 동작을 저장할 변수
     private Action onClickExitAction;
+    private Action onClickStageOptionExit;
 
     private void Awake()
     {
         volumeBtn.onClick.AddListener(OnClickVolume);
-        EmailLinkBtn.onClick.AddListener(OnClickEmailLink);
-        ExitBtn.onClick.AddListener(OnClickExit);
+        emailLinkBtn.onClick.AddListener(OnClickEmailLink);
+        exitBtn.onClick.AddListener(OnClickExit);
+        stageOptionExitBtn.onClick.AddListener(OnClickStageOptionExit);
     }
 
     private void Start()
     {
 #if UNITY_WEBGL
-        EmailLinkBtn.gameObject.SetActive(false);
+        emailLinkBtn.gameObject.SetActive(false);
 #endif
     }
 
@@ -51,23 +57,34 @@ public class OptionUI : UIPopup
 
     public void Setup(OptionUIData data)
     {
+        exitText.text = data.ExitText;
+
         // 전달받은 동작을 내부 변수에 저장
         onClickExitAction = data.OnClickExitAction;
+        onClickStageOptionExit = data.OnClickStageOptionExitAction;
 
         // 타입에 따라 버튼 활성화/비활성화 로직은 그대로 사용
         switch (data.Type)
         {
             case EOptionUIType.Title:
-                ExitBtn.gameObject.SetActive(true);
+                exitBtn.gameObject.SetActive(true);
+                stageOptionExitBtn.gameObject.SetActive(false);
+                break;
+
+            case EOptionUIType.Lobby:
+                exitBtn.gameObject.SetActive(true);
+                stageOptionExitBtn.gameObject.SetActive(true);
                 break;
 
             // 스테이지에서 열었다면 Exit 버튼을 숨김
             case EOptionUIType.Stage:
-                ExitBtn.gameObject.SetActive(true);
+                exitBtn.gameObject.SetActive(true);
+                stageOptionExitBtn.gameObject.SetActive(true);
                 break;
 
             default:
-                ExitBtn.gameObject.SetActive(true);
+                exitBtn.gameObject.SetActive(true);
+                stageOptionExitBtn.gameObject.SetActive(false);
                 break;
         }
     }
@@ -109,12 +126,14 @@ public class OptionUI : UIPopup
     private void OnClickVolume()
     {
         Debug.Log("Volume Clicked");
+        EffectManager.Instance.ButtonSound();
         UIManager.Instance.Show<VolumeSettingsUI>();
     }
 
     private void OnClickEmailLink()
     {
         Debug.Log("Email Link Clicked");
+        EffectManager.Instance.ButtonSound();
 
         _ = UGSManager.Instance.LinkWithUPAAsync();
     }
@@ -122,7 +141,6 @@ public class OptionUI : UIPopup
     private void OnClickExit()
     {
         Debug.Log("Exit Clicked");
-
         // 저장된 동작이 있다면 실행하고 없다면 기본 동작(숨기기) 수행
         if (onClickExitAction != null)
         {
@@ -136,5 +154,23 @@ public class OptionUI : UIPopup
 
         // 실행 후에는 참조 초기화
         onClickExitAction = null;
+    }
+
+    private void OnClickStageOptionExit()
+    {
+        Debug.Log("StageOptionExit Clicked");
+
+        if (onClickStageOptionExit != null)
+        {
+            onClickStageOptionExit.Invoke();
+        }
+        else
+        {
+            // 기본 동작 UI 숨기기
+            UIManager.Instance.Hide<OptionUI>();
+        }
+
+        // 실행 후에는 참조 초기화
+        onClickStageOptionExit = null;
     }
 }

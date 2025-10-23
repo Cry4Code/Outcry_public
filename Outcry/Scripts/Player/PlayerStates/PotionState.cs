@@ -9,11 +9,13 @@ public class PotionState : BasePlayerState
     private float startPotionTime = 0.01f;
     private float animRunningTime = 0f;
     private float potionAnimationLength;
+    private bool isGetPotion = false;
 
     public override eTransitionType ChangableStates { get; }
 
     public override void Enter(PlayerController controller)
     {
+        isGetPotion = false;
         animRunningTime = 0f;
         controller.Move.rb.velocity = Vector2.zero;
         startStateTime = Time.time;
@@ -85,6 +87,7 @@ public class PotionState : BasePlayerState
                         controller.gameObject);
                     controller.Condition.potionCount--;
                     controller.Condition.health.Add(controller.Condition.potionHealthRecovery);
+                    isGetPotion = true;
                     Debug.Log($"[플레이어] 체력 회복됨 {controller.Condition.health.CurValue()}");
                     controller.ChangeState<IdleState>();
                     return;
@@ -97,6 +100,7 @@ public class PotionState : BasePlayerState
                     controller.gameObject);
                 controller.Condition.potionCount--; 
                 controller.Condition.health.Add(controller.Condition.potionHealthRecovery);
+                isGetPotion = true;
                 Debug.Log($"[플레이어] 체력 회복됨 {controller.Condition.health.CurValue()}");
                 controller.ChangeState<IdleState>();
                 return;
@@ -107,5 +111,10 @@ public class PotionState : BasePlayerState
     public override void Exit(PlayerController controller)
     {
         controller.Condition.getPotion.Value = false;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (isGetPotion && stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.Potion);
+        }
     }
 }

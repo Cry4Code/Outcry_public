@@ -1,10 +1,11 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
-public class WindSlash : SkillBase
+public class FlameSlash : SkillBase
 {
     // 프레임 쪼개기
     private const float ANIMATION_FRAME_RATE = 20f;
@@ -82,7 +83,7 @@ public class WindSlash : SkillBase
         isMoved = false;
     }
 
-    public async override void LogicUpdate()
+    public override void LogicUpdate()
     {
         animRunningTime += Time.deltaTime;
 
@@ -110,8 +111,10 @@ public class WindSlash : SkillBase
             if (animRunningTime >= attackTimes[attackTimesIndex])
             {
                 attackTimesIndex++;
-                await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject,
-                    new Vector3(2, 0.2f));
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId * 10, EffectType.Sound,
+                    controller.gameObject).Forget();
+                EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject,
+                    new Vector3(2, 0.2f)).Forget();
             }    
         }
         

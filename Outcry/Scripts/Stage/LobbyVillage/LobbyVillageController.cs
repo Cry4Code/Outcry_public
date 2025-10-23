@@ -1,8 +1,5 @@
-using Cinemachine;
 using Cysharp.Threading.Tasks;
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class LobbyVillageController : StageController
@@ -15,5 +12,19 @@ public class LobbyVillageController : StageController
         SpawnPlayer();
 
         await UniTask.Delay(TimeSpan.FromSeconds(0.1f));
+    }
+
+    protected override void SpawnPlayer()
+    {
+        if (GameManager.Instance.HasEnteredDungeon)
+        {
+            // 던전에 다녀온 경우 1번 스폰 포인트(던전 앞)에서 스폰
+            SpawnPlayerAt(playerSpawnPoints[1]);
+        }
+        else
+        {
+            // 처음 게임을 시작한 경우 0번 스폰 포인트(마을 중앙)에서 스폰
+            SpawnPlayerAt(playerSpawnPoints[0]);
+        }
     }
 }

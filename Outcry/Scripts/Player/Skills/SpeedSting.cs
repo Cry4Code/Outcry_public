@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class ScrewAttack : SkillBase
+public class SpeedSting : SkillBase
 {
     public override void Enter()
     {
@@ -11,25 +11,25 @@ public class ScrewAttack : SkillBase
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
         {
-            Debug.Log("[플레이어] 스킬 ScrewAttack은 지상에서만 사용 가능");
+            Debug.Log("[플레이어] 스킬 SpeedSting은 지상에서만 사용 가능");
             controller.ChangeState<FallState>();
             return;
         }
         // 쿨타임 체크
         if (Time.time - lastUsedTime < cooldown)
         {
-            Debug.Log("[플레이어] 스킬 ScrewAttack는 쿨타임 중");
+            Debug.Log("[플레이어] 스킬 SpeedSting는 쿨타임 중");
             controller.ChangeState<IdleState>();
             return;
         }
         // 발동 조건 체크 : 스태미나
         if (!controller.Condition.TryUseStamina(needStamina))
         {
-            Debug.Log("[플레이어] 스킬 ScrewAttack 사용을 위한 스태미나 부족");
+            Debug.Log("[플레이어] 스킬 SpeedSting 사용을 위한 스태미나 부족");
             controller.ChangeState<IdleState>();
             return;
         }
-        Debug.Log("[플레이어] 스킬 ScrewAttack 사용!");
+        Debug.Log("[플레이어] 스킬 SpeedSting 사용!");
         useSuccessed = true;
         controller.isLookLocked = false;
         controller.Move.ForceLook(controller.transform.localScale.x < 0);

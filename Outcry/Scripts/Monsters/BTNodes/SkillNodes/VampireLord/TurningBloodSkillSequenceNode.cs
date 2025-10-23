@@ -9,6 +9,9 @@ public class TurningBloodSkillSequenceNode : SkillSequenceNode
 
     private string projectilePath = AddressablePaths.Projectile.TurningBlood;
     private Vector2 projectilePosition = new Vector2(1, 0);
+
+    private int animatorParameterHash;
+    private int animationNameHash;
     
     
     public TurningBloodSkillSequenceNode(int skillId) : base(skillId)
@@ -21,6 +24,16 @@ public class TurningBloodSkillSequenceNode : SkillSequenceNode
     {
         base.InitializeSkillSequenceNode(monster, target);
         await ObjectPoolManager.Instance.RegisterPoolAsync(projectilePath);
+        if (this.skillId == 103505) //1페이즈 애니메이션
+        {
+            animatorParameterHash = AnimatorHash.MonsterParameter.TurningBlood;
+            animationNameHash = AnimatorHash.MonsterAnimation.TurningBlood;
+        }
+        else //103512 //2페이즈 애니메이션 (공중)
+        {
+            animatorParameterHash = AnimatorHash.MonsterParameter.ChargeSkill;
+            animationNameHash = AnimatorHash.MonsterAnimation.ChargeSkill;
+        }
     }
 
     protected override bool CanPerform()
@@ -66,17 +79,17 @@ public class TurningBloodSkillSequenceNode : SkillSequenceNode
         {
             lastUsedTime = Time.time;
             FlipCharacter();
-            monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.TurningBlood);
+            monster.Animator.SetTrigger(animatorParameterHash);
             skillTriggered = true;
         }
 
         if (!isAnimationStarted)
         {
-            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.TurningBlood);
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, animationNameHash);
             return NodeState.Running;
         }
 
-        if (AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.TurningBlood, 0f, 0.6f))
+        if (AnimatorUtility.IsAnimationPlaying(monster.Animator, animationNameHash, 0f, 0.6f))
         {
             Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
             return NodeState.Running;
@@ -106,5 +119,6 @@ public class TurningBloodSkillSequenceNode : SkillSequenceNode
         skillTriggered = false;
         isAnimationStarted = false;
         projectileLaunched = 0;
+        projectilePosition = monster.transform.position;
     }
 }

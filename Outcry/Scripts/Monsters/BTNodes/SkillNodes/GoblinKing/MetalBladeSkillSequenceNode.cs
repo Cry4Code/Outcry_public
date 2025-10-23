@@ -1,5 +1,8 @@
 using System;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
+using Random = UnityEngine.Random;
+
 [Serializable]
 public class MetalBladeSkillSequenceNode : SkillSequenceNode
 {
@@ -22,6 +25,9 @@ public class MetalBladeSkillSequenceNode : SkillSequenceNode
     private const float MOVE_END_TIME = (1.0f / ANIMATION_FRAME_RATE) * 24;
     // 전체 애니메이션 길이 (33개 스프라이트 = 0~32번 인덱스)
     private const float ANIMATION_TOTAL_DURATION = (1.0f / ANIMATION_FRAME_RATE) * 33;
+
+    private float lastSoundTime = 0;
+    private float minSoundDelay = 0.2f;
 
     public MetalBladeSkillSequenceNode(int skillId) : base(skillId)
     {
@@ -66,6 +72,7 @@ public class MetalBladeSkillSequenceNode : SkillSequenceNode
         // 스킬이 아직 발동되지 않았다면 트리거 켜기
         if (!skillTriggered)
         {
+            effectStarted = false;
             // 몬스터를 기준으로 플레이어가 어느 방향에 있는지 계산
             float directionToTarget = Mathf.Sign(target.transform.position.x - monster.transform.position.x);
 
@@ -77,15 +84,35 @@ public class MetalBladeSkillSequenceNode : SkillSequenceNode
                 monster.transform.localScale.z
             );
 
-            animator.SetTrigger(AnimatorHash.MonsterParameter.MetalBladeHash);
+            animator.SetTrigger(AnimatorHash.MonsterParameter.MetalBlade);
             monster.AttackController.SetDamages(skillData.damage1);
 
             // 상태 초기화 및 애니메이션 시작 시간 기록
             skillTriggered = true;
             stateEnterTime = Time.time;
             cooldownTimer = 0f; // 스킬을 사용했으므로 쿨다운 타이머 리셋
+            
+            lastSoundTime = 0;
         }
 
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.MetalBlade);
+            return NodeState.Running;
+        }
+
+        // 시작 직후 Running 강제
+        if (Time.time - lastUsedTime < 0.1f)
+        {
+            return NodeState.Running;
+        }
+
+        if (!effectStarted)
+        {
+            effectStarted = true;
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
+        }
         // 애니메이션 경과 시간 계산
         float elapsedTime = Time.time - stateEnterTime;
 
@@ -93,6 +120,12 @@ public class MetalBladeSkillSequenceNode : SkillSequenceNode
         // 이동 시작 시간과 종료 시간 사이에만 이동 로직을 실행
         if (elapsedTime >= MOVE_START_TIME && elapsedTime < MOVE_END_TIME)
         {
+            if (Time.time - lastSoundTime >= minSoundDelay)
+            {
+                lastSoundTime = Time.time;
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(1030000 + (Random.Range(0, 2)), EffectType.Sound,
+                    monster.gameObject).Forget();
+            }
             float direction = Mathf.Sign(monster.transform.localScale.x);
             // Vector3.right를 사용하여 월드 좌표계의 오른쪽 방향을 기준으로 이동
             // direction 값에 따라 왼쪽 또는 오른쪽으로 움직임

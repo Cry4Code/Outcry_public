@@ -17,7 +17,7 @@ public abstract class MonsterAIBase : MonoBehaviour //MonoBehaviour 상속 안�
     [SerializeField] protected bool reactToPotion = true;  // 포션 이벤트에 반응하는 몬스터는 true
     [SerializeField] protected bool useLatch = true;  // 구독 이벤트가 true가 되는 순간만 트리거로 true를 넘겨줄 때 true, 바로 동기화시 false
 
-    private bool isAvailableToAct;
+    [SerializeField] private bool isAvailableToAct;
     public bool IsAttacking { get; protected set; }
 
     private bool prevPotionValue;
@@ -109,6 +109,12 @@ public abstract class MonsterAIBase : MonoBehaviour //MonoBehaviour 상속 안�
     {
         DeactivateBt();
         monster.Animator.Play(AnimatorHash.MonsterAnimation.Spawn);
+    }
+    public void DeadCeremony()
+    {
+        monster.Rb2D.bodyType = RigidbodyType2D.Dynamic; //죽을때 자연스럽게 떨어져서 눕게
+        monster.Rb2D.gravityScale = 1f;
+        DeactivateBt();
     }
     public void DeactivateBt()
     {

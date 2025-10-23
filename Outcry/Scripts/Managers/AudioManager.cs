@@ -84,6 +84,17 @@ public class AudioManager : Singleton<AudioManager>
         LoadVolumeSettings();
     }
 
+    protected override void OnDestroy()
+    {
+        base.OnDestroy();
+
+        // 재생 중인 모든 SFX 중지 및 리소스 해제
+        if (Instance == this)
+        {
+            StopAllSFX();
+        }
+    }
+
     #region 초기화
     // 지정된 크기만큼 AudioPlayer 오브젝트를 미리 생성하여 풀에 저장
     private void InitializePool()
@@ -167,6 +178,11 @@ public class AudioManager : Singleton<AudioManager>
 
     public void ReturnAudioPlayerToPool(AudioPlayer player)
     {
+        if (player == null)
+        {
+            return;
+        }
+
         player.gameObject.SetActive(false);
         audioPlayerPool.Enqueue(player);
     }
@@ -374,7 +390,7 @@ public class AudioManager : Singleton<AudioManager>
         player.transform.position = position;
         player.Play(clip, volume, pitch);
 
-        // 재생이 끝나면 리소스를 해제하는 후처' 작업을 백그라운드에서 실행
+        // 재생이 끝나면 리소스를 해제하는 후처리 작업을 백그라운드에서 실행
         // 이 작업은 기다리지 않음(.Forget())
         ReleaseSfxResourceOnCompletion(instanceId, clip.length).Forget();
 
@@ -394,11 +410,17 @@ public class AudioManager : Singleton<AudioManager>
         }
         finally
         {
-            // 대기가 끝났을 때 StopSFX에 의해 미리 제거되지 않았다면 리소스 정리
-            if (activeSfxInstances.Remove(instanceId, out SfxPlaybackInfo info))
+            // Remove 성공 여부와 관계없이 실행하고 player가 null인지 한번 더 확인
+            if (activeSfxInstances.TryGetValue(instanceId, out SfxPlaybackInfo info))
             {
-                ReturnAudioPlayerToPool(info.Player);
-                ResourceManager.Instance.UnloadAddressableAsset(info.Address);
+                activeSfxInstances.Remove(instanceId); // 여기서 제거
+
+                // info.Player가 null이 아닐 때만 풀에 반환하고 리소스 언로드
+                if (info.Player != null)
+                {
+                    ReturnAudioPlayerToPool(info.Player);
+                    ResourceManager.Instance?.UnloadAddressableAsset(info.Address); // ResourceManager도 null일 수 있으므로 ?. 사용
+                }
             }
         }
     }
@@ -412,14 +434,20 @@ public class AudioManager : Singleton<AudioManager>
         // 활성 목록에서 해당 ID의 SFX 정보 찾아 제거
         if (activeSfxInstances.Remove(instanceId, out SfxPlaybackInfo info))
         {
-            // AudioPlayer 재생 멈춤
-            info.Player.Stop();
+            if (info.Player != null)
+            {
+                // AudioPlayer 재생 멈춤
+                info.Player.Stop();
 
-            // 사용 끝난 AudioPlayer 풀에 반환
-            ReturnAudioPlayerToPool(info.Player);
+                // 사용 끝난 AudioPlayer 풀에 반환
+                ReturnAudioPlayerToPool(info.Player);
+            }
 
-            // 오디오 클립 리소스 즉시 언로드
-            ResourceManager.Instance.UnloadAddressableAsset(info.Address);
+            if (ResourceManager.Instance != null)
+            {
+                // 오디오 클립 리소스 즉시 언로드
+                ResourceManager.Instance.UnloadAddressableAsset(info.Address);
+            }
         }
     }
 
@@ -462,6 +490,14 @@ public class AudioManager : Singleton<AudioManager>
     // 볼륨 조절용
     public void SetVolume(EVolumeType type, float volume)
     {
+        // 음소거 상태일 때 0 이상의 볼륨으로 조절하면 음소거를 먼저 해제
+        // 0.0001f 보다 큰지 확인하는 이유는 슬라이더를 완전히 0으로 만들 때는 음소거를 해제할 필요가 없기 때문
+        if (GetMuteState(type) && volume > 0.0001f)
+        {
+            // 기존의 SetMute 함수를 호출하여 음소거 상태를 해제하고 UI 이벤트 발생
+            SetMute(type, false);
+        }
+
         // 어떤 볼륨을 조절할지 결정
         string param = type == EVolumeType.Master ? MASTER_VOLUME_PARAM :
                        type == EVolumeType.BGM ? BGM_VOLUME_PARAM : SFX_VOLUME_PARAM;

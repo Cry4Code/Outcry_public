@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class NormalJumpAttackState : NormalJumpAttackSubState
@@ -8,6 +9,18 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
     public override eTransitionType ChangableStates =>
         eTransitionType.SpecialAttackState | eTransitionType.DodgeState | eTransitionType.StartParryState |
         eTransitionType.AdditionalAttackState;
+    
+    // 애니메이션 클립 초당 프레임 수
+    private const float ANIMATION_FRAME_RATE = 20f;
+
+    private float[] attackSoundTime = new[]
+    {
+        (1f / ANIMATION_FRAME_RATE) * 2f,
+        (1f / ANIMATION_FRAME_RATE) * 6f,
+    };
+
+    private int attackSoundIndex = 0;
+    
     
     private float startStateTime;
     private float startAttackTime = 0.01f;
@@ -30,6 +43,7 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
         controller.Move.rb.gravityScale = 0;
         controller.isLookLocked = true;
         animRunningTime = 0f;
+        attackSoundIndex = 0;
         isLeft = CursorManager.Instance.IsLeftThan(controller.transform);
         controller.Move.ForceLook(isLeft);
         jumpAnimationLength = 
@@ -53,21 +67,32 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
         if (Time.time - startStateTime > startAttackTime)
         {
             AnimatorStateInfo curAnimInfo = controller.Animator.animator.GetCurrentAnimatorStateInfo(0);
+            
+            if (attackSoundIndex < attackSoundTime.Length)
+            {
+                if (animRunningTime >= attackSoundTime[attackSoundIndex])
+                {
+                    attackSoundIndex++;
+                    EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.NormalAttackSound, EffectType.Sound,
+                        controller.gameObject).Forget();
+                }    
+            }
 
             if (curAnimInfo.IsName("NormalJumpAttack"))
             { 
+                
                 float animTime = curAnimInfo.normalizedTime;
 
                 if (animTime >= 1.0f)
                 {
-                    controller.ChangeState<IdleState>();
+                    controller.ChangeState<FallState>();
                     return;
                 }
             }
 
             if (animRunningTime >= jumpAnimationLength)
             {
-                controller.ChangeState<IdleState>();
+                controller.ChangeState<FallState>();
                 return;
             }
                 
@@ -78,5 +103,10 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
     {
         base.Exit(controller);
         controller.Move.rb.gravityScale = 1;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.JumpAttack);
+        }
     }
 }

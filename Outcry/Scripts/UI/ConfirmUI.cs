@@ -12,6 +12,7 @@ public class ConfirmUI : UIPopup
     [SerializeField] private Button cancelBtn;
     [SerializeField] private TextMeshProUGUI cancelBtnTxt;
     [SerializeField] private Image itemSlot;
+    [SerializeField] private Image itemSprite;
 
     // 버튼 클릭 시 실행될 Action을 저장할 변수
     private Action onClickOkAction;
@@ -33,12 +34,23 @@ public class ConfirmUI : UIPopup
         messageTxt.text = data.Message;
 
         // 버튼 텍스트 설정
-        okBtnTxt.text = "OK";
+        okBtnTxt.text = data.OkButtonText == null ? "OK" : data.OkButtonText;
         cancelBtnTxt.text = "Cancel";
 
         // 버튼 클릭 액션 저장
         onClickOkAction = data.OnClickOK;
         onClickCancelAction = data.OnClickCancel;
+
+        // ItemSprite가 있는지 확인하고 UI에 적용
+        if (data.ItemSprite != null)
+        {
+            itemSprite.gameObject.SetActive(true);
+            itemSprite.sprite = data.ItemSprite;
+        }
+        else
+        {
+            itemSprite.gameObject.SetActive(false);
+        }
 
         // 버튼 활성화 상태 설정
         switch (data.Type)
@@ -51,9 +63,14 @@ public class ConfirmUI : UIPopup
                 okBtn.gameObject.SetActive(true);
                 cancelBtn.gameObject.SetActive(true);
                 break;
-            case EConfirmPopupType.ACQUIRE_OK:
+            case EConfirmPopupType.SOUL_ACQUIRE_OK:
                 okBtn.gameObject.SetActive(true);
                 cancelBtn.gameObject.SetActive(false);
+                itemSlot.gameObject.SetActive(true);
+                break;
+            case EConfirmPopupType.SKILL_ACQUIRE_OK_CANCEL:
+                okBtn.gameObject.SetActive(true);
+                cancelBtn.gameObject.SetActive(true);
                 itemSlot.gameObject.SetActive(true);
                 break;
         }

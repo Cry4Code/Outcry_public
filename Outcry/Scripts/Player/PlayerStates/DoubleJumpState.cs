@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class DoubleJumpState : AirSubState
@@ -19,6 +20,7 @@ public class DoubleJumpState : AirSubState
         Debug.Log("[플레이어] !!Double Jump!!");
         controller.Condition.canStaminaRecovery.Value = true;
         controller.SetAnimation(AnimatorHash.PlayerAnimation.DoubleJump, true);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.Jump * 10 + (Random.Range(0, 4)), EffectType.Sound, controller.gameObject).Forget();
         controller.Move.DoubleJump();
         
     }

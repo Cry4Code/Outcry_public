@@ -1,10 +1,24 @@
 
+using Cysharp.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEngine;
 
 public class ThreePointSkillSequenceNode : SkillSequenceNode
 {
     private Animator animator;
+    
+    // 애니메이션 클립 초당 프레임 수
+    private const float ANIMATION_FRAME_RATE = 20f;
+
+    private float[] attackSoundTime = new[]
+    {
+        (1f / ANIMATION_FRAME_RATE) * 9f,
+        (1f / ANIMATION_FRAME_RATE) * 18f,
+        (1f / ANIMATION_FRAME_RATE) * 33f,
+    };
+
+    private int attackSoundIndex = 0;
+    private float elapsedTime = 0;
 
     // private const float ANIMATION_FRAME_RATE = 20f; // 이 애니메이션 클립의 초당 프레임 수
     //
@@ -58,9 +72,14 @@ public class ThreePointSkillSequenceNode : SkillSequenceNode
 
     protected override NodeState SkillAction()
     {
+        NodeState state;
+        
         // 스킬이 아직 발동되지 않았다면 트리거 켜기
         if (!skillTriggered)
         {
+            attackSoundIndex = 0;
+            elapsedTime = 0;
+            effectStarted = false;
             Debug.Log("Setting Parameter: ThreePoint");
             animator.SetTrigger(AnimatorHash.MonsterParameter.ThreePoint);
 
@@ -71,25 +90,51 @@ public class ThreePointSkillSequenceNode : SkillSequenceNode
             lastUsedTime = Time.time;
         }
 
+        if (!effectStarted)
+        {
+            effectStarted = true;
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
+        }
+
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.ThreePoint);
+            return NodeState.Running;
+        }
+
         if (Time.time - lastUsedTime < 0.1f) //시작 직후는 무조건 Running
         {
             return NodeState.Running;
         }
         
+        bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.ThreePoint);
+        if (isSkillAnimationPlaying)
+        {
+            elapsedTime += Time.deltaTime;
+            if (attackSoundIndex < attackSoundTime.Length)
+            {
+                if (elapsedTime >= attackSoundTime[attackSoundIndex])
+                {
+                    attackSoundIndex++;
+                    EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage1BossEffectID.NormalAttack * 10 + (Random.Range(0, 2)), EffectType.Sound,
+                        monster.gameObject).Forget();
+                }    
+            }
+            Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
+            state = NodeState.Running;
+        }
         // 스킬 종료 처리
         // 총 애니메이션 길이만큼 시간이 지났다면 스킬을 종료
-        if (!AnimatorUtility.IsAnimationPlaying(monster.Animator, AnimatorHash.MonsterAnimation.ThreePoint))
+        else
         {
             Debug.Log($"Skill End: {skillData.skillName} (ID: {skillData.skillId})");
 
             skillTriggered = false; // 다음 스킬 사용을 위해 플래그 리셋
             monster.AttackController.ResetDamages(); //데미지 초기화
-            return NodeState.Success;
+            state = NodeState.Success;
         }
-        
-        Debug.Log($"Running skill: {skillData.skillName} (ID: {skillData.skillId})");
-        // 위의 종료 조건에 해당하지 않으면 스킬이 아직 진행 중인 것
-        return NodeState.Running;
+        return state;
     }
 
 

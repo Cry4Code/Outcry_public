@@ -62,8 +62,7 @@ public class SkillSelectUI : UIPopup
 
             var btn = Instantiate(btnPrefab, btnParents);
             btn.name = $"Skill_{i + 1}";//스킬의 갯수 만큼 동적 생성
-            btn.Bind(skills[i]); // ★ 여기서 바로 바인딩
-            btn.SetOutputText(infoText);
+            btn.Bind(skills[i]); //여기서 바로 바인딩
 
             // 2) 아이콘 조회용 변수 (한 번만 선언)
             Sprite iconSprite = null;
@@ -122,12 +121,14 @@ public class SkillSelectUI : UIPopup
         PlayerManager.Instance.player.PlayerInputEnable();
     }
 
-    // ★ 추가: 이벤트 핸들러 — 눌린 토글 정보 저장
+    // 눌린 토글 정보 저장
     private void HandleSelected(SkillSelectBtn sender, SkillData data)
     {
         _selectedBtn = sender;
         _selectedData = data;
-        // 필요하면 이후 단계에서 _selectedData를 사용해 Buy 등 연결 가능
+
+        // ★ 장착 시도
+        GameManager.Instance.TryEquipSkill(data.Skill_id);
     }
 
     private void OnSkillWindow()

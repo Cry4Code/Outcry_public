@@ -479,31 +479,70 @@ public class UGSManager : Singleton<UGSManager>
     });
     }
 
-    public void LogStageStart(string stageName)
+    public void LogStageStart(int stageId)
     {
         RecordAnalyticsEvent("stage_start", new Dictionary<string, object>
         {
-            { "stage_name", stageName }
+            { "stage_id", stageId }
         });
     }
 
-    public void LogStageResult(string stageName, bool isClear, float playTime)
+    public void LogStageResult(int stageId, bool isClear, float playTime, int bossHpRatio)
     {
         RecordAnalyticsEvent("stage_result", new Dictionary<string, object>
         {
-            { "stage_name", stageName },
-            { "result", isClear ? "clear" : "fail" },
-            { "play_time", playTime }
+            { "stage_id", stageId },
+            { "result", isClear },
+            { "play_time", playTime },
+            { "boss_hp_percent", bossHpRatio}
         });
     }
 
-    public void LogSkillUsage(string skillName)
+    /// <summary>
+    /// 스킬이 성공적으로 실행되었을 때 발생함.
+    /// </summary>
+    /// <param name="stageId"></param>
+    /// <param name="skillId"></param>
+    public void LogSkillUsage(int stageId, int skillId)
     {
         RecordAnalyticsEvent("skill_use", new Dictionary<string, object>
         {
-            { "skill_name", skillName }
+            { "stage_id", stageId },
+            { "skill_id", skillId }
         });
     }
+
+    /// <summary>
+    /// 스킬 말고 다른 행동을 할 때 발생함.
+    /// </summary>
+    /// <param name="stageId"></param>
+    /// <param name="actionId"></param>
+    public void LogDoAction(int stageId, int actionId)
+    {
+        RecordAnalyticsEvent("do_action", new Dictionary<string, object>
+        {
+            { "stage_id", stageId },
+            { "action_id", actionId }
+        });
+    }
+
+
+    /// <summary>
+    /// 특정 퍼센티지(100%, 90%, 80%...)마다 불릴 것
+    /// </summary>
+    /// <param name="stageId"></param>
+    /// <param name="bossHpRatio"></param>
+    /// <param name="elapsedTime"></param>
+    public void LogInGameBossHp(int stageId, int bossHpRatio, float elapsedTime)
+    {
+        RecordAnalyticsEvent("in_game_boss_hp", new Dictionary<string, object>
+        {
+            { "stage_id", stageId },
+            { "boss_hp_percent", bossHpRatio },
+            { "play_time", elapsedTime }
+        });
+    }
+    
     #endregion
 
     #region CLOUD SAVE
@@ -547,6 +586,31 @@ public class UGSManager : Singleton<UGSManager>
             return allSlotsData;
         }
         catch (Exception e) { Debug.LogError($"Error loading user data: {e}"); return new Dictionary<int, UserData>(); }
+    }
+
+    public async UniTask<bool> DeleteUserDataAsync(int slotIndex)
+    {
+        if (!IsLoggedIn)
+        {
+            Debug.LogWarning("Cannot delete data. User is not logged in.");
+            return false;
+        }
+
+        try
+        {
+            string slotKey = $"save_slot_{slotIndex}";
+
+            await CloudSaveService.Instance.Data.Player.DeleteAsync(slotKey,
+                new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions());
+
+            Debug.Log($"User data for slot {slotIndex} (key: {slotKey}) deleted successfully.");
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Error deleting user data for slot {slotIndex}: {e}");
+            return false;
+        }
     }
     #endregion
 

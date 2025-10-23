@@ -20,8 +20,9 @@ public class FallenKingStageController : StageController
 
         SpawnPlayer();
         SpawnMonstersLogic();
+        SettingBossHpBar();
 
-        await UniTask.Delay(TimeSpan.FromSeconds(2f));
+        await UniTask.Delay(TimeSpan.FromSeconds(1f));
 
         await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.RuinsOfTheFallenKing);
     }

@@ -10,8 +10,9 @@ using UnityEngine.Tilemaps;
 public class BackgroundEffectData : BaseEffectData
 {
     [field: SerializeField] public float Duration { get; private set; }
-    [field: SerializeField] public Color PointColor { get; private set; } = new Color(0, 0, 0, 1);
-    private Color blackColor = new Color(0, 0, 0, 1);
+    [field: SerializeField] public Color FirstPointColor { get; private set; } = new Color(0, 0, 0, 1);
+    [field: SerializeField] public Color SecondPointColor { get; private set; } = new Color(0, 0, 0, 1);
+
     private static readonly int ColorID = Shader.PropertyToID("_Color");
 #if UNITY_EDITOR
     private void OnValidate()
@@ -28,14 +29,14 @@ public class BackgroundEffectData : BaseEffectData
         {
            //빨강. 컬러를 이 SO의 PointColor로 바꾸기
             //검정. 컬러를 검정으로 바꾸기
-            ChangeMapColor(StageManager.Instance.ColorBgs, PointColor);
-            ChangeMapColor(StageManager.Instance.BlackBgs, blackColor);
+            ChangeMapColor(StageManager.Instance.ColorBgs, FirstPointColor);
+            ChangeMapColor(StageManager.Instance.BlackBgs, SecondPointColor);
 
            
-            ChangeCharacterColor(PlayerManager.Instance.player.gameObject, blackColor);
+            ChangeCharacterColor(PlayerManager.Instance.player.gameObject, SecondPointColor);
             for (int i = 0; i < StageManager.Instance.currentStageController.aliveMonsters.Count; i++)
             {
-                ChangeCharacterColor(StageManager.Instance.currentStageController.aliveMonsters[i], blackColor);
+                ChangeCharacterColor(StageManager.Instance.currentStageController.aliveMonsters[i], SecondPointColor);
             }
             
 

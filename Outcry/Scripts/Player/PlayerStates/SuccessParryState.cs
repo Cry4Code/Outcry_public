@@ -63,5 +63,10 @@ public class SuccessParryState : BasePlayerState
     public override void Exit(PlayerController controller)
     {
         controller.Attack.successParry = false;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.SuccessParrying);
+        }
     }
 }

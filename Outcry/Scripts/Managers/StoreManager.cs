@@ -10,7 +10,7 @@ public class StoreManager : Singleton<StoreManager>
 
     private Dictionary<int, SkillData> skillDict = new Dictionary<int, SkillData>();
 
-
+    public UserData CurrentUserData { get; private set; }
 
     private void Awake()
     {
@@ -71,35 +71,5 @@ public class StoreManager : Singleton<StoreManager>
         {
             return true;
         }
-
     }
-
-
-    public void Buy()
-    {
-        //스킬 미리보기 버튼이 눌려있으면 해당 스킬 구매
-        //유저 정보에 스킬 추가 하기
-    }
-
-    public void Sell()
-    {
-
-        //스킬 미리보기 버튼이 눌려있을 때 이미 구매한 스킬이라면 해당 스킬 판매
-        //유저 정보에 스킬 추가 하기
-    }
-
-    public void ActiveBtn()//ui 에서 해야 할 수도 있음
-    {
-        //스킬 미리보기 버튼이 눌려있으면 해당 스킬 구매
-        //유저 정보에 스킬 추가 하기
-    }
-
-    public void ActPreview(int btnNum)
-    {
-        //버튼이 활성화 되어있다면
-        //스킬을 해금하는데 필요한 소울을 가지고 있다면 해당 소울을 가
-        //만약 다른 스킬이 미리보기중이면 종료
-        //누른 스킬 번호를 받아와서 미리보기창에 반복 재생
-    }
-
 }

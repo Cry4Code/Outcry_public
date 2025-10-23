@@ -35,6 +35,13 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
         dataList.Add(new HeavyDestroyerSkillSequenceNode(103002));
         dataList.Add(new ThreePointSkillSequenceNode(103003));
         dataList.Add(new EarthquakeSkillSequenceNode(103004));
+        /*  투사체 공용 노드 테스트용, 이상없이 작동함.
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103004,
+            AnimatorHash.MonsterParameter.Earthquake, AnimatorHash.MonsterAnimation.Earthquake, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.Stone, 19, new Vector3(5.7f, -1.47f, 0f)),
+            new SpawnRequest(AddressablePaths.Projectile.Stone, 25, new Vector3(10.2f, -1.47f, 0f)),
+            new SpawnRequest(AddressablePaths.Projectile.Stone, 31, new Vector3(14.7f, -1.47f, 0f))));
+        */
         dataList.Add(new StompSkillSequenceNode(103005));
         dataList.Add(new UpperSlashSkillSequenceNode(103006));
         dataList.Add(new NormalAttackSkillSequenceNode(103000));
@@ -49,7 +56,7 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
         #region 몽환의 마녀
         // common skills
         dataList.Add(new MeleeAttackSkillSequenceNode(103401,
-            AnimatorHash.MonsterParameter.NormalAttack, AnimatorHash.MonsterAnimation.NormalAttack));
+            AnimatorHash.MonsterParameter.Takkong, AnimatorHash.MonsterAnimation.Takkong));
         dataList.Add(new MeleeAttackSkillSequenceNode(103403,
             AnimatorHash.MonsterParameter.FireBash, AnimatorHash.MonsterAnimation.FireBash));
         dataList.Add(new MeleeAttackSkillSequenceNode(103404,
@@ -58,34 +65,66 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             AnimatorHash.MonsterParameter.IceMountain, AnimatorHash.MonsterAnimation.IceMountain));
         dataList.Add(new MeleeAttackSkillSequenceNode(103407,
             AnimatorHash.MonsterParameter.ThunderBolt, AnimatorHash.MonsterAnimation.ThunderBolt));
-        // // FireBall(103405) // 보스가 플레이어 위치까지 투사체를 발사하는 스킬
-        //dataList.Add(new ProjectileSpawnSkillSequenceNode(103405,
-        //    AnimatorHash.MonsterParameter.FireBall, AnimatorHash.MonsterAnimation.FireBall, RangeMode.Outside, SpawnMode.Front,
-        //    new SpawnRequest(AddressablePaths.Projectile.FireBall, 8, offset)))  // 파이어 볼 이름 수정 요청 (일반 고블린이랑 겹침)
-        // Thunder Strike(103402) // 체널링 // 보스가 플레이어 위치에 투사체를 생성하는 스킬
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103405, 
+            AnimatorHash.MonsterParameter.FireBolt, AnimatorHash.MonsterAnimation.FireBolt, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.FireBolt, 9, new Vector3(2.0f, 0.2f, 0f))));
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103408,
+            AnimatorHash.MonsterParameter.BlackHole, AnimatorHash.MonsterAnimation.BlackHole, RangeMode.Inside, SpawnMode.AtTarget,
+            new SpawnRequest(AddressablePaths.Projectile.BlackHole, 5)));
         dataList.Add(new ProjectileSpawnSkillSequenceNode(103409,
-            AnimatorHash.MonsterParameter.BlackHole, AnimatorHash.MonsterAnimation.BlackHole, RangeMode.Outside, SpawnMode.AtTarget,
-            new SpawnRequest(AddressablePaths.Projectile.BlackHole, 9)));
-        dataList.Add(new ProjectileSpawnSkillSequenceNode(103409,
-            AnimatorHash.MonsterParameter.Infierno, AnimatorHash.MonsterAnimation.Infierno, RangeMode.Outside, SpawnMode.AtTarget,
-            new SpawnRequest(AddressablePaths.Projectile.Infierno, 12)));
-        // VolcanoDive (103410)	// 이동하면서 나갈 스킬
+            AnimatorHash.MonsterParameter.Infierno, AnimatorHash.MonsterAnimation.Infierno, RangeMode.Inside, SpawnMode.AtTarget,
+            new SpawnRequest(AddressablePaths.Projectile.Infierno, 11)));
+        dataList.Add(new VolcanoDiveSkillSequenceNode(103410));
+        dataList.Add(new ThunderStrikeSkillSequenceNode(103402));
 
         // special skills
-        // Meteor(103411)
+        dataList.Add(new MeteorSkillSequenceNode(103411));        
         #endregion
 
-        //VampireLord
+        //VampireLord 1페
         dataList.Add(new MeleeAttackSkillSequenceNode(103501, 
             AnimatorHash.MonsterParameter.NormalAttack, AnimatorHash.MonsterAnimation.NormalAttack)); //일반공격
-        dataList.Add(new TurningBloodSkillSequenceNode(103505)); //TurningBlood
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103503,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.BothEndOfGround,
+            new SpawnRequest(AddressablePaths.Projectile.Darkness, 30, new Vector3(0f, 0f, 0f)))); //darkness
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103505,
+            AnimatorHash.MonsterParameter.TurningBlood, AnimatorHash.MonsterAnimation.TurningBlood, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.TurningBlood, 14, new Vector3(0.5f, 0f, 0f)))); //turningBlood
+        // dataList.Add(new TurningBloodSkillSequenceNode(103505)); //TurningBlood
         dataList.Add(new BloodStingSkillSequenceNode(103506)); //BloodSting
-        dataList.Add(new MeleeAttackSkillSequenceNode(103507, 
-            AnimatorHash.MonsterParameter.BloodShard, AnimatorHash.MonsterAnimation.BloodShard)); //BloodShard
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103507,
+            AnimatorHash.MonsterParameter.BloodShard, AnimatorHash.MonsterAnimation.BloodShard, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.BloodShard, 25, new Vector3(0.3f, 0f, 0f)))); //BloodShard
+        // dataList.Add(new MeleeAttackSkillSequenceNode(103507, 
+        //     AnimatorHash.MonsterParameter.BloodShard, AnimatorHash.MonsterAnimation.BloodShard)); //BloodShard
         dataList.Add(new MeleeAttackSkillSequenceNode(103508, 
             AnimatorHash.MonsterParameter.BloodVeil, AnimatorHash.MonsterAnimation.BloodVeil)); //BloodVeil
         dataList.Add(new MeleeAttackSkillSequenceNode(103509, 
             AnimatorHash.MonsterParameter.BloodSpear, AnimatorHash.MonsterAnimation.BloodSpear)); //BloodSpear
+        dataList.Add(new BatStormSkillSequenceNode(103510)); //BatStorm
+        
+        //vampireLord 2페
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103502,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.TargetGround,
+            new SpawnRequest(AddressablePaths.Projectile.DarkSwamp, 30, new Vector3(0f, 0.6f, 0f)))); //darkSwamp
+        // dataList.Add(new ProjectileSpawnSkillSequenceNode(103503,
+        //     AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.Front,
+        //     new SpawnRequest(AddressablePaths.Projectile.Darkness, 30, new Vector3(0f, 0f, 0f)))); //darkness
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103514,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.BothEndOfGround,
+            new SpawnRequest(AddressablePaths.Projectile.Darkness, 30, new Vector3(0f, 0f, 0f)))); //darkness
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103504,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Outside, SpawnMode.RandomGround,
+            new SpawnRequest(AddressablePaths.Projectile.DarkBomb, 30, new Vector3(0f, 0.6f, 0f)),
+            new SpawnRequest(AddressablePaths.Projectile.DarkBomb, 30, new Vector3(0f, 0.6f, 0f)))); //darkBomb
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103513,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.TargetGround,
+            new SpawnRequest(AddressablePaths.Projectile.BloodSpear, 30, new Vector3(0f, 1.6f, 0f)))); //bloodSpearGround
+        // dataList.Add(new TurningBloodSkillSequenceNode(103512)); //TurningBloods
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103512,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.TurningBlood, 30, new Vector3(0.5f, 0f, 0f)))); //turningBlood
+        dataList.Add(new BloodMoonSkillSequenceNode(103511)); //BloodMoon
     }
 
     /// <summary>
@@ -100,6 +139,12 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
 
         switch (tempData)
         {
+            case MeleeAttackSkillSequenceNode node:
+                skillSequenceNode = new MeleeAttackSkillSequenceNode(node);
+                break;
+            case ProjectileSpawnSkillSequenceNode node:
+                skillSequenceNode = new ProjectileSpawnSkillSequenceNode(node);
+                break;
             case MetalBladeSkillSequenceNode:
                 skillSequenceNode = new MetalBladeSkillSequenceNode(skillId);
                 break;
@@ -145,14 +190,26 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             case GoblinFirekeeperStrongAttackSkillSequenceNode:
                 skillSequenceNode = new GoblinFirekeeperStrongAttackSkillSequenceNode(skillId);
                 break;
-            case MeleeAttackSkillSequenceNode node:
-                skillSequenceNode = new MeleeAttackSkillSequenceNode(node);
+            case VolcanoDiveSkillSequenceNode:
+                skillSequenceNode = new VolcanoDiveSkillSequenceNode(skillId);
+                break;
+            case ThunderStrikeSkillSequenceNode:
+                skillSequenceNode = new ThunderStrikeSkillSequenceNode(skillId);
+                break;
+            case MeteorSkillSequenceNode:
+                skillSequenceNode = new MeteorSkillSequenceNode(skillId);
                 break;
             case BloodStingSkillSequenceNode:
                 skillSequenceNode = new BloodStingSkillSequenceNode(skillId);
                 break;
             case TurningBloodSkillSequenceNode:
                 skillSequenceNode = new TurningBloodSkillSequenceNode(skillId);
+                break;
+            case BatStormSkillSequenceNode:
+                skillSequenceNode = new BatStormSkillSequenceNode(skillId);
+                break;
+            case BloodMoonSkillSequenceNode:
+                skillSequenceNode = new BloodMoonSkillSequenceNode(skillId);
                 break;
             default:
                 skillSequenceNode = null;

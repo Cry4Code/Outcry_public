@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class NormalAttackState : NormalAttackSubState
@@ -16,6 +17,8 @@ public class NormalAttackState : NormalAttackSubState
     private bool isComboInput = false;
     private float animRunningTime;
     private bool isLeft = false;
+    private float playSoundTime = 0;
+    private float soundDelay = 0.2f;
     
     public override async void Enter(PlayerController controller)
     {
@@ -31,6 +34,9 @@ public class NormalAttackState : NormalAttackSubState
 
         controller.Hitbox.AttackState = AttackState.NormalAttack;
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.NormalAttack);
+
+        
+        
         if (controller.Attack.AttackCount != controller.Attack.MaxAttackCount)
         {
             if (controller.Attack.AttackCount == 0)
@@ -39,12 +45,21 @@ public class NormalAttackState : NormalAttackSubState
                 controller.Move.ForceLook(isLeft);
                 controller.isLookLocked = true; 
             }
-            await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.NormalAttackSound, EffectType.Sound, controller.gameObject);
+
+            if (Time.time - playSoundTime >= soundDelay)
+            {
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.NormalAttackSound, EffectType.Sound, controller.gameObject).Forget();
+                playSoundTime = Time.time;
+            }
         }
 
         else
         {
-            await EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.LastNormalAttackSound, EffectType.Sound, controller.gameObject);
+            if (Time.time - playSoundTime >= soundDelay)
+            {
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.LastNormalAttackSound, EffectType.Sound, controller.gameObject).Forget();
+                playSoundTime = Time.time;
+            }
         }
         
         controller.Inputs.Player.Move.Disable();
@@ -154,5 +169,10 @@ public class NormalAttackState : NormalAttackSubState
         base.Exit(controller);
         isComboInput = false;
         controller.Condition.canStaminaRecovery.Value = true;
+        int stageId = StageManager.Instance.CurrentStageData.Stage_id;
+        if (stageId != StageID.Village)
+        {
+            UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.NormalAttack);
+        }
     }
 }

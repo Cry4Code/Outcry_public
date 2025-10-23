@@ -1,11 +1,13 @@
 using System;
+using UnityEngine;
 
 // 버튼 타입을 정의하는 열거형
 public enum EConfirmPopupType
 {
     OK,         // 확인 버튼만
     OK_CANCEL,   // 확인 및 취소 버튼
-    ACQUIRE_OK // 획득 아이템 표시용
+    SOUL_ACQUIRE_OK, // 획득 소울 표시용
+    SKILL_ACQUIRE_OK_CANCEL // 획득 스킬 표시용
 }
 
 // ConfirmUI에 전달할 데이터 클래스
@@ -13,9 +15,13 @@ public class ConfirmPopupData
 {
     public string Title { get; set; }
     public string Message { get; set; }
+    public string OkButtonText { get; set; }
     public EConfirmPopupType Type { get; set; }
     public Action OnClickOK { get; set; }
     public Action OnClickCancel { get; set; }
+
+    // 동적으로 표시할 아이템/소울 이미지
+    public Sprite ItemSprite;
 }
 
 // 사용 예시
