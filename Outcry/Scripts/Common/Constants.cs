@@ -21,12 +21,12 @@ public static class PlayerEffectID
     public const int JumpAttack = 100060;
     public const int JumpDownAttack = 100070;
 
-    public const int WindSlash = 102000;
+    public const int FlameSlash = 102000;
     public const int SuperCrash = 102001;
     public const int ScrewAttack = 102002;
     public const int HolySlash = 102003;
     public const int PowerUp = 102004;
-    public const int Unbreakable = 102005;
+    public const int DeadHard = 102005;
 }
 
 public static class UIEffectID
@@ -77,6 +77,7 @@ public static class AddressablePaths
         public const string Infierno = "Projectile/Infierno.prefab";
         public const string FireBolt = "Projectile/FireBolt.prefab";
         public const string ThunderStrike = "Projectile/ThunderStrike.prefab";
+        public const string IceMountain = "Projectile/IceMountain.prefab";
         public const string Meteor = "Projectile/Meteor.prefab";
         public const string Bat = "Projectile/Bat.prefab";
         public const string DarkSwamp = "Projectile/DarkSwamp.prefab";
@@ -126,7 +127,7 @@ public static class Figures
         public const float BOSS2_COMMON_SKILL_INTERVAL = 0.5f;
 
         public const int BACKGROUND_SORTING_ORDER_IN_LAYER = 55;
-        public const int MONSTER_ORDER_IN_LAYER = 101;
+        public const int MONSTER_ORDER_IN_LAYER = 280;
     }
 }
 
@@ -185,6 +186,7 @@ public static class AnimatorHash
         public static readonly int BatStormFlying = Animator.StringToHash("BatStormFlying");
         public static readonly int ChargeStart = Animator.StringToHash("ChargeStart");
         public static readonly int IsFlying = Animator.StringToHash("IsFlying");
+        public static readonly int BrokenMoon = Animator.StringToHash("BrokenMoon");
     }
 
     public static class MonsterAnimation

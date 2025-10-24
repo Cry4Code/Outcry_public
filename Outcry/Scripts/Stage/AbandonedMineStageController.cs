@@ -11,6 +11,13 @@ public class AbandonedMineStageController : StageController
         // TODO: 스테이지 기믹 있으면 추가
         // 플레이어 스폰
         SpawnPlayer();
+
+        PlayerManager.Instance.player.runFSM = false;
+
+        await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
+
+        PlayerManager.Instance.player.runFSM = true;
+
         SpawnMonstersLogic();
         SettingBossHpBar();
 

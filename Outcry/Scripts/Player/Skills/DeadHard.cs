@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-public class Unbreakable : SkillBase
+public class DeadHard : SkillBase
 {
     // 프레임 쪼개기
     private const float ANIMATION_FRAME_RATE = 20f;
@@ -18,6 +18,7 @@ public class Unbreakable : SkillBase
     public async override void Enter()
     {
         useSuccessed = false;
+        isBuffed = false;
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
         {
@@ -44,7 +45,7 @@ public class Unbreakable : SkillBase
         controller.Condition.isCharge = true;
         
         animRunningTime = 0f;
-        isBuffed = false;
+        
         
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
@@ -94,10 +95,13 @@ public class Unbreakable : SkillBase
     public async override void Exit()
     {
         base.Exit();
-        if(isBuffed)
+        if (isBuffed)
+        {
+            lastUsedTime = Time.time;
             await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
                 Vector3.down * 1f
             );
+        }
     }
 
 }

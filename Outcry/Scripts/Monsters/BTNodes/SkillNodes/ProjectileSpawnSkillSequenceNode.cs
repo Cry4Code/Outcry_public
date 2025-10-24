@@ -266,13 +266,36 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
                     bool isGenerated = false;
                     bool hasLastPos = lastGeneratedPos != Vector3.zero;
                     
+                    //ray 쏴서 ground 걸리는 거 없는지 먼저 체크.
+                    //찾으면 그게 minx, maxx.
+                    float minX = target.transform.position.x - radius;
+                    float maxX = target.transform.position.x + radius;
+                    float rayStartHeight = 1f; // 타겟 위에서 레이 시작
+                    int groundMask = LayerMask.GetMask("Ground");
+                    
+                    Vector2 rayOriginForXRandomLength = new Vector2(target.transform.position.x, target.transform.position.y + rayStartHeight);
+                    
+                    //왼쪽 체크
+                    RaycastHit2D hitForXRandomLengthLeft =
+                        Physics2D.Raycast(rayOriginForXRandomLength, Vector2.left, radius, groundMask);
+                    if (hitForXRandomLengthLeft.collider != null)
+                    {
+                        minX = hitForXRandomLengthLeft.point.x + 3f; // 약간 안쪽으로
+                    }
+                    
+                    //오른쪽 체크
+                    RaycastHit2D hitForXRandomLengthRight =
+                        Physics2D.Raycast(rayOriginForXRandomLength, Vector2.right, radius, groundMask);
+                    if (hitForXRandomLengthRight.collider != null)
+                    {
+                        maxX = hitForXRandomLengthRight.point.x - 3f; // 약간 안쪽으로
+                    }
+                    
                     for(int attempt = 0; attempt < maxAttempts && !isGenerated; attempt++)
                     {
-                        float randomX = target.transform.position.x + Random.Range(-radius, radius);
-                        float rayStartHeight = 1f; // 타겟 위에서 레이 시작
+                        float randomX = Random.Range(minX, maxX);
                         Vector2 rayOrigin = new Vector2(randomX, target.transform.position.y + rayStartHeight);
                         float rayDistance = 10f;
-                        int groundMask = LayerMask.GetMask("Ground");
                         RaycastHit2D randomHit = Physics2D.Raycast(rayOrigin, Vector2.down, rayDistance, groundMask);
 
                         if (randomHit.collider != null)

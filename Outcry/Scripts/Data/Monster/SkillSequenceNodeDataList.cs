@@ -61,10 +61,11 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             AnimatorHash.MonsterParameter.FireBash, AnimatorHash.MonsterAnimation.FireBash));
         dataList.Add(new MeleeAttackSkillSequenceNode(103404,
             AnimatorHash.MonsterParameter.ThunderBall, AnimatorHash.MonsterAnimation.ThunderBall));
-        dataList.Add(new MeleeAttackSkillSequenceNode(103406,
-            AnimatorHash.MonsterParameter.IceMountain, AnimatorHash.MonsterAnimation.IceMountain));
         dataList.Add(new MeleeAttackSkillSequenceNode(103407,
             AnimatorHash.MonsterParameter.ThunderBolt, AnimatorHash.MonsterAnimation.ThunderBolt));
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103406,
+            AnimatorHash.MonsterParameter.IceMountain, AnimatorHash.MonsterAnimation.IceMountain, RangeMode.Inside, SpawnMode.Front, 
+            new SpawnRequest(AddressablePaths.Projectile.IceMountain, 10, Vector3.zero)));
         dataList.Add(new ProjectileSpawnSkillSequenceNode(103405, 
             AnimatorHash.MonsterParameter.FireBolt, AnimatorHash.MonsterAnimation.FireBolt, RangeMode.Inside, SpawnMode.Front,
             new SpawnRequest(AddressablePaths.Projectile.FireBolt, 9, new Vector3(2.0f, 0.2f, 0f))));
@@ -73,7 +74,7 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             new SpawnRequest(AddressablePaths.Projectile.BlackHole, 5)));
         dataList.Add(new ProjectileSpawnSkillSequenceNode(103409,
             AnimatorHash.MonsterParameter.Infierno, AnimatorHash.MonsterAnimation.Infierno, RangeMode.Inside, SpawnMode.AtTarget,
-            new SpawnRequest(AddressablePaths.Projectile.Infierno, 11)));
+            new SpawnRequest(AddressablePaths.Projectile.Infierno, 6)));
         dataList.Add(new VolcanoDiveSkillSequenceNode(103410));
         dataList.Add(new ThunderStrikeSkillSequenceNode(103402));
 

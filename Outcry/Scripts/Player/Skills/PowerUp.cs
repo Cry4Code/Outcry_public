@@ -12,6 +12,7 @@ public class PowerUp : SkillBase
     public async override void Enter()
     {
         useSuccessed = false;
+        isBuffed = false;
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
         {
@@ -45,7 +46,6 @@ public class PowerUp : SkillBase
         controller.Condition.isSuperArmor = true;
         
         animRunningTime = 0f;
-        isBuffed = false;
         
         controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
@@ -92,9 +92,12 @@ public class PowerUp : SkillBase
     public async override void Exit()
     {
         base.Exit();
-        if(isBuffed)
+        if (isBuffed)
+        {
+            lastUsedTime = Time.time;
             await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
                 Vector3.down * 1.2f
             );
+        }
     }
 }

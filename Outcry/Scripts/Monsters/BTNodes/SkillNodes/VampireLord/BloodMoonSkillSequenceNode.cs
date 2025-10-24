@@ -16,13 +16,14 @@ public class BloodMoonSkillSequenceNode : SkillSequenceNode
     private const float END_QTE_ANIM_DELAY = 1.0f;
 
     //QTE 키 시퀀스 저장 배열
-    private readonly string[] qteSequences = { "ADFS", "QAS", "DSAWEQ", "RFED", "SD", "RQ", "FREQ", "WASDF", "EWQ" };
+    private readonly string[] qteSequences = { "ADFS", "QAS", "DSAWEQ", "RFED", "QDSR", "RDQS", "FREQ", "ADWR", "EWQ" };
     // 이번 스킬에서 사용할 3개의 랜덤 시퀀스를 저장할 리스트
     private List<string> selectedQteSequences = new List<string>();
 
     private HallOfBloodStageController stageController;
     private QTEController qteController;
     private GameObject bloodMoonInstance;
+    private Animator bloodMoonAnimator;
     private GameObject qte_UI;
 
     // 상태 관리 플래그 및 내부 변수
@@ -200,6 +201,7 @@ public class BloodMoonSkillSequenceNode : SkillSequenceNode
 
             // BloodMoon 프리팹을 화면에 표시
             bloodMoonInstance = ObjectPoolManager.Instance.GetObject(AddressablePaths.UI.BloodMoon, stageController.BloodMoon.transform);
+            bloodMoonAnimator = bloodMoonInstance.GetComponent<Animator>();
             bloodMoonInstance.transform.position = new Vector3(stageController.BloodMoon.transform.position.x, stageController.BloodMoon.transform.position.y);
             if (bloodMoonInstance != null)
             {
@@ -299,7 +301,7 @@ public class BloodMoonSkillSequenceNode : SkillSequenceNode
             case QTEController.EQTEState.Success:
                 qteSuccessCount++;
                 Debug.Log($"QTE {qteSuccessCount}/{TOTAL_QTE_REPS}회 성공!");
-                // TODO: 성공 피드백?(효과음, 화면 효과 등)
+                // TODO: 성공 피드백(효과음)
                 PlayerManager.Instance.player.ForceChangeAnimation(AnimatorHash.PlayerAnimation.SuccessQTE);
 
                 // 마지막 성공이 아니라면 다음 QTE 대기 상태로 전환
@@ -363,6 +365,9 @@ public class BloodMoonSkillSequenceNode : SkillSequenceNode
             Debug.Log("[QTE] 블러드문 3회 성공!");
 
             PlayerManager.Instance.player.ForceChangeAnimation(AnimatorHash.PlayerAnimation.EndQTE);
+
+            // 블러드문 깨지는 연출
+            bloodMoonAnimator.SetTrigger(AnimatorHash.MonsterParameter.BrokenMoon);
 
             // EndQTE 애니메이션이 끝날 때까지 기다림
             await UniTask.Delay(TimeSpan.FromSeconds(END_QTE_ANIM_DELAY));

@@ -81,8 +81,16 @@ public class BloodStingSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
             stateEnterTime = Time.time;
             cooldownTimer = 0f; // 스킬을 사용했으므로 쿨다운 타이머 리셋
-
+            return NodeState.Running;
         }
+
+        // 애니메이션 출력 보장
+        if (!isAnimationStarted)
+        {
+            isAnimationStarted = AnimatorUtility.IsAnimationStarted(monster.Animator, AnimatorHash.MonsterAnimation.BloodStingStart);
+            return NodeState.Running;
+        }
+
 
         // 각 애니메이션 클립에 실행될 로직들
         // start 애니메이션이 실행되는 동안 실행중 반환

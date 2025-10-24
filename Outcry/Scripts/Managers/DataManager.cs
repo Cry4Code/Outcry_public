@@ -62,6 +62,15 @@ public class DataManager : Singleton<DataManager>
             AllSkills[skillModel.skillId] = CreateSkill(skillModel.skillId, skillModel.skillName);
         }
         Debug.Log($"[플레이어] 스킬 세트 준비 완료");
+
+        // TODO: 유저 테스트용 모든 스킬 선획득
+        foreach(var skillModel in skillModels)
+        {
+            if(!GameManager.Instance.CurrentUserData.AcquiredSkillIds.Contains(skillModel.skillId))
+            {
+                GameManager.Instance.CurrentUserData.AcquiredSkillIds.Add(skillModel.skillId);
+            }
+        }
     }
 
     private SkillBase CreateSkill(int skillId, string skillName)

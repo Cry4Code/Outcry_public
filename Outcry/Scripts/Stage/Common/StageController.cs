@@ -53,6 +53,12 @@ public class StageController : MonoBehaviour
         // 플레이어 스폰
         SpawnPlayer();
 
+        PlayerManager.Instance.player.runFSM = false;
+
+        await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
+
+        PlayerManager.Instance.player.runFSM = true;
+
         // 몬스터 스폰 로직 호출
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));  // 약간의 딜레이 후 스폰
         SpawnMonstersLogic();

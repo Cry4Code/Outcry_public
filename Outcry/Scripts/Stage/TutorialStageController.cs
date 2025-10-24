@@ -13,7 +13,11 @@ public class TutorialStageController : StageController
     {
         SpawnPlayer();
 
+        PlayerManager.Instance.player.runFSM = false;
+
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
+
+        PlayerManager.Instance.player.runFSM = true;
 
         // 몬스터 한 번에 스폰하지 않고 첫 번째 웨이브만 시작
         SpawnMonstersLogic();
