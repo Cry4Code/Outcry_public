@@ -82,27 +82,14 @@ public class FireballController : ProjectileBase
 
         int layer = collision.gameObject.layer;
 
-        // 플레이어인 경우, 데미지 주기
-        if (isAttacking && (playerLayer.value & (1 << layer)) != 0 &&
-            collision.TryGetComponent<IDamagable>(out var victim)) //(other.gameObject.layer == playerLayer)
-        {
-            if (damage > 0)
-            {
-                victim.TakeDamage(damage);
-                Debug.Log($"[{name}] Playerlayer hit - damage {damage}");
-            }
-
-            // 트리거 세팅 추가됨.
-            isHit = true;
-            isDisspiating = true;
-            RequestRelease();
-        }        
-        else if ((groundLayer.value & (1 << layer)) != 0)  //(other.gameObject.layer == groundLayer)
-        {
-            isHit = true;
+        // 장애물에 닿으면 소멸            
+        if ((groundLayer.value & (1 << layer)) != 0)  //(other.gameObject.layer == groundLayer)
+        {            
             isDisspiating = true;
             RequestRelease();
         }
+
+        base.OnTriggerEnter2D(collision);
     }
 
     protected override void OnDisable()

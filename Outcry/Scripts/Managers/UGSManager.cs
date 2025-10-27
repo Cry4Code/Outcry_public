@@ -7,6 +7,8 @@ using Unity.Services.Authentication.PlayerAccounts;
 using Unity.Services.CloudSave;
 using Unity.Services.Core;
 using Unity.Services.RemoteConfig;
+using Unity.Services.Leaderboards;
+using Unity.Services.Leaderboards.Models;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
@@ -25,6 +27,9 @@ public class UGSManager : Singleton<UGSManager>
     public string CurrentUID => IsLoggedIn ? AuthenticationService.Instance.PlayerId : null;
     public string RemoteContentVersion { get; private set; }
     public string SessionId { get; private set; }
+    private string cachedPlayerDisplayName = string.Empty;
+    // 현재 로그인된 플레이어의 전체 이름(이름#태그) 반환하는 프로퍼티
+    public string PlayerDisplayName => cachedPlayerDisplayName;
 
     // 로그인 성공 시 외부에 알리기 위한 이벤트
     public event Action OnLoginSuccess;
@@ -124,6 +129,8 @@ public class UGSManager : Singleton<UGSManager>
     private void OnSignedIn()
     {
         Debug.Log($"Player signed in successfully! PlayerID: {CurrentUID}");
+
+        CheckAndSetDefaultNameAsync().Forget();
 
         // 로그인 성공 시 게임 창을 맨 앞으로 가져오기
         WindowUtils.FocusGameWindow();
@@ -283,7 +290,7 @@ public class UGSManager : Singleton<UGSManager>
             }
         }
         catch (AuthenticationException ex)
-        { 
+        {
             Debug.LogException(ex);
             // 서버 연동이 실패 -> 로컬 UPA 로그인을 취소(로그아웃)하여 상태 초기화
             if (PlayerAccountService.Instance.IsSignedIn)
@@ -309,8 +316,8 @@ public class UGSManager : Singleton<UGSManager>
                 });
             }
         }
-        catch (RequestFailedException ex) 
-        { 
+        catch (RequestFailedException ex)
+        {
             Debug.LogException(ex);
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
@@ -365,7 +372,7 @@ public class UGSManager : Singleton<UGSManager>
         catch (Exception e)
         {
             Debug.LogError($"Link with UPA failed: {e}");
-            
+
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
                 Title = "Linking Failed",
@@ -421,6 +428,87 @@ public class UGSManager : Singleton<UGSManager>
 
         // null 체크 후 Task를 성공 상태로 전환
         signOutUcs?.TrySetResult(true);
+    }
+
+    private async UniTask CheckAndSetDefaultNameAsync()
+    {
+        // 서버에서 현재 계정의 이름을 가져옴
+        string currentName = await GetPlayerDisplayNameAsync();
+
+        // 만약 로그인한 유저가 익명이고 이름이 없거나 Guest로 시작하지 않는다면
+        if (IsAnonymousUser && !currentName.StartsWith("Guest"))
+        {
+            Debug.Log($"신규 게스트 계정으로 감지되었습니다. (현재 이름: {currentName}). 기본 이름 Guest를 설정합니다.");
+            // Guest로 이름을 설정하고 서버로부터 새 태그를 받아 캐시까지 갱신
+            await UpdatePlayerDisplayNameAsync("Guest");
+        }
+        else
+        {
+            // UPA 유저이거나 기존 게스트 유저라면 이름 변경 없이 캐시만 갱신
+            await FetchAndCachePlayerNameAsync();
+        }
+    }
+
+    /// <summary>
+    /// 현재 로그인된 UGS 플레이어 표시 이름 업데이트
+    /// 리더보드에 표시될 닉네임으로 사용
+    /// </summary>
+    /// <param name="newName">새로운 표시 이름</param>
+    public async UniTask<bool> UpdatePlayerDisplayNameAsync(string newName)
+    {
+        if (!IsLoggedIn)
+        {
+            Debug.LogWarning("Cannot update player name. User is not logged in.");
+            return false;
+        }
+
+        try
+        {
+            await AuthenticationService.Instance.UpdatePlayerNameAsync(newName);
+            Debug.Log($"Player display name updated successfully to: {newName}");
+
+            await FetchAndCachePlayerNameAsync();
+
+            return true;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to update player name: {e}");
+            return false;
+        }
+    }
+
+    // UGS에서 이름을 가져와 private 변수에 저장하는 내부 메서드
+    private async UniTask FetchAndCachePlayerNameAsync()
+    {
+        string uniqueName = await GetPlayerDisplayNameAsync();
+
+        // 가져온 이름을 cachedPlayerDisplayName 변수에 저장(캐싱)
+        cachedPlayerDisplayName = uniqueName;
+
+        Debug.Log($"[UGSManager] Player display name cached: {cachedPlayerDisplayName}");
+    }
+
+    // 플레이어의 최종 고유 이름을 가져오는 비동기 메서드
+    public async UniTask<string> GetPlayerDisplayNameAsync()
+    {
+        if (!IsLoggedIn)
+        {
+            Debug.LogWarning("Cannot get player name. User is not logged in.");
+            return string.Empty;
+        }
+
+        try
+        {
+            // 이 API가 최종적으로 확정된 (이름#태그)를 반환
+            string playerName = await AuthenticationService.Instance.GetPlayerNameAsync();
+            return playerName;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to get player name: {e}");
+            return string.Empty; // 실패 시 빈 문자열 반환
+        }
     }
     #endregion
 
@@ -542,7 +630,7 @@ public class UGSManager : Singleton<UGSManager>
             { "play_time", elapsedTime }
         });
     }
-    
+
     #endregion
 
     #region CLOUD SAVE
@@ -610,6 +698,77 @@ public class UGSManager : Singleton<UGSManager>
         {
             Debug.LogError($"Error deleting user data for slot {slotIndex}: {e}");
             return false;
+        }
+    }
+    #endregion
+
+    #region LEADERBOARDS
+    /// <summary>
+    /// 지정된 리더보드에 점수 추가(클리어 타임 등)
+    /// </summary>
+    /// <param name="leaderboardId">Unity Dashboard에서 설정한 리더보드 ID</param>
+    /// <param name="score">기록할 점수 (시간은 초 단위 double로 전달)</param>
+    public async UniTask AddScoreToLeaderboardAsync(string leaderboardId, double score, Dictionary<string, string> metadata = null)
+    {
+        if (!IsLoggedIn)
+        {
+            Debug.LogWarning("Cannot add score. User is not logged in.");
+            return;
+        }
+        if (string.IsNullOrEmpty(leaderboardId))
+        {
+            Debug.LogWarning("Leaderboard ID is null or empty. Cannot add score.");
+            return;
+        }
+
+        try
+        {
+            // options 객체 생성하여 메타데이터 담는다
+            var options = new AddPlayerScoreOptions();
+            if (metadata != null)
+            {
+                options.Metadata = metadata;
+            }
+
+            // options를 포함하여 API 호출
+            var newEntry = await LeaderboardsService.Instance.AddPlayerScoreAsync(leaderboardId, score, options);
+            Debug.Log($"Score submitted successfully to {leaderboardId}. Rank: {newEntry.Rank}, Score: {newEntry.Score}");
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to add score to leaderboard {leaderboardId}: {e}");
+        }
+    }
+
+    /// <summary>
+    /// 지정된 리더보드의 상위 순위 목록을 가져옵니다.
+    /// </summary>
+    /// <param name="leaderboardId">가져올 리더보드 ID</param>
+    /// <param name="limit">가져올 순위 개수 (기본 10개)</param>
+    /// <returns>리더보드 순위 정보 리스트</returns>
+    public async UniTask<List<LeaderboardEntry>> GetLeaderboardScoresAsync(string leaderboardId, int limit = 10)
+    {
+        if (!IsLoggedIn)
+        {
+            Debug.LogWarning("Cannot get scores. User is not logged in.");
+            return null;
+        }
+        if (string.IsNullOrEmpty(leaderboardId))
+        {
+            Debug.LogWarning("Leaderboard ID is null or empty. Cannot get scores.");
+            return null;
+        }
+
+        try
+        {
+            var scoresResponse = await LeaderboardsService.Instance.GetScoresAsync(leaderboardId, new GetScoresOptions { Limit = limit });
+            Debug.Log($"Successfully fetched {scoresResponse.Results.Count} scores from {leaderboardId}.");
+            return scoresResponse.Results;
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"Failed to get scores from leaderboard {leaderboardId}: {e}");
+            return null;
         }
     }
     #endregion

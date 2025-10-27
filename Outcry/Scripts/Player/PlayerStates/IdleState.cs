@@ -41,8 +41,6 @@ public class IdleState : GroundSubState
             return;
         }
         
-        base.HandleInput(controller);
-
         if (input.y < 0 && controller.Inputs.Player.Jump.triggered && controller.Move.isGrounded )
         {
             Debug.Log("[플레이어] 아래 점프 입력됨");
@@ -64,6 +62,8 @@ public class IdleState : GroundSubState
             Debug.Log($"[플레이어] 상호작용 시도");
             controller.Move.TryInteract();
         }
+        
+        base.HandleInput(controller);
     }
  
     public override void LogicUpdate(PlayerController controller) 

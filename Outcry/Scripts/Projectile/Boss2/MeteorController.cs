@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -34,6 +35,7 @@ public class MeteorController : ProjectileBase
         transform.localScale = Vector3.one * randomSize;
 
         downDirection = -transform.up;
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage2BossEffectID.Meteor * 10 + 1, EffectType.Sound, gameObject).Forget();
     }
 
     private void FixedUpdate()

@@ -118,17 +118,31 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         UIManager.Instance.Show<NicknameUI>();
     }
 
-    public void StartNewGameAsaGuest()
+    public async void StartNewGameAsaGuest()
     {
-        CurrentUserData = new UserData("Guest");
-        StartStage((int)EStageType.Tutorial);
+        await CreateNewGame("Guest");
     }
 
-    public void CreateNewGame(string nickname)
+    public async UniTask CreateNewGame(string nickname)
     {
         CurrentUserData = new UserData(nickname);
 
-        // 새 데이터를 바로 Firestore에 저장
+        bool nameUpdateSuccess = await UGSManager.Instance.UpdatePlayerDisplayNameAsync(nickname);
+
+        if (nameUpdateSuccess)
+        {
+            // 이름 업데이트 성공 후 UGS로부터 태그가 포함된 최종 이름을 가져옴
+            CurrentUserData.UniquePlayerName = await UGSManager.Instance.GetPlayerDisplayNameAsync();
+            Debug.Log($"고유 이름 저장 완료: {CurrentUserData.UniquePlayerName}");
+        }
+        else
+        {
+            // 실패 시에는 최소한 입력한 닉네임이라도 사용
+            CurrentUserData.UniquePlayerName = nickname;
+            Debug.LogError("UGS 이름 업데이트 실패. HUD에 임시 닉네임 표시.");
+        }
+
+        // 새 데이터를 바로 UGS에 저장
         SaveGame();
 
         StartStage((int)EStageType.Tutorial);
@@ -176,7 +190,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         CurrentUserData = data;
         currentSlotIndex = slotIndex;
 
-        if(CurrentUserData.IsTutorialCleared)
+        if (CurrentUserData.IsTutorialCleared)
         {
             GoToLobby();
         }

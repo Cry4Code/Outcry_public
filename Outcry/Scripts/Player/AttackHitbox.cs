@@ -81,6 +81,7 @@ public class AttackHitbox : MonoBehaviour
                         controller.Attack.JustSpecialAttack(other.gameObject.GetComponentInChildren<Animator>());
                         countable.CounterAttacked();
                         controller.Attack.successJustAttack = false;
+                        controller.Condition.health.Add(3);
                         int stageId = StageManager.Instance.CurrentStageData.Stage_id;
                         if (stageId != StageID.Village)
                         {
@@ -104,14 +105,6 @@ public class AttackHitbox : MonoBehaviour
         {
             ShakeCameraUsingState();
             damagable?.TakeDamage(attack.AttackDamage + attack.AdditionalDamage);
-            /*if (!controller.Attack.successJustAttack)*/ 
-            if(controller.IsCurrentState<NormalAttackState>())    
-                await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack,  EffectOrder.Player, 
-                controller.gameObject, 
-                /*((other.transform.position - controller.transform.position).normalized 
-                                                 * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f)*/
-                
-                (Vector3.right * 2f));
             Debug.Log($"[플레이어] 플레이어가 몬스터에게 {attack.AttackDamage + attack.AdditionalDamage} 만큼 데미지 줌");
         } 
     }

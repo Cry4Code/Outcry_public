@@ -17,38 +17,10 @@ public class DeadHard : SkillBase
     
     public async override void Enter()
     {
-        useSuccessed = false;
         isBuffed = false;
-        // 발동 조건 체크 : 지상
-        if (!controller.Move.isGrounded)
-        {
-            Debug.Log("[플레이어] 스킬 Unbreakable는 지상에서만 사용 가능");
-            controller.ChangeState<FallState>();
-            return;
-        }
+
+        base.Enter();
         
-        // 쿨타임 체크
-        if (Time.time - lastUsedTime < cooldown)
-        {
-            Debug.Log("[플레이어] 스킬 Unbreakable는 쿨타임 중");
-            controller.ChangeState<FallState>();
-            return;
-        }
-        Debug.Log("[플레이어] 스킬 Unbreakable 사용!");
-        useSuccessed = true;
-        // 시점 고정
-        controller.PlayerInputDisable();
-        controller.Move.rb.velocity = Vector2.zero;
-        controller.isLookLocked = false;
-        controller.Move.ForceLook(controller.transform.localScale.x < 0);
-        controller.isLookLocked = true;
-        controller.Condition.isCharge = true;
-        
-        animRunningTime = 0f;
-        
-        
-        controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
-        controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
         await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.HolySlash , EffectOrder.Player, controller.gameObject,
             Vector3.up * 0.2f
         );
@@ -79,17 +51,26 @@ public class DeadHard : SkillBase
                 isBuffed = true;
                 controller.Condition.SetInvincible(duration);
             }
-
-            /*
-            if (animRunningTime >= animationLength)
-            {
-                controller.Condition.SetInvincible(duration);
-                if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
-                else controller.ChangeState<FallState>();
-                return;
-            }*/
-                
         }
+    }
+
+    public override bool ConditionCheck()
+    {
+        // 발동 조건 체크 : 지상
+        if (!controller.Move.isGrounded)
+        {
+            Debug.Log("[플레이어] 스킬 Unbreakable는 지상에서만 사용 가능");
+            return false;
+        }
+        
+        // 쿨타임 체크
+        if (Time.time - lastUsedTime < cooldown)
+        {
+            Debug.Log("[플레이어] 스킬 Unbreakable는 쿨타임 중");
+            return false;
+        }
+
+        return true;
     }
 
     public async override void Exit()
@@ -97,7 +78,7 @@ public class DeadHard : SkillBase
         base.Exit();
         if (isBuffed)
         {
-            lastUsedTime = Time.time;
+            
             await EffectManager.Instance.PlayEffectByIdAndTypeAsync(skillId, EffectType.Particle, controller.gameObject,
                 Vector3.down * 1f
             );

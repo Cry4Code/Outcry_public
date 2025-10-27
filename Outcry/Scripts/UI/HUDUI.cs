@@ -26,6 +26,10 @@ public class HUDUI : UIBase
     [SerializeField] private Image bossTimerBar; // 타이머 (image.type = filled)
     [SerializeField] private float maxTimer; // 최대 시간
     [SerializeField] private Image bossPortraitSprite;
+    [SerializeField] private Image playerSkillCooldown; //스킬 쿨다운 표시용
+    private Coroutine coSkillCooldown; //스킬 쿨다운 코루틴
+    private float skillCdRemain, skillCdDuration; 
+
     public bool isTimerSet = false;
     
     private float heartBeatSoundDelay;
@@ -73,6 +77,14 @@ public class HUDUI : UIBase
         EventBus.Unsubscribe("SkillEquipped", OnSkillEquipped);
         EventBus.Unsubscribe(EventBusKey.ChangeBossHealth, ChangeBossHpBar);
         ReleaseTimer();
+
+        if (coSkillCooldown != null)
+        {
+            StopCoroutine(coSkillCooldown);
+            coSkillCooldown = null;
+        }
+        ResetSkillCooldownOverlay();
+
     }
 
     //최대 체력만큼 체력바 생성, 체력칸 채움
@@ -92,6 +104,9 @@ public class HUDUI : UIBase
         // 상수 q = (최대딜레이 - 최소딜레이) / 심장박동 시작하는 체력
         heartBeatConst = (maxHeartBeatSoundDelay - minHeartBeatSoundDelay) / heartBeatStartHp;
         bossHpLine.SetActive(false);
+
+        DataTableManager.Instance.LoadCollectionData<SkillDataTable>();
+
     }
 
     private void Start()
@@ -110,7 +125,7 @@ public class HUDUI : UIBase
 
         if (GameManager.Instance.CurrentUserData != null)
         {
-            playerName.text = GameManager.Instance.CurrentUserData.Nickname;
+            playerName.text = GameManager.Instance.CurrentUserData.UniquePlayerName;
 
             selectedskillid = GameManager.Instance.CurrentUserData.SelectSkillId;
             ApplySkillIcon(selectedskillid);
@@ -120,6 +135,8 @@ public class HUDUI : UIBase
 
     private void Update()
     {
+
+
         if (prevUnder50 && Time.time - lastHeartBeatTime > heartBeatSoundDelay)
         {
             EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.LowHp, EffectOrder.Player,
@@ -130,13 +147,6 @@ public class HUDUI : UIBase
 
     
 
-    // ★ 외부에서 원할 때 호출할 수 있는 공개 메서드 (업데이트 시기 자유)
-    public void RefreshSkillIconFromUserData()
-    {
-        int id = GameManager.Instance.CurrentUserData.SelectSkillId;
-        ApplySkillIcon(id);
-    }
-
     private void ApplySkillIcon(int skillId)
     {
         if (skillImage == null) return;
@@ -145,6 +155,7 @@ public class HUDUI : UIBase
         if (skillIconDict != null && skillIconDict.TryGetValue(skillId, out var sp) && sp != null)
         {
             icon = sp;
+            //UpdateEquippedSkill(skillId);
         }
         else
         {
@@ -159,6 +170,7 @@ public class HUDUI : UIBase
             // skillImage.SetNativeSize();
             // 비율 유지:
             skillImage.preserveAspect = true;
+            ResetSkillCooldownOverlay();
         }
         else
         {
@@ -166,6 +178,84 @@ public class HUDUI : UIBase
             skillImage.enabled = false;
         }
     }
+
+    private float GetCooldownSeconds(int skillId) // 스킬 id 로 쿨타임 받아옴
+    {
+        var data = DataTableManager.Instance.GetCollectionDataById<SkillData>(skillId);
+        if (data == null)
+        {
+            Debug.LogWarning($"[HUDUI] SkillData not found for id={skillId}");
+            return 0f;
+        }
+
+        // Cooldown은 float 확정 → 음수 방지용 클램프만
+        return Mathf.Max(0f, data.Cooldown);
+    }
+
+    public void UpdateEquippedSkill(int skillId) //스킬 교체 시 호출 (아이콘만 바꾸고, 쿨다운 오버레이 완전 초기화)
+    {
+        ApplySkillIcon(skillId);
+        ResetSkillCooldownOverlay(); // 교체 시 “사용 전 상태”로
+    }
+
+    public void StartSkillCooldownById(int skillId)//스킬이 실제로 사용되었을 때 호출 (해당 ID로 쿨다운 값 조회 후 쿨다운 시작)
+    {
+        float cdSec = GetCooldownSeconds(skillId);
+        if (cdSec <= 0f)
+        {
+            ResetSkillCooldownOverlay();
+            return;
+        }
+
+        if (coSkillCooldown != null) StopCoroutine(coSkillCooldown);
+        coSkillCooldown = StartCoroutine(CoSkillCooldown(cdSec));
+    }
+
+    private IEnumerator CoSkillCooldown(float durationSec)
+    {
+        skillCdDuration = durationSec;
+        skillCdRemain = durationSec;
+
+        SetCooldownVisual(1f); // 시작: 가득 덮음
+
+        while (skillCdRemain > 0f)
+        {
+            skillCdRemain -= Time.deltaTime; // 일시정지 시 멈춤
+            float ratio = Mathf.Clamp01(skillCdRemain / Mathf.Max(0.0001f, skillCdDuration)); // 1→0
+            SetCooldownVisual(ratio);
+            yield return null;
+        }
+
+        ResetSkillCooldownOverlay(); // 종료 시 제거
+        coSkillCooldown = null;
+    }
+
+    private void SetCooldownVisual(float fill01) //쿨다운 오버레이 fillAmount 적용 (0이면 자동으로 비활성)
+    {
+        if (playerSkillCooldown == null) return;
+
+        playerSkillCooldown.type = Image.Type.Filled; // 안전 보정
+        playerSkillCooldown.fillAmount = fill01;
+        playerSkillCooldown.enabled = fill01 > 0.0001f; // 0이면 숨김
+    }
+
+    private void ResetSkillCooldownOverlay()//오버레이 완전 초기화(스킬 교체 시 사용)
+    {
+        // 쿨다운 진행 중이면 먼저 중단
+        if (coSkillCooldown != null)
+        {
+            StopCoroutine(coSkillCooldown);
+            coSkillCooldown = null;
+        }
+
+        if (playerSkillCooldown == null) return;
+
+        // 시각 리셋
+        playerSkillCooldown.fillAmount = 0f;
+        playerSkillCooldown.enabled = false;
+    }
+
+
 
     // 체력 변경 이벤트가 발생했을 때 호출됨
     private void OnHealthChanged(object value)
@@ -280,7 +370,7 @@ public class HUDUI : UIBase
         if (payload is int id)
         {
             ApplySkillIcon(id);              // ← 전역 읽지 말고 payload=정답 사용
-                                             // 또는 RefreshSkillIconFromUserData(); (원하면 이걸로)
+            selectedskillid = id;
         }
     }
 

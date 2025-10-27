@@ -39,7 +39,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     [Header("Potion Settings")] 
     [HideInInspector] public Observable<bool> getPotion; // 포션 먹기 시작했는지!
     
-    public int potionCount = 1;
+    public int potionCount = 3;
     public int potionHealthRecovery = 3;
 
     [Header("Damaged Feedback Settings")] 

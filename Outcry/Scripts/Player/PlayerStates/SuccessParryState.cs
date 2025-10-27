@@ -21,7 +21,9 @@ public class SuccessParryState : BasePlayerState
         controller.Attack.SetDamage(controller.Data.parryDamage);
         
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.SuccessParry);
+        controller.Condition.canStaminaRecovery.Value = false;
         controller.Condition.stamina.Add(controller.Data.parryStamina);
+        controller.Condition.canStaminaRecovery.Value = true;
         
         isStartSFX = false;
         controller.isLookLocked = true;

@@ -62,9 +62,44 @@ public abstract class SkillBase
             animationLength = 0;
         }
     }
-    
-    public abstract void Enter();
+
+    public virtual void Enter()
+    {
+        useSuccessed = false;
+        if (!ConditionCheck())
+        {
+            if (controller.Move.rb.velocity.y != 0)
+            {
+                controller.ChangeState<FallState>();
+                return;
+            }
+            else
+            {
+                controller.ChangeState<IdleState>();
+                return;
+            }
+        }
+        useSuccessed = true;
+        
+        controller.PlayerInputDisable();
+        controller.Move.rb.velocity = Vector2.zero;
+        
+        controller.isLookLocked = true;
+        controller.Move.ForceLook(controller.transform.localScale.x < 0);
+        controller.Condition.isCharge = false;
+        controller.Condition.isSuperArmor = true;
+        
+        animRunningTime = 0f;
+        lastUsedTime = Time.time;
+        UIManager.Instance.GetUI<HUDUI>()?.StartSkillCooldownById(skillId);
+        
+        controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
+        controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
+    }
     public abstract void LogicUpdate();
+
+    public abstract bool ConditionCheck();
+    
 
     public virtual void Exit()
     {
@@ -73,7 +108,6 @@ public abstract class SkillBase
         controller.Move.rb.gravityScale = 1f;
         if (useSuccessed)
         {
-            lastUsedTime = Time.time;
             UGSManager.Instance.LogSkillUsage(StageManager.Instance.CurrentStageData.Stage_id, skillId);
         }
         controller.Condition.isCharge = false;

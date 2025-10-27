@@ -15,6 +15,7 @@ public class StageData : IData
     public float Time_limit;
     public float[] BossPhaseThresholds;
     public int Boss_Soul;
+    public string Leaderboard_id;
 }
 
 [Serializable]

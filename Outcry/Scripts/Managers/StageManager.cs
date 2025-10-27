@@ -263,10 +263,29 @@ public class StageManager : Singleton<StageManager>
             // StageData에 보스 ID
             // TODO: 처치한 보스 ID를 GameManager의 UserData에 추가
             OnStageCleared?.Invoke(currentStageData);
-            UGSManager.Instance.LogStageResult(currentStageData.Stage_id, true, currentStageData.Time_limit - stageTimer, 0);
-        }
 
-        
+            // 클리어 타임 계산
+            float clearTime = currentStageData.Time_limit - stageTimer;
+
+            UGSManager.Instance.LogStageResult(currentStageData.Stage_id, true, clearTime, 0);
+
+            // 게스트가 아닐 경우에만 리더보드에 기록 등록
+            if (!UGSManager.Instance.IsAnonymousUser)
+            {
+                // UGS Leaderboards 클리어 타임 기록
+                // 현재 캐릭터의 고유 이름 가져옴
+                string characterName = GameManager.Instance.CurrentUserData.UniquePlayerName;
+
+                // 메타데이터 딕셔너리 생성
+                var metadata = new Dictionary<string, string>
+                {
+                    { "characterName", characterName } // "characterName" 이라는 키로 저장
+                };
+
+                // 점수와 함께 메타데이터 넘겨줌
+                UGSManager.Instance.AddScoreToLeaderboardAsync(currentStageData.Leaderboard_id, clearTime, metadata).Forget();
+            }
+        }
         
         Debug.Log("스테이지 클리어!");
         Time.timeScale = 0.5f;
@@ -504,8 +523,6 @@ public class StageManager : Singleton<StageManager>
         }
 
         stageTimer -= Time.deltaTime;
-        
-        // TODO: 타이머 UI 표시?
 
         if (stageTimer <= 0)
         {

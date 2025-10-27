@@ -13,6 +13,7 @@ public class AchievementsData : IData
     public bool Achieved;
     public int Condition;
     public string Conditions;
+    public int MissionType;
     public string Desc;
 }
 

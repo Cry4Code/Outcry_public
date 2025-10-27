@@ -8,7 +8,7 @@ public abstract class ProjectileBase : MonoBehaviour, ICountable
     [SerializeField] protected LayerMask playerLayer;
 
     protected Animator animator;
-    protected int damage;
+    [SerializeField] protected int damage;
 
     protected string poolKey;
     private bool isReleasing;

@@ -44,6 +44,9 @@ public class VampireLordFlyingAI : MonsterAIBase
         phase3FlySequenceNode.AddChild(isPhase3ConditionNode);
         phase3FlySequenceNode.AddChild(flyRandomInZoneSequenceNode);
         
+        // //랜덤 대기 액션 노드 추가 //이렇게 고치면 안됨...ㅜ
+        // WaitActionNode randomFlyWaitActionNode = new WaitActionNode(1f);
+        // phase3FlySequenceNode.AddChild(randomFlyWaitActionNode);
 
         //AttackSequence
         SequenceNode attackSequenceNode = new SequenceNode();

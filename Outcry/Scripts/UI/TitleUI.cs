@@ -74,15 +74,16 @@ public class TitleUI : UIBase
 
         isAttemptingUPALogin = false;
 
+        await SaveLoadManager.Instance.LoadAllUserData();
+
+        var allSlotsData = SaveLoadManager.Instance.SlotsData;
+
         // 게스트 로그인은 바로 튜토리얼 시작
-        if(UGSManager.Instance.IsAnonymousUser)
+        if (UGSManager.Instance.IsAnonymousUser && allSlotsData.Count == 0)
         {
             GameManager.Instance.StartNewGameAsaGuest();
             return;
         }
-
-        // 로그인에 성공 -> 데이터 로드
-        await SaveLoadManager.Instance.LoadAllUserData();
 
         // SaveLoadUI의 나가기 버튼에 주입할 동작 정의
         var exitActionData = new SaveLoadUIData

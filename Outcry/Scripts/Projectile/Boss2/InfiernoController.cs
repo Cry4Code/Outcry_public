@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class InfiernoController : ProjectileBase
@@ -7,6 +8,7 @@ public class InfiernoController : ProjectileBase
     public override void Init(int damage, bool isCountable = true)
     {
         base.Init(damage, isCountable);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage2BossEffectID.Infeirno * 10 + 1, EffectType.Sound, gameObject).Forget();
         RequestRelease();
     }
 

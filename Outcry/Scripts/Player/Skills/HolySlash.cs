@@ -14,46 +14,13 @@ public class HolySlash : SkillBase
     
     
   public async override void Enter()
-    {
-        useSuccessed = false;
-        // 발동 조건 체크 : 지상
-        if (!controller.Move.isGrounded)
-        {
-            Debug.Log("[플레이어] 스킬 HolySlash는 지상에서만 사용 가능");
-            controller.ChangeState<FallState>();
-            return;
-        }
-        // 쿨타임 체크
-        if (Time.time - lastUsedTime < cooldown)
-        {
-            Debug.Log("[플레이어] 스킬 HolySlash는 쿨타임 중");
-            controller.ChangeState<IdleState>();
-            return;
-        }
-        // 발동 조건 체크 : 스태미나
-        if (!controller.Condition.TryUseStamina(needStamina))
-        {
-            Debug.Log("[플레이어] 스킬 HolySlash 사용을 위한 스태미나 부족");
-            controller.ChangeState<IdleState>();
-            return;
-        }
-        Debug.Log("[플레이어] 스킬 HolySlash 사용!");
-        useSuccessed = true;
+  { 
+        base.Enter();        
         isAnimationPlayed = false;
-        controller.isLookLocked = false;
-        controller.Move.ForceLook(controller.transform.localScale.x < 0);
-        controller.isLookLocked = true;
-        controller.Move.rb.velocity = Vector2.zero;
-        controller.Condition.isCharge = false;
-        controller.Condition.isSuperArmor = true;
-        
-        
-        animRunningTime = 0f;
+       
         startStateTime = Time.time;
         controller.Attack.SetDamageList(damages);
-        controller.Animator.SetIntAniamtion(AnimatorHash.PlayerAnimation.AdditionalAttackID, skillId);
-        controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.AdditionalAttack);
-        controller.PlayerInputDisable();
+        
         await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject,
             Vector3.right * 0.5f + Vector3.up * 0.2f
             );
@@ -64,13 +31,6 @@ public class HolySlash : SkillBase
     {
         animRunningTime += Time.deltaTime;
 
-        /*if (animRunningTime >= crossAnimationTime && !isAnimationPlayed)
-        {
-            isAnimationPlayed = true;
-            await EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Player, controller.gameObject, 
-                (Vector3.up * 2f));
-        }*/
-        
         
         if (Time.time - startStateTime > startAttackTime)
         {
@@ -95,5 +55,26 @@ public class HolySlash : SkillBase
                 return;
             }
         }
+    }
+
+    public override bool ConditionCheck()
+    {
+        // 발동 조건 체크 : 지상
+        if (!controller.Move.isGrounded)
+        {
+            return false;
+        }
+        // 쿨타임 체크
+        if (Time.time - lastUsedTime < cooldown)
+        {
+            return false;
+        }
+        // 발동 조건 체크 : 스태미나
+        if (!controller.Condition.TryUseStamina(needStamina))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

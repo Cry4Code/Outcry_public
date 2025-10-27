@@ -160,8 +160,6 @@ public class HallOfBloodStageController : StageController
         currentPhase = EBossPhase.Phase1;
         Debug.Log("페이즈 1 시작");
 
-        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase1);
-
         SpawnPlayerAt(playerSpawnPoints[0], 3f);
 
         int walkingBossId = stageData.Monster_ids[0];
@@ -173,6 +171,8 @@ public class HallOfBloodStageController : StageController
         {
             bossMonster = bossInstance.GetComponent<MonsterBase>();
         }
+
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase1);
     }
 
     private async UniTask TransitionToPhase2()

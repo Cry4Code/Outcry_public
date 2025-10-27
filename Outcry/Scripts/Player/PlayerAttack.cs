@@ -49,11 +49,6 @@ public class PlayerAttack : MonoBehaviour
         this.controller = controller;
     }
     
-    public void Update()
-    {
-        Debug.Log($"[플레이어] 어택 카운트 : {AttackCount}");
-    }
-
     public void ClearAttackCount()
     {
         AttackCount = 0;

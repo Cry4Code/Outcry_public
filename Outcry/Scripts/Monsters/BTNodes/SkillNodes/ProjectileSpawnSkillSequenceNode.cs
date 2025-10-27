@@ -179,7 +179,7 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
             lastUsedTime = Time.time;
             FlipCharacter();
             monster.Animator.SetTrigger(animatorTriggerHash);
-            monster.AttackController.SetDamages(skillData.damage1);
+            monster.AttackController.SetDamages(0);
 
             skillTriggered = true;            
             stateEnterTime = Time.time; // 상태 시작 시간 저장
@@ -202,12 +202,11 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
         // 애니메이션 중 Running 리턴 고정
         bool isSkillAnimationPlaying = AnimatorUtility.IsAnimationPlaying(monster.Animator, animatorNameHash);
         #region 디버그용 
-
         var cur = monster.Animator.GetCurrentAnimatorStateInfo(0);
         var next = monster.Animator.GetNextAnimatorStateInfo(0);
-        Debug.Log($"[{skillData.skillName}] play? {isSkillAnimationPlaying} cur:{cur.shortNameHash} next:{next.shortNameHash} expected:{animatorNameHash}");
-        
+        Debug.Log($"[{skillData.skillName}] play? {isSkillAnimationPlaying} cur:{cur.shortNameHash} next:{next.shortNameHash} expected:{animatorNameHash}");        
         #endregion
+
         if (isSkillAnimationPlaying)
         {
             Debug.Log($"[{monster.name}] Running skill: {skillData.skillName} (ID: {skillData.skillId})");
@@ -231,7 +230,7 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
         while (nextSpawnIndex < count && elapsedTime >= spawnFrames[nextSpawnIndex])
         {
             int i = nextSpawnIndex;
-            switch (spawnMode) 
+            switch (spawnMode)  //TargetGround, RandomGround, BothEndOfGround 추가됨. 공통되는 부분들을 함수로 빼면 좋을 듯. (그라운드 체크 등)
             {
                 case SpawnMode.AtTarget:    // 타겟 위치에 소환 (월드 좌표 바로 넘김)
                     Vector3 worldPos = target.transform.position + offsets[i];
@@ -255,9 +254,44 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
                     }
                     else
                     {
-                        Debug.LogWarning($"{skillData.skillName} : Failed to spawn {projectilePaths[i]} - No ground found below target.");
+                        // Debug.LogWarning(
+                        //     $"{skillData.skillName} : Failed to spawn {projectilePaths[i]} - No ground found below target.");
+                        //땅이 없을 경우,
+                        //타겟 기준 왼쪽, 오른쪽으로 레이 쏴서 Ground까지의 길이 찾기 (벽)
+                        float sideRayDistance = 5f;
+                        float lengthToLeftWall = float.MaxValue;
+                        float lengthToRightWall = float.MaxValue;
+                        //왼쪽 벽 찾기
+                        RaycastHit2D leftWallHit = Physics2D.Raycast(origin, Vector2.left, sideRayDistance, groundLayerMask);
+                        if (leftWallHit.collider != null) lengthToLeftWall = leftWallHit.distance;
+
+                        RaycastHit2D rightWallHit = Physics2D.Raycast(origin, Vector2.right, sideRayDistance, groundLayerMask);
+                        if (rightWallHit.collider != null) lengthToRightWall = rightWallHit.distance;
+
+                        //못 찾은 쪽 (왼쪽만, 오른쪽만, 혹은 양 쪽 다 못 찾을 수 있음)으로 x축 1f 이동한 좌표를 기준으로 다시 아랫 방향으로 레이 쏴서 땅 찾기
+                        //성공할때까지 시도 
+                        bool groundFound = false;
+                        float sideOffsetStep = 1f;
+                        int maxRetries = 7; //
+                        for (int retry = 0; retry < maxRetries && !groundFound; retry++)
+                        {
+                            float offsetX = sideOffsetStep * (retry + 1); // 점점 멀어지게
+                            Vector2 newOrigin;
+                            if (lengthToLeftWall <= lengthToRightWall)
+                                newOrigin = origin + Vector2.right * offsetX;
+                            else
+                                newOrigin = origin + Vector2.left * offsetX;
+
+                            RaycastHit2D newHit = Physics2D.Raycast(newOrigin, Vector2.down, maxGroundCheckDistance, groundLayerMask);
+                            if (newHit.collider != null)
+                            {
+                                Vector3 spawnPos = new Vector3(newOrigin.x + offsets[i].x, newHit.point.y + offsets[i].y, 0f);
+                                Debug.Log($"{skillData.skillName} : spawn {projectilePaths[i]} at ground position {spawnPos} after side offset");
+                                monster.AttackController.InstantiateProjectileAtWorld(projectilePaths[i], spawnPos, true, skillData.damage1, false);
+                                groundFound = true;
+                            }
+                        }
                     }
-                    
                     break;
                 case SpawnMode.RandomGround: // 타겟 주변 랜덤 지점, 땅 위에 소환
                     float radius = 10f; // 랜덤 반경 > 좌우 범위
@@ -365,4 +399,5 @@ public class ProjectileSpawnSkillSequenceNode : SkillSequenceNode
 
         return state;
     }
+
 }

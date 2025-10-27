@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -80,6 +81,7 @@ public class ThunderStrikeSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
             stateEnterTime = Time.time; // 상태 시작 시간 저장
             isSpawned = false;
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
         }
 
         // 애니메이션 출력 보장
@@ -123,6 +125,7 @@ public class ThunderStrikeSkillSequenceNode : SkillSequenceNode
             Vector3 spawnPos = target.transform.position;
             Debug.Log($"{skillData.skillName} : ThunderStrike spawned - position {spawnPos}");
             monster.AttackController.InstantiateProjectileAtWorld(projectilePath, spawnPos, faceRight, skillData.damage1);
+            
         }
 
         return state;

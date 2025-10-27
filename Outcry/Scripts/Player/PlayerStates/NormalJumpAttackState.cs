@@ -102,6 +102,7 @@ public class NormalJumpAttackState : NormalJumpAttackSubState
     public override void Exit(PlayerController controller)
     {
         base.Exit(controller);
+        controller.Inputs.Player.Move.Enable();
         controller.Move.rb.gravityScale = 1;
         int stageId = StageManager.Instance.CurrentStageData.Stage_id;
         if (stageId != StageID.Village)

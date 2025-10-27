@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -16,9 +17,9 @@ public class NicknameUI : UIPopup
         exitBtn.onClick.AddListener(OnExitButtonClicked);
     }
 
-    private void OnStartButtonClicked()
+    private async void OnStartButtonClicked()
     {
-        GameManager.Instance.CreateNewGame(nicknameInputField.text);
+        await GameManager.Instance.CreateNewGame(nicknameInputField.text);
     }
 
     private void OnExitButtonClicked()

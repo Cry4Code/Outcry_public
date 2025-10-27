@@ -8,6 +8,6 @@ public class SlashEffect : MonoBehaviour
 {
     private void OnEnable()
     {
-        transform.localRotation = Quaternion.Euler(new Vector3(0, 0, Random.Range(0, 360)));
+        transform.localRotation = Quaternion.Euler(new Vector3(0, 0, Random.Range(16f, 65f)));
     }
 }

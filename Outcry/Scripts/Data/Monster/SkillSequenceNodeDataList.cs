@@ -123,7 +123,7 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             new SpawnRequest(AddressablePaths.Projectile.BloodSpear, 30, new Vector3(0f, 1.6f, 0f)))); //bloodSpearGround
         // dataList.Add(new TurningBloodSkillSequenceNode(103512)); //TurningBloods
         dataList.Add(new ProjectileSpawnSkillSequenceNode(103512,
-            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Inside, SpawnMode.Front,
+            AnimatorHash.MonsterParameter.ChargeSkill, AnimatorHash.MonsterAnimation.ChargeSkill, RangeMode.Outside, SpawnMode.Front,
             new SpawnRequest(AddressablePaths.Projectile.TurningBlood, 30, new Vector3(0.5f, 0f, 0f)))); //turningBlood
         dataList.Add(new BloodMoonSkillSequenceNode(103511)); //BloodMoon
     }

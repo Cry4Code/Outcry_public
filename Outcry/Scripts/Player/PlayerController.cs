@@ -151,6 +151,7 @@ public class PlayerController : MonoBehaviour
     {
         if (runFSM)
         {
+            Debug.Log($"[Player] State : {currentState.GetType()}");
             currentState.HandleInput(this);
             currentState.LogicUpdate(this);
         }

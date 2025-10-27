@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class MonsterCondition : MonoBehaviour, IDamagable
@@ -126,13 +127,19 @@ public class MonsterCondition : MonoBehaviour, IDamagable
             if (bm.Animator.GetBool(AnimatorHash.MonsterParameter.IsTired))
                 bm.Animator.SetBool(AnimatorHash.MonsterParameter.IsTired, true);
         }
+
+        bool isPlayerInLeft = PlayerManager.Instance.player.transform.position.x < monster.transform.position.x;
+        
+        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack,  EffectOrder.Monster, 
+            null, 
+            (Vector2)(monster.transform.position) + ((isPlayerInLeft ? -Vector2.right : Vector2.right) * monster.transform.localScale.y)).Forget();
         
         if (CurrentHealth.CurValue() <= 0)
         {
             Death();
             return;
         }
-        
+
         animationCoroutine = StartCoroutine(HitAnimation(hitAnimationLength));
     }
     

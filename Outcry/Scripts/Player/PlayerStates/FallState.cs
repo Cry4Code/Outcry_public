@@ -29,7 +29,6 @@ public class FallState : AirSubState
 
     public override void HandleInput(PlayerController controller)
     {
-        base.HandleInput(controller);
         
         if (moveInput.x != 0)
         {
@@ -40,6 +39,9 @@ public class FallState : AirSubState
         {
             controller.Move.Stop();
         }
+        
+        base.HandleInput(controller);
+
     }
 
     public override void LogicUpdate(PlayerController controller)

@@ -52,6 +52,21 @@ public static class Stage1BossEffectID
     public const int FinalHorizon = 103010;
 }
 
+public static class Stage2BossEffectID
+{
+    public const int Takkong = 103401;
+    public const int ThunderStrike =  103402;
+    public const int FireBash =  103403;
+    public const int ThunderBall = 103404;
+    public const int FireBolt = 103405;
+    public const int IceMountain = 103406;
+    public const int ThunderBolt = 103407;
+    public const int BlackHole =  103408;
+    public const int Infeirno = 103409;
+    public const int VolcanoDive =  103410;
+    public const int Meteor = 103411;
+}
+
 
 public static class StageID
 {
@@ -127,7 +142,7 @@ public static class Figures
         public const float BOSS2_COMMON_SKILL_INTERVAL = 0.5f;
 
         public const int BACKGROUND_SORTING_ORDER_IN_LAYER = 55;
-        public const int MONSTER_ORDER_IN_LAYER = 280;
+        public const int MONSTER_ORDER_IN_LAYER = 200;
     }
 }
 

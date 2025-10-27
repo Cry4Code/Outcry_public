@@ -21,6 +21,8 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
     // UI에게 슬롯 데이터 로딩이 완료되었음을 알리는 이벤트
     public event Action<ESlotUIType, Dictionary<int, UserData>> OnSlotsDataUpdated;
 
+    public Dictionary<int, UserData> SlotsData => slotsData;
+
     private Dictionary<int, UserData> slotsData;
     private ESlotUIType currentType;
 

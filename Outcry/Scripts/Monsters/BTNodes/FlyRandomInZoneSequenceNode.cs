@@ -100,6 +100,8 @@ public class FlyRandomInZoneSequenceNode : SequenceNode
             // 정지
             if (rb != null) rb.velocity = Vector2.zero;
 
+            FlipCharacter();
+            
             float wait = Random.Range(minWait, maxWait);
             if (wait > 0f)
             {
@@ -123,12 +125,22 @@ public class FlyRandomInZoneSequenceNode : SequenceNode
         float y = Random.Range(-zone.rangeY, zone.rangeY);
         return (Vector2)zone.transform.position + new Vector2(x, y);
     }
+    
+    protected void FlipCharacter()
+    {
+        float originalScaleX = me.transform.localScale.x;
+        if (me.transform.position.x < PlayerManager.Instance.player.transform.position.x)
+            me.transform.localScale = new Vector3(Mathf.Abs(originalScaleX), me.transform.localScale.y, me.transform.localScale.z);
+        else
+            me.transform.localScale = new Vector3(-Mathf.Abs(originalScaleX), me.transform.localScale.y, me.transform.localScale.z);
+    }
 
+    
     public override void Reset()
     {
         base.Reset();
-        waitTimer = 0f;
-        isWaiting = false;
+        // waitTimer = 0f;
+        // isWaiting = false;
         ignoreNextSuccess = false;
         hasTarget = false;
 

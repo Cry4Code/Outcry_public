@@ -12,6 +12,7 @@ public struct UserSoulData
 public class UserData
 {
     public string Nickname;
+    public string UniquePlayerName; // UGS가 부여한 이름#태그
     public bool IsTutorialCleared;
     public List<int> ClearedBossIds;
     public int SelectSkillId;
@@ -23,6 +24,7 @@ public class UserData
     public UserData(string nickname)
     {
         Nickname = nickname;
+        UniquePlayerName = UGSManager.Instance.PlayerDisplayName;
         IsTutorialCleared = false;
         ClearedBossIds = new List<int>();
         SelectSkillId = 0;
