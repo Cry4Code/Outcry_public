@@ -17,16 +17,19 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
 
         #region 일반 몬스터
         // Goblin Rogue
-        dataList.Add(new GoblinCommonAttackSkillSequenceNode(103101));
-        dataList.Add(new GoblinRogueStrongAttackSkillSequenceNode(103102));
+        dataList.Add(new GoblinRogueAttackSkillSequenceNode(103101));
+        //dataList.Add(new GoblinCommonAttackSkillSequenceNode(103101));
 
         // Goblin Fighter
         dataList.Add(new GoblinCommonAttackSkillSequenceNode(103301));
-        dataList.Add(new GoblinFighterStrongAttackSkillSequenceNode(103302));
+        //dataList.Add(new GoblinFighterStrongAttackSkillSequenceNode(103302));
 
         // Goblin Firekeeper
         dataList.Add(new GoblinCommonAttackSkillSequenceNode(103201));
-        dataList.Add(new GoblinFirekeeperStrongAttackSkillSequenceNode(103202));
+        dataList.Add(new ProjectileSpawnSkillSequenceNode(103202,
+            AnimatorHash.MonsterParameter.StrongAttack, AnimatorHash.MonsterAnimation.StrongAttack, RangeMode.Inside, SpawnMode.Front,
+            new SpawnRequest(AddressablePaths.Projectile.Fireball, 15, new Vector3(1.09f, 0.57f, 0f))));
+        //dataList.Add(new GoblinFirekeeperStrongAttackSkillSequenceNode(103202));
         #endregion
 
         #region 고블린 킹
@@ -182,8 +185,8 @@ public class SkillSequenceNodeDataList: DataListBase<SkillSequenceNode>
             case GoblinCommonAttackSkillSequenceNode:
                 skillSequenceNode = new GoblinCommonAttackSkillSequenceNode(skillId);
                 break;
-            case GoblinRogueStrongAttackSkillSequenceNode:
-                skillSequenceNode = new GoblinRogueStrongAttackSkillSequenceNode(skillId);
+            case GoblinRogueAttackSkillSequenceNode:
+                skillSequenceNode = new GoblinRogueAttackSkillSequenceNode(skillId);
                 break;
             case GoblinFighterStrongAttackSkillSequenceNode:
                 skillSequenceNode = new GoblinFighterStrongAttackSkillSequenceNode(skillId);

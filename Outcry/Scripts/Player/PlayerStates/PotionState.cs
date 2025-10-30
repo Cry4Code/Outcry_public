@@ -85,7 +85,7 @@ public class PotionState : BasePlayerState
                 {
                     await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.Potion, EffectOrder.Player,
                         controller.gameObject);
-                    controller.Condition.potionCount--;
+                    controller.Condition.potionCount.Value--;
                     controller.Condition.health.Add(controller.Condition.potionHealthRecovery);
                     isGetPotion = true;
                     Debug.Log($"[플레이어] 체력 회복됨 {controller.Condition.health.CurValue()}");
@@ -98,7 +98,7 @@ public class PotionState : BasePlayerState
             {
                 await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.Potion, EffectOrder.Player,
                     controller.gameObject);
-                controller.Condition.potionCount--; 
+                controller.Condition.potionCount.Value--; 
                 controller.Condition.health.Add(controller.Condition.potionHealthRecovery);
                 isGetPotion = true;
                 Debug.Log($"[플레이어] 체력 회복됨 {controller.Condition.health.CurValue()}");

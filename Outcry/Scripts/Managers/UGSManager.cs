@@ -152,34 +152,41 @@ public class UGSManager : Singleton<UGSManager>
     {
         Debug.LogError($"Sign-in failed: {e.Message} (Error Code: {e.ErrorCode})");
 
-        string title = "Login Failed";
+        // string title = "Login Failed";
+        string title = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.TITLE_FAIL);
         string message;
+        
         int errorCode = e.ErrorCode;
 
         // static readonly: 프로그램이 실행될 때(런타임) 값이 초기화
         // static readonly 필드는 switch-case에서 사용할 수 없으므로 if-else if 구문으로 처리
         if (errorCode == AuthenticationErrorCodes.InvalidParameters)
         {
-            message = "Incorrect login information.";
+            // message = "Incorrect login information.";
+            message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_FAIL_INVALID);
         }
         else if (errorCode == AuthenticationErrorCodes.AccountAlreadyLinked)
         {
-            message = "This social account is already linked to another account.";
+            // message = "This social account is already linked to another account.";
+            message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_FAIL_EXIST);
         }
         else // 위에서 정의한 특정 인증 에러가 아닌 경우 (네트워크 오류 등)
         {
             string lowerCaseMessage = e.Message.ToLower();
             if (lowerCaseMessage.Contains("timeout"))
             {
-                message = "Server response time has timed out.\nPlease check your network connection and try again.";
+                // message = "Server response time has timed out.\nPlease check your network connection and try again.";
+                message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_FAIL_SERVER);
             }
             else if (lowerCaseMessage.Contains("network") || lowerCaseMessage.Contains("transport") || lowerCaseMessage.Contains("connection"))
             {
-                message = "A network connection error occurred.\nPlease check your internet status.";
+                // message = "A network connection error occurred.\nPlease check your internet status.";
+                message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_FAIL_NETWORK);
             }
             else
             {
-                message = $"An unknown error occurred.\nPlease try again later. (Code: {errorCode})";
+                // message = $"An unknown error occurred.\nPlease try again later. (Code: {errorCode})";
+                message = String.Format((LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_FAIL_UNKNOWN)), errorCode);
             }
         }
 
@@ -220,7 +227,7 @@ public class UGSManager : Singleton<UGSManager>
 
         try
         {
-            await AuthenticationService.Instance.SignInAnonymouslyAsync();
+            await AuthenticationService.Instance.SignInAnonymouslyAsync().AsUniTask();
             return true;
         }
         catch (Exception e)
@@ -286,7 +293,7 @@ public class UGSManager : Singleton<UGSManager>
             else
             {
                 // UPA로부터 받은 액세스 토큰으로 UGS Authentication에 로그인
-                await AuthenticationService.Instance.SignInWithUnityAsync(PlayerAccountService.Instance.AccessToken);
+                await AuthenticationService.Instance.SignInWithUnityAsync(PlayerAccountService.Instance.AccessToken).AsUniTask();
             }
         }
         catch (AuthenticationException ex)
@@ -302,8 +309,12 @@ public class UGSManager : Singleton<UGSManager>
             {
                 OnLoginFailure?.Invoke(this, new LoginErrorArgs
                 {
-                    Title = "Linking Failed",
-                    Message = "The selected Unity account is already linked to other game data."
+                    // Title = "Linking Failed",
+                    // Message = "The selected Unity account is already linked to other game data."
+                    Title = LocalizationUtility.ChooseLocalizedString("Linking Failed", "연동 실패"),
+                    Message = LocalizationUtility.ChooseLocalizedString(
+                        "The selected Unity account is already linked to other game data.",
+                        "선택한 유니티 계정은 이미 다른 게임 데이터와 연동되어 있습니다.")
                 });
             }
             else
@@ -311,8 +322,13 @@ public class UGSManager : Singleton<UGSManager>
                 // 그 외 다른 인증 관련 에러 처리
                 OnLoginFailure?.Invoke(this, new LoginErrorArgs
                 {
-                    Title = "Linking Failed",
-                    Message = $"Authentication failed. (코드: {ex.ErrorCode})"
+                    // Title = "Linking Failed",
+                    // Message = $"Authentication failed. (코드: {ex.ErrorCode})"
+                    Title = LocalizationUtility.ChooseLocalizedString("Linking Failed", "연동 실패"),
+                    Message = LocalizationUtility.ChooseLocalizedString(
+                            "Authentication failed. (Code: {0})", 
+                            "인증에 실패했습니다. (코드: {0})")
+                        .Replace("{0}", ex.ErrorCode.ToString())
                 });
             }
         }
@@ -321,8 +337,13 @@ public class UGSManager : Singleton<UGSManager>
             Debug.LogException(ex);
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "Request Failed",
-                Message = $"Server request failed.\nPlease check your network status. (코드: {ex.ErrorCode})"
+                // Title = "Request Failed",
+                // Message = $"Server request failed.\nPlease check your network status. (코드: {ex.ErrorCode})"
+                Title = LocalizationUtility.ChooseLocalizedString("Request Failed", "요청 실패"),
+                Message = LocalizationUtility.ChooseLocalizedString(
+                    "Server request failed.\nPlease check your network status. (Code: {0})",
+                    "서버 요청에 실패했습니다.\n네트워크 상태를 확인해주세요. (코드: {0})")
+                            .Replace("{0}", ex.ErrorCode.ToString())
             });
         }
         finally
@@ -348,15 +369,19 @@ public class UGSManager : Singleton<UGSManager>
             isLinking = true;
 
             // 연동을 위해서도 먼저 UPA 로그인을 시도해야 토큰을 얻을 수 있음
-            await PlayerAccountService.Instance.StartSignInAsync();
+            await PlayerAccountService.Instance.StartSignInAsync().AsUniTask();
         }
         catch (AuthenticationException ex) when (ex.ErrorCode == AuthenticationErrorCodes.AccountAlreadyLinked)
         {
             Debug.LogError("This UPA is already linked with another account.");
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "Linking Failed",
-                Message = "This Unity account is already linked to another game account."
+                // Title = "Linking Failed",
+                // Message = "This Unity account is already linked to another game account."
+                Title = LocalizationUtility.ChooseLocalizedString("Linking Failed", "연동 실패"),
+                Message = LocalizationUtility.ChooseLocalizedString(
+                    "This Unity account is already linked to another game account.",
+                    "이 유니티 계정은 이미 다른 게임 계정과 연동되어 있습니다.")
             });
         }
         catch (PlayerAccountsException ex)
@@ -365,8 +390,12 @@ public class UGSManager : Singleton<UGSManager>
             Debug.LogError($"Link with UPA failed: {ex.Message}");
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "Linking Failed",
-                Message = "You are already logged in to a Unity account."
+                // Title = "Linking Failed",
+                // Message = "You are already logged in to a Unity account."
+                Title = LocalizationUtility.ChooseLocalizedString("Linking Failed", "연동 실패"),
+                Message = LocalizationUtility.ChooseLocalizedString(
+                    "You are already logged in to a Unity account.",
+                    "이미 유니티 계정에 로그인되어 있습니다.")
             });
         }
         catch (Exception e)
@@ -375,8 +404,12 @@ public class UGSManager : Singleton<UGSManager>
 
             OnLoginFailure?.Invoke(this, new LoginErrorArgs
             {
-                Title = "Linking Failed",
-                Message = $"An unknown error occurred.\nPlease check your network status and try again."
+                // Title = "Linking Failed",
+                // Message = $"An unknown error occurred.\nPlease check your network status and try again."
+                Title = LocalizationUtility.ChooseLocalizedString("Linking Failed", "연동 실패"),
+                Message = LocalizationUtility.ChooseLocalizedString(
+                    "An unknown error occurred.\nPlease check your network status and try again.",
+                    "알 수 없는 오류가 발생했습니다.\n네트워크 상태를 확인한 후 다시 시도해주세요.")
             });
         }
     }
@@ -464,7 +497,7 @@ public class UGSManager : Singleton<UGSManager>
 
         try
         {
-            await AuthenticationService.Instance.UpdatePlayerNameAsync(newName);
+            await AuthenticationService.Instance.UpdatePlayerNameAsync(newName).AsUniTask();
             Debug.Log($"Player display name updated successfully to: {newName}");
 
             await FetchAndCachePlayerNameAsync();
@@ -501,7 +534,7 @@ public class UGSManager : Singleton<UGSManager>
         try
         {
             // 이 API가 최종적으로 확정된 (이름#태그)를 반환
-            string playerName = await AuthenticationService.Instance.GetPlayerNameAsync();
+            string playerName = await AuthenticationService.Instance.GetPlayerNameAsync().AsUniTask();
             return playerName;
         }
         catch (Exception e)
@@ -631,6 +664,19 @@ public class UGSManager : Singleton<UGSManager>
         });
     }
 
+
+    /// <summary>
+    /// 업적을 클리어하면 불림
+    /// </summary>
+    /// <param name="achievementId"></param>
+    public void LogAchievementClear(int achievementId)
+    {
+        RecordAnalyticsEvent("achievement_clear", new Dictionary<string, object>
+        {
+            { "achievement_id", achievementId },
+        });
+    }
+
     #endregion
 
     #region CLOUD SAVE
@@ -645,7 +691,7 @@ public class UGSManager : Singleton<UGSManager>
         {
             string jsonData = JsonUtility.ToJson(data);
             var dataToSave = new Dictionary<string, object> { { $"save_slot_{slotIndex}", jsonData } };
-            await CloudSaveService.Instance.Data.Player.SaveAsync(dataToSave);
+            await CloudSaveService.Instance.Data.Player.SaveAsync(dataToSave).AsUniTask();
             Debug.Log($"User data for slot {slotIndex} saved successfully.");
             return true;
         }
@@ -662,7 +708,7 @@ public class UGSManager : Singleton<UGSManager>
 
         try
         {
-            var savedData = await CloudSaveService.Instance.Data.Player.LoadAllAsync();
+            var savedData = await CloudSaveService.Instance.Data.Player.LoadAllAsync().AsUniTask();
             for (int i = 0; i < 3; i++)
             {
                 string slotKey = $"save_slot_{i}";
@@ -689,7 +735,7 @@ public class UGSManager : Singleton<UGSManager>
             string slotKey = $"save_slot_{slotIndex}";
 
             await CloudSaveService.Instance.Data.Player.DeleteAsync(slotKey,
-                new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions());
+                new Unity.Services.CloudSave.Models.Data.Player.DeleteOptions()).AsUniTask();
 
             Debug.Log($"User data for slot {slotIndex} (key: {slotKey}) deleted successfully.");
             return true;
@@ -731,7 +777,7 @@ public class UGSManager : Singleton<UGSManager>
             }
 
             // options를 포함하여 API 호출
-            var newEntry = await LeaderboardsService.Instance.AddPlayerScoreAsync(leaderboardId, score, options);
+            var newEntry = await LeaderboardsService.Instance.AddPlayerScoreAsync(leaderboardId, score, options).AsUniTask();
             Debug.Log($"Score submitted successfully to {leaderboardId}. Rank: {newEntry.Rank}, Score: {newEntry.Score}");
         }
         catch (Exception e)
@@ -761,7 +807,7 @@ public class UGSManager : Singleton<UGSManager>
 
         try
         {
-            var scoresResponse = await LeaderboardsService.Instance.GetScoresAsync(leaderboardId, new GetScoresOptions { Limit = limit });
+            var scoresResponse = await LeaderboardsService.Instance.GetScoresAsync(leaderboardId, new GetScoresOptions { Limit = limit }).AsUniTask();
             Debug.Log($"Successfully fetched {scoresResponse.Results.Count} scores from {leaderboardId}.");
             return scoresResponse.Results;
         }

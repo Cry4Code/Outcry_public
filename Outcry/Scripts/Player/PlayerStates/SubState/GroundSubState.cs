@@ -49,7 +49,7 @@ public class GroundSubState : BasePlayerState
                 return;
             }
         }
-        if (controller.Inputs.Player.Potion.triggered && controller.Condition.potionCount > 0)
+        if (controller.Inputs.Player.Potion.triggered && controller.Condition.potionCount.Value > 0)
         {
             TryChangeState(eTransitionType.PotionState, controller);
             return;

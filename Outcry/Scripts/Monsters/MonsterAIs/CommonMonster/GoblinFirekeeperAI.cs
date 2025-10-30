@@ -9,6 +9,8 @@ public class GoblinFirekeeperAI : MonsterAIBase
     private const float PATROL_INTERVAL = 1f; 
     private const float SKILL_INTERVAL = 1f;
 
+    private bool isDetectedPlayer = false;
+
     protected override void ConfigurePotionOverrideModes()
     {
         reactToPotion = false; // 포션 반응 안함.
@@ -43,9 +45,9 @@ public class GoblinFirekeeperAI : MonsterAIBase
         startWhenGrounded.AddChild(behaviorSelector);
         #endregion
 
-        #region 공격 시퀀스 노드 (추격 포함)
-        SequenceNode attackSequence = new SequenceNode();   // 공격 시퀀스
-        attackSequence.nodeName = "AttackSequenceNode";
+        #region 공격 시퀀스 노드 (추격 포함) 
+        SequenceNode attackSequence = new SequenceNode(); // 공격 시퀀스
+        attackSequence.nodeName = "AttackSequenceNode";        
         behaviorSelector.AddChild(attackSequence);
 
         SelectorNode skillSelector = new SelectorNode();    // 공격 셀랙터
@@ -68,10 +70,17 @@ public class GoblinFirekeeperAI : MonsterAIBase
         foreach (var x in entries)
         {
             DataManager.Instance.SkillSequenceNodeDataList.TryGetSkillSequenceNode(x.id, out SkillSequenceNode skillNode);
+            
+            var approachNode = new ApproachInRangeActionNode(monster.Rb2D, monster.transform, target.transform,
+                    monster.MonsterData.chaseSpeed, x.data.range, monster.Animator, monster.MonsterAI);
+
+            var approchThenSkillNode = new SequenceNode { nodeName = $"S_Seq_{x.data.skillName}" };
+            approchThenSkillNode.AddChild(approachNode);
+            approchThenSkillNode.AddChild(skillNode);
 
             skillNode.InitializeSkillSequenceNode(monster, target);
             skillNode.nodeName = "S_SkillNode_" + x.data.skillName;  // 디버깅용 노드 이름 설정
-            skillSelector.AddChild(skillNode);
+            skillSelector.AddChild(approchThenSkillNode);
         }
 
         // 공격 후 대기
@@ -102,7 +111,7 @@ public class GoblinFirekeeperAI : MonsterAIBase
         var notDetected = new InverterNode();
         var isDetected = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         notDetected.SetChild(isDetected);
-        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
+        var patrolAction = new PatrolPingPongActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
         var patrolGuarded = new WhileTrueDecorator(notDetected, patrolAction);
         patrolSeqence.AddChild(patrolGuarded);
 

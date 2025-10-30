@@ -4,23 +4,24 @@ using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class MonsterCondition : MonoBehaviour, IDamagable
 {
     private MonsterBase monster;
-    
+
     [field: SerializeField] public int MaxHealth { get; private set; }
     [field: SerializeField] public Condition CurrentHealth { get; private set; }
 
     public Observable<bool> IsDead;
     public bool IsInvincible { get; private set; } = false;
-    
+
     public Action OnHealthChanged;
     public Action OnDeath;  //todo. think. BT 중지도 여기에 하면 될듯? 그럼 isDead 필요 없음? 고민해봐야할듯.
 
     private Coroutine animationCoroutine;
     private Color originalColor;
-    
+
     private float stunAnimationLength;
     private float hitAnimationLength;   // 1번 깜박일 정도의 시간으로 수정, stun 애니메이션의 1/6 길이 정도
 
@@ -28,8 +29,10 @@ public class MonsterCondition : MonoBehaviour, IDamagable
 
     private List<int> checkRatioList;
     private int lastCheckIndex = 0;
-    
-    private Coroutine btActivationCoroutine;    
+
+    private Coroutine btActivationCoroutine;
+
+    private float originGravity;
 
     private void Start()
     {
@@ -41,7 +44,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         }
 
         Initialize();
-        
+
         //spawn 애니메이션 길이 가져오기
         if (!AnimatorUtility.TryGetAnimationLengthByNameHash(monster.Animator, AnimatorHash.MonsterAnimation.Stun,
                 out stunAnimationLength) || stunAnimationLength <= 0f)
@@ -52,7 +55,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         hitAnimationLength = Mathf.Floor(stunAnimationLength * 0.83f) * 0.2f;   // 0.2초 단위로 맞춤.
 
         originalColor = monster.SpriteRenderer.color;
-        
+
         IsDead = new Observable<bool>(EventBusKey.ChangeEnemyDead, false);
 
         // spawn 애니메이션 있으면 애니메이션 실행 동안은 좌우 반전
@@ -61,6 +64,8 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         {
             StartCoroutine(FlipWhileSpawn());
         }
+
+        originGravity = monster.Rb2D.gravityScale;
     }
 
     public void Initialize()    //오브젝트 풀이 필요할 것인가? 상정하고 짜뒀음.
@@ -89,7 +94,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
             .ToList();
         // [90, 80, 70, 60 ... 10]
         lastCheckIndex = 0;
-        
+
     }
 
     public void BossHpRatioCheck(object o)
@@ -108,7 +113,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
             }
         }
     }
-    
+
     public void TakeDamage(int damage)
     {
         if (IsDead.Value || IsInvincible)
@@ -129,10 +134,12 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         }
 
         bool isPlayerInLeft = PlayerManager.Instance.player.transform.position.x < monster.transform.position.x;
-        
-        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack,  EffectOrder.Monster, 
-            null, 
+
+        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.NormalAttack, EffectOrder.Monster,
+            null,
             (Vector2)(monster.transform.position) + ((isPlayerInLeft ? -Vector2.right : Vector2.right) * monster.transform.localScale.y)).Forget();
+
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.MonsterDamaged, EffectType.Sound, gameObject).Forget();
         
         if (CurrentHealth.CurValue() <= 0)
         {
@@ -142,7 +149,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
 
         animationCoroutine = StartCoroutine(HitAnimation(hitAnimationLength));
     }
-    
+
     //빨갛게 점멸하는 이펙트 코루틴
     private IEnumerator HitAnimation(float duration)
     {
@@ -161,11 +168,16 @@ public class MonsterCondition : MonoBehaviour, IDamagable
 
     public void Stunned()
     {
-        if(IsDead.Value || IsInvincible)
+        if (IsDead.Value || IsInvincible)
             return;
 
         Debug.Log($"[MonsterCondition] Stun start t={Time.time:0.00}");
         monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.Stun);
+
+        // 리지드바디 속도, 중력 리셋
+        monster.Rb2D.velocity = Vector2.zero;
+        monster.Rb2D.gravityScale = originGravity;
+
         monster.MonsterAI.DeactivateBt();
         OnHealthChanged?.Invoke();
 
@@ -176,21 +188,37 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         }
         StartCoroutine(WaitForBTActivation(stunAnimationLength));
     }
-    
+
     private IEnumerator WaitForBTActivation(float waitTime)
     {
-        yield return new WaitForSeconds(waitTime);      
+        yield return new WaitForSeconds(waitTime);
 
         monster.MonsterAI.ActivateBt();
         Debug.Log("WaitForBTActivation: Activated BT");
     }
-    
+
     private void Death()
     {
         CurrentHealth.SetCurValue(0);
         IsDead.Value = true;
+        
+        /* BackgroundEffectData 수정에 따라 필요 없어짐.
+        // 저섬 시 컬러 강제 원상 복구
+        //monster.SpriteRenderer.SetPropertyBlock(null);
+        //monster.SpriteRenderer.color = originalColor;
+        */
+
+        // 애니메이터 속도 강제 복구
+        if (monster.Animator.speed <= 0f)
+            monster.Animator.speed = 1f; 
+
         monster.MonsterAI.DeadCeremony();
         monster.Animator.SetTrigger(AnimatorHash.MonsterParameter.Dead);
+
+        // 리지드바디 속도, 중력 리셋
+        monster.Rb2D.velocity = Vector2.zero;
+        monster.Rb2D.gravityScale = 1f; // 중력은 1로
+
         OnDeath?.Invoke();
 
         StartCoroutine(RemoveAfterDeath());
@@ -199,10 +227,30 @@ public class MonsterCondition : MonoBehaviour, IDamagable
     private IEnumerator RemoveAfterDeath()
     {
         int deadHash = AnimatorHash.MonsterAnimation.Death;
-        AnimatorUtility.TryGetAnimationLengthByNameHash(monster.Animator, deadHash, out float deadLength);
+        var animator = monster.Animator;
 
-        // 사망 애니메이션 +1초 대기
-        yield return new WaitForSeconds(deadLength);
+        // 저섬 중 사망 대비 애니메이터 속도 원복
+        if (animator.speed <= 0f)
+            animator.speed = 1f;
+
+        // Death 상태 진입 전 짧은 대기
+        float enterTimeout = 0.5f;
+        float t = 0f;
+        while (t < enterTimeout && animator.GetCurrentAnimatorStateInfo(0).shortNameHash != deadHash)
+        {
+            t += Time.deltaTime;
+            yield return null;
+        }
+
+        // Death 상태가 재생 완료될 때까지 대기
+        var st = animator.GetCurrentAnimatorStateInfo(0);
+        while (st.shortNameHash == deadHash && st.normalizedTime < 0.99f)
+        {
+            yield return null;
+            st = animator.GetCurrentAnimatorStateInfo(0);
+        }
+
+        // 사망 후 1초 대기
         yield return new WaitForSeconds(deathDelay);
 
         // 보스 제외, 일반 몬스터만 제거
@@ -212,7 +260,7 @@ public class MonsterCondition : MonoBehaviour, IDamagable
         Destroy(monster.gameObject);
     }
 
-    public void SetInivincible(bool value)    
+    public void SetInivincible(bool value)
     {
         IsInvincible = value;
     }

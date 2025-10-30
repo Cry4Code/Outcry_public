@@ -28,7 +28,18 @@ public class HUDUI : UIBase
     [SerializeField] private Image bossPortraitSprite;
     [SerializeField] private Image playerSkillCooldown; //스킬 쿨다운 표시용
     private Coroutine coSkillCooldown; //스킬 쿨다운 코루틴
-    private float skillCdRemain, skillCdDuration; 
+    private float skillCdRemain, skillCdDuration;
+    [SerializeField] private TextMeshProUGUI showCooldown;
+    [SerializeField] private GameObject potionContainer;
+    [SerializeField] private Image potionIcon;                 
+    [SerializeField] private TextMeshProUGUI potionCountText;
+    [SerializeField] private Image potionMask;
+    [SerializeField] private Image staminaMask;
+    [SerializeField] private Image SkillBlinkMask;
+    private Coroutine coBlinkStamina;
+    private Coroutine coBlinkCooldown;
+
+
 
     public bool isTimerSet = false;
     
@@ -67,6 +78,10 @@ public class HUDUI : UIBase
         EventBus.Subscribe(EventBusKey.ChangeHealth, OnHealthChanged);
         EventBus.Subscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
         EventBus.Subscribe("SkillEquipped", OnSkillEquipped);
+        EventBus.Subscribe(EventBusKey.ChangePotionCount, OnPotionChanged);
+        EventBus.Subscribe(EventBusKey.CantUseCuzCooldown, NotEnoughCooldown);
+        EventBus.Subscribe(EventBusKey.CantUseCuzStamina, NotEnoughStamina);
+
     }
 
     private void OnDisable()
@@ -76,6 +91,10 @@ public class HUDUI : UIBase
         EventBus.Unsubscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
         EventBus.Unsubscribe("SkillEquipped", OnSkillEquipped);
         EventBus.Unsubscribe(EventBusKey.ChangeBossHealth, ChangeBossHpBar);
+        EventBus.Unsubscribe(EventBusKey.ChangePotionCount, OnPotionChanged);
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzCooldown, NotEnoughCooldown);
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzStamina, NotEnoughStamina);
+
         ReleaseTimer();
 
         if (coSkillCooldown != null)
@@ -129,6 +148,12 @@ public class HUDUI : UIBase
 
             selectedskillid = GameManager.Instance.CurrentUserData.SelectSkillId;
             ApplySkillIcon(selectedskillid);
+        }
+
+        var pc = PlayerManager.Instance.player.GetComponent<PlayerCondition>(); //포션 초기값 설정
+        if (pc != null && pc.potionCount != null)
+        {
+            UpdatePotionUI(pc.potionCount.Value);
         }
 
     }
@@ -218,11 +243,20 @@ public class HUDUI : UIBase
 
         SetCooldownVisual(1f); // 시작: 가득 덮음
 
+        // ★ 시작 시 1초 단위 표시 (선택)
+        if (showCooldown != null)
+            showCooldown.text = Mathf.CeilToInt(skillCdRemain).ToString();
+
         while (skillCdRemain > 0f)
         {
             skillCdRemain -= Time.deltaTime; // 일시정지 시 멈춤
             float ratio = Mathf.Clamp01(skillCdRemain / Mathf.Max(0.0001f, skillCdDuration)); // 1→0
+
             SetCooldownVisual(ratio);
+
+            if (showCooldown != null)// ★ 남은 쿨타임 표시 (정수로, 예: 5 → 4 → 3 → …)
+                showCooldown.text = Mathf.CeilToInt(skillCdRemain).ToString();
+
             yield return null;
         }
 
@@ -248,11 +282,18 @@ public class HUDUI : UIBase
             coSkillCooldown = null;
         }
 
-        if (playerSkillCooldown == null) return;
+        if (playerSkillCooldown != null)
+        {
+            playerSkillCooldown.fillAmount = 0f;
+            playerSkillCooldown.enabled = false;
+        }
 
         // 시각 리셋
         playerSkillCooldown.fillAmount = 0f;
         playerSkillCooldown.enabled = false;
+
+        if (showCooldown != null)
+            showCooldown.text = "";
     }
 
 
@@ -269,6 +310,30 @@ public class HUDUI : UIBase
         // 이전 체력 갱신
         beforeChangeHealth = changedHealth;
     }
+
+    private void OnPotionChanged(object value)
+    {
+        int changedPotion = (int)value;
+        UpdatePotionUI(changedPotion);
+    }
+
+    private void NotEnoughStamina(object value)
+    {
+        bool notEnoughStamina = (bool)value;
+        if (!notEnoughStamina) return;
+
+        if (coBlinkStamina != null) StopCoroutine(coBlinkStamina);
+        coBlinkStamina = StartCoroutine(CoBlink(staminaMask));
+    }
+    private void NotEnoughCooldown(object value)
+    {
+        bool notEnoughCooldown = (bool)value;
+        if (!notEnoughCooldown) return;
+
+        if (coBlinkCooldown != null) StopCoroutine(coBlinkCooldown);
+        coBlinkCooldown = StartCoroutine(CoBlink(SkillBlinkMask));
+    }
+
 
     // 스태미너 변경 이벤트가 발생했을 때 호출됨
     private void OnStaminaChanged(object value)
@@ -413,4 +478,45 @@ public class HUDUI : UIBase
             bossPortraitSprite.sprite = bossSprite;
         }
     }
+
+    private void UpdatePotionUI(int count)
+    {
+
+        if (potionCountText != null)
+            potionCountText.text = $"×{count}";
+
+        // 아이콘은 항상 보이게 (숨기지 않음)
+        if (potionIcon != null)
+            potionIcon.enabled = true;
+
+        // ★ 마스크는 count==0 일 때만 켜서 어둡게 덮기
+        if (potionMask != null)
+            potionMask.enabled = (count <= 0);
+    }
+
+    private IEnumerator CoBlink(Image target)
+    {
+        if (target == null) yield break;
+
+        // 항상 알파0에서 시작 (enabled는 인스펙터에서 켜둔 상태 유지)
+        SetAlpha(target, 0f);
+
+        for (int i = 0; i < 2; i++)
+        {
+            SetAlpha(target, 1f);
+            yield return new WaitForSeconds(0.15f);   // ← ON 유지시간
+
+            SetAlpha(target, 0f);
+            yield return new WaitForSeconds(0.15f);   // ← OFF 유지시간
+        }
+    }
+
+    private void SetAlpha(Image img, float a)
+    {
+        if (img == null) return;
+        var c = img.color;
+        c.a = Mathf.Clamp01(a);
+        img.color = c;
+    }
+
 }

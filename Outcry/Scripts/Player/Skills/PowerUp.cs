@@ -14,6 +14,9 @@ public class PowerUp : SkillBase
         isBuffed = false;
 
         base.Enter();
+
+        if (!useSuccessed) return;
+        
         
         await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.HolySlash , EffectOrder.Player, controller.gameObject,
             Vector3.up * 0.2f
@@ -46,18 +49,10 @@ public class PowerUp : SkillBase
 
     public override bool ConditionCheck()
     {
+        if (!base.ConditionCheck()) return false;
+        
         // 발동 조건 체크 : 지상
         if (!controller.Move.isGrounded)
-        {
-            return false;
-        }
-        // 쿨타임 체크
-        if (Time.time - lastUsedTime < cooldown)
-        {
-            return false;
-        }
-        // 발동 조건 체크 : 스태미나
-        if (!controller.Condition.TryUseStamina(needStamina))
         {
             return false;
         }

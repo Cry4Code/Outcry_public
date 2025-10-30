@@ -15,6 +15,10 @@ public class TutorialStageController : StageController
 
         PlayerManager.Instance.player.runFSM = false;
 
+        await UniTask.Yield(PlayerLoopTiming.Update);
+        await UniTask.Yield(PlayerLoopTiming.Update);
+        InitializeInGameCursor();
+
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
 
         PlayerManager.Instance.player.runFSM = true;

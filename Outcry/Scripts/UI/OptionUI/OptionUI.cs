@@ -17,6 +17,8 @@ public class OptionUI : UIPopup
     [SerializeField] private Button exitBtn;
     [SerializeField] private TextMeshProUGUI exitText;
     [SerializeField] private Button stageOptionExitBtn;
+    [SerializeField] private Button englishBtn;
+    [SerializeField] private Button koreanBtn;
 
     // 외부에서 전달받은 나가기 동작을 저장할 변수
     private Action onClickExitAction;
@@ -28,11 +30,13 @@ public class OptionUI : UIPopup
         emailLinkBtn.onClick.AddListener(OnClickEmailLink);
         exitBtn.onClick.AddListener(OnClickExit);
         stageOptionExitBtn.onClick.AddListener(OnClickStageOptionExit);
+        englishBtn.onClick.AddListener(OnClickEnglishButton);
+        koreanBtn.onClick.AddListener(OnClickKoreanButton);
     }
 
     private void Start()
     {
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         emailLinkBtn.gameObject.SetActive(false);
 #endif
     }
@@ -87,6 +91,10 @@ public class OptionUI : UIPopup
                 stageOptionExitBtn.gameObject.SetActive(false);
                 break;
         }
+
+        bool isEn = LocalizationUtility.IsCurrentLanguage("en");
+        englishBtn.gameObject.SetActive(!isEn);
+        koreanBtn.gameObject.SetActive(isEn);
     }
 
     /// <summary>
@@ -100,8 +108,10 @@ public class OptionUI : UIPopup
         var popup = UIManager.Instance.Show<ConfirmUI>();
         popup.Setup(new ConfirmPopupData
         {
-            Title = "Account Link Successful",
-            Message = "Your account has been successfully linked.",
+            // Title = "Account Link Successful",
+            // Message = "Your account has been successfully linked.",
+            Title = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.TITLE_SUCCESS),
+            Message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.LinkAccount.MESSAGE_SUCCESS),
             Type = EConfirmPopupType.OK
         });
     }
@@ -172,5 +182,18 @@ public class OptionUI : UIPopup
 
         // 실행 후에는 참조 초기화
         onClickStageOptionExit = null;
+    }
+
+    private void OnClickEnglishButton()
+    {
+        LocalizationUtility.SetLanguage("en");
+        englishBtn.gameObject.SetActive(false);
+        koreanBtn.gameObject.SetActive(true);
+    }
+    private void OnClickKoreanButton()
+    {
+        LocalizationUtility.SetLanguage("ko");
+        englishBtn.gameObject.SetActive(true);
+        koreanBtn.gameObject.SetActive(false);
     }
 }

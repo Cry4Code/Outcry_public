@@ -102,7 +102,7 @@ public class GoblinRogueAI : MonsterAIBase
         var notDetected = new InverterNode();
         var isDetected = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         notDetected.SetChild(isDetected);
-        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
+        var patrolAction = new PatrolPingPongActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
         var patrolGuarded = new WhileTrueDecorator(notDetected, patrolAction);
         patrolSeqence.AddChild(patrolGuarded);
 

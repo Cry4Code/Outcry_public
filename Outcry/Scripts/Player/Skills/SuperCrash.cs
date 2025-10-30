@@ -14,6 +14,7 @@ public class SuperCrash : SkillBase
     public override void Enter()
     {
         base.Enter();        
+        if (!useSuccessed) return;
         isEnded = false;
         if (endAnimationLength < 0)
         {
@@ -60,18 +61,9 @@ public class SuperCrash : SkillBase
 
     public override bool ConditionCheck()
     {
+        if (!base.ConditionCheck()) return false;
         // 발동 조건 체크 : 공중
         if (controller.Move.isGrounded)
-        {
-            return false;
-        }
-        // 쿨타임 체크
-        if (Time.time - lastUsedTime < cooldown)
-        {
-            return false;
-        }
-        // 발동 조건 체크 : 스태미나
-        if (!controller.Condition.TryUseStamina(needStamina))
         {
             return false;
         }

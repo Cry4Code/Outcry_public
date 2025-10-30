@@ -3,8 +3,10 @@ using StageEnums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Localization.Settings;
 
 // 게임 전체의 상태를 나타내는 열거형
 public enum EGameState
@@ -29,6 +31,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     private int currentSlotIndex = -1; // 현재 플레이 중인 슬롯 번호 저장
 
     public event Action<int, UserData> OnUserDataSaved;
+    // <int soulId, int newCount>
+    public event Action<int, int> OnSoulCountChanged;
 
     // 이전 리소스 목록 임시 저장
     private List<string> assetsToUnloadFromPreviousScene = new List<string>();
@@ -42,10 +46,12 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         InitializeCoreSystems();
     }
 
-    private void Start()
+    private async void Start()
     {
         // StageManager가 보스 처치 시 발생시키는 이벤트를 구독
         StageManager.OnStageCleared += HandleStageCleared;
+
+        await LocalizationSettings.InitializationOperation.Task.AsUniTask();
     }
 
     private void OnDisable()
@@ -59,10 +65,10 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         CurrentGameState = EGameState.Initializing;
         // Application.targetFrameRate = 60;
 
-        // TODO: ResourceManager, AudioManager 등 다른 핵심 시스템 초기화 호출
         DataTableManager.Instance.LoadCollectionData<StageDataTable>();
         DataTableManager.Instance.LoadCollectionData<SoundDataTable>();
         DataTableManager.Instance.LoadCollectionData<EnemyDataTable>();
+        DataTableManager.Instance.LoadCollectionData<AchievementsDataTable>();
 
         LoadAllSpritesAsync().Forget();
 
@@ -118,7 +124,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         UIManager.Instance.Show<NicknameUI>();
     }
 
-    public async void StartNewGameAsaGuest()
+    public async UniTask StartNewGameAsaGuest()
     {
         await CreateNewGame("Guest");
     }
@@ -127,8 +133,22 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     {
         CurrentUserData = new UserData(nickname);
 
-        bool nameUpdateSuccess = await UGSManager.Instance.UpdatePlayerDisplayNameAsync(nickname);
+        // TODO: 유저 테스트용으로 모든 보스 소울 획득
+        Debug.Log("<color=yellow>[TEST] 모든 보스 소울을 획득합니다.</color>");
+        var allStageData = DataTableManager.Instance.CollectionData[typeof(StageData)] as Dictionary<int, IData>;
+        if (allStageData != null)
+        {
+            foreach (StageData stage in allStageData.Values)
+            {
+                // 튜토리얼과 마을을 제외한 모든 스테이지의 보스 소울을 2개씩 획득
+                if (stage.ID != (int)EStageType.Tutorial && stage.ID != (int)EStageType.Village)
+                {
+                    GainSouls(stage.Boss_Soul, 2);
+                }
+            }
+        }
 
+        bool nameUpdateSuccess = await UGSManager.Instance.UpdatePlayerDisplayNameAsync(nickname);
         if (nameUpdateSuccess)
         {
             // 이름 업데이트 성공 후 UGS로부터 태그가 포함된 최종 이름을 가져옴
@@ -277,7 +297,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         {
             package.PreLoadingTasks.Add(new LoadingTask
             {
-                Description = "Cleaning up previous stage...",
+                // Description = "Cleaning up previous stage...",
+                Description = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.CLEANINGUP),
                 Coroutine = () => UnloadPreviousStageAssetsCoroutine(assetsForUnloading)
             });
         }
@@ -287,7 +308,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         {
             package.PreLoadingTasks.Add(new LoadingTask
             {
-                Description = "Saving game data...",
+                // Description = "Saving game data...",
+                Description = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.SAVING),
                 Coroutine = () => SaveGameAsync().ToCoroutine()
             });
         }
@@ -295,7 +317,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         // PlayerSFX 효과음 프리 로드
         package.PreLoadingTasks.Add(new LoadingTask
         {
-            Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
+            // Description = "Loading sound effects...", // 로딩 UI에 표시될 텍스트
+            Description = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.SOUNDS),
             Coroutine = () => LoadPlayerSFXAsync().ToCoroutine() // 실행할 코루틴 메서드 연결
         });
 
@@ -340,10 +363,25 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         Debug.Log($"스테이지 ID: {clearedStage.ID} 클리어! 유저 데이터 업데이트 및 저장.");
 
+        // 보스 킬 업적(튜토리얼이 아닐 때만 보스 킬 인정)
+        if (clearedStage.ID != (int)EStageType.Tutorial)
+        {
+            AchievementManager.Instance.ReportEvent(EMissionType.BossKillAchieve);
+        }
+
+        // NoHit 업적 확인
+        var player = PlayerManager.Instance.player;
+        if (player != null && !player.Condition.WasHitThisStage)
+        {
+            AchievementManager.Instance.ReportEvent(EMissionType.NoHit, clearedStage.Stage_id);
+        }
+
         // 튜토리얼 클리어 처리
         if (clearedStage.ID == (int)EStageType.Tutorial && !CurrentUserData.IsTutorialCleared)
         {
             CurrentUserData.IsTutorialCleared = true;
+
+            AchievementManager.Instance.ReportEvent(EMissionType.CleardTutorial);
         }
 
         // 스테이지에 포함된 모든 몬스터를 클리어 목록에 추가
@@ -358,7 +396,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         // TODO: 스테이지 클리어 보상 지급(소울)
         // (보상 중복 보유 가능 여부에 따라 달라질 예정)
-        GainSouls(currentStageData.Boss_Soul, 1);
+        GainSouls(clearedStage.Boss_Soul, 1);
 
         // 변경된 데이터 저장
         SaveGame();
@@ -373,7 +411,15 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
     /// <param name="amount">추가할 개수</param>
     public void GainSouls(int soulId, int amount)
     {
-        if (CurrentUserData == null) return;
+        if (CurrentUserData == null)
+        {
+            return;
+        }
+
+        if (soulId <= 0)
+        {
+            return;
+        }
 
         // FindIndex는 조건에 맞는 항목의 인덱스를 찾고 없으면 -1 반환
         int index = CurrentUserData.AcquiredSouls.FindIndex(s => s.SoulId == soulId);
@@ -387,12 +433,17 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             CurrentUserData.AcquiredSouls[index] = existingSoul;
 
             Debug.Log($"소울 갱신: ID {soulId}, 총 개수: {existingSoul.Count}");
+            OnSoulCountChanged?.Invoke(soulId, existingSoul.Count);
         }
         else // 새로 획득한 소울일 경우
         {
-            CurrentUserData.AcquiredSouls.Add(new UserSoulData { SoulId = soulId, Count = amount });
+            var newSoul = new UserSoulData { SoulId = soulId, Count = amount };
+            CurrentUserData.AcquiredSouls.Add(newSoul);
             Debug.Log($"새로운 소울 획득: ID {soulId}, 개수: {amount}");
+            OnSoulCountChanged?.Invoke(soulId, newSoul.Count);
         }
+
+        AchievementManager.Instance.ReportEvent(EMissionType.GetSoul);
     }
 
     /// <summary>
@@ -427,6 +478,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
         CurrentUserData.AcquiredSouls[index] = soulToSpend;
 
         Debug.Log($"소울 소모 성공: ID {soulId}, {amount}개 사용. 남은 개수: {soulToSpend.Count}");
+        OnSoulCountChanged?.Invoke(soulId, soulToSpend.Count);
 
         // 소모 성공
         return true;
@@ -459,6 +511,8 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         //리스트에 skillId 기록
         CurrentUserData.AcquiredSkillIds.Add(skillId);
+
+        AchievementManager.Instance.ReportEvent(EMissionType.GetSkill);
 
         SaveGame();
     }
@@ -528,7 +582,7 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
 
         if (loadedSprites == null || loadedSprites.Count == 0)
         {
-            Debug.LogWarning("[DataManager] 'SoulSprites' 레이블로 로드된 스프라이트가 없습니다.");
+            Debug.LogWarning("[GameManager] 'SoulSprites' 레이블로 로드된 스프라이트가 없습니다.");
             return;
         }
 
@@ -546,11 +600,11 @@ public class GameManager : Singleton<GameManager>, IStageDataProvider
             }
             else
             {
-                Debug.LogWarning($"[DataManager] 스프라이트 이름({sprite.name})을 ID로 변환할 수 없습니다.");
+                Debug.LogWarning($"[GameManager] 스프라이트 이름({sprite.name})을 ID로 변환할 수 없습니다.");
             }
         }
 
-        Debug.Log($"[DataManager] {spriteDict.Count}개의 스프라이트 준비 완료.");
+        Debug.Log($"[GameManager] {spriteDict.Count}개의 스프라이트 준비 완료.");
     }
 
     /// <summary>

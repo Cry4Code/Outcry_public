@@ -75,7 +75,8 @@ public class SaveLoadUI : UIPopup
     private void UpdateUI(ESlotUIType type, Dictionary<int, UserData> data)
     {
         //titleText.text = type.ToString();
-        titleText.text = "Save / Load";
+        // titleText.text = "Save / Load";
+        titleText.text = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.SaveLoad.SAVELOAD);
 
         // 버튼 활성화
         foreach (var button in slotBtns)

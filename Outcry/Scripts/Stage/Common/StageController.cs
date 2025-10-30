@@ -20,6 +20,8 @@ public class StageController : MonoBehaviour
     protected List<Transform> obstacleSpawnPoints;
     protected CinemachineVirtualCamera stageCamera; // 스테이지 카메라 참조 추가
 
+    protected PlayerController controller;
+
     // 생성된 인스턴스 관리
     protected GameObject playerInstance;
     public List<GameObject> aliveMonsters = new List<GameObject>();
@@ -45,6 +47,15 @@ public class StageController : MonoBehaviour
         }
     }
 
+    protected void InitializeInGameCursor()
+    {
+        // CursorManager 초기화
+        if (CursorManager.Instance != null)
+        {
+            CursorManager.Instance.InitializeForInGame(controller);
+        }
+    }
+
     /// <summary>
     /// 각 스테이지의 고유한 시나리오가 구현될 메인 코루틴(자식 클래스에서 반드시 구현)
     /// </summary>
@@ -57,6 +68,7 @@ public class StageController : MonoBehaviour
 
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
 
+        InitializeInGameCursor();
         PlayerManager.Instance.player.runFSM = true;
 
         // 몬스터 스폰 로직 호출
@@ -119,8 +131,8 @@ public class StageController : MonoBehaviour
             spawnPosition.y += heightOffset;
 
             playerInstance = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-            PlayerController playerController = playerInstance.GetComponent<PlayerController>();
-            if (playerController == null)
+            controller = playerInstance.GetComponent<PlayerController>();
+            if (controller == null)
             {
                 Debug.LogError("스폰된 플레이어 프리팹에 PlayerController가 없습니다!");
                 return null;
@@ -129,17 +141,12 @@ public class StageController : MonoBehaviour
             Debug.Log($"플레이어 스폰 완료: {spawnPoint.name}");
 
             // PlayerManager에 등록
-            PlayerManager.Instance.RegisterPlayer(playerController);
+            PlayerManager.Instance.RegisterPlayer(controller);
 
             // 카메라 Follow 대상 설정
             if (stageCamera != null)
             {
                 stageCamera.Follow = playerInstance.transform;
-            }
-            // CursorManager 초기화
-            if (CursorManager.Instance != null)
-            {
-                CursorManager.Instance.InitializeForInGame(playerController);
             }
 
             // 상태 UI 표시

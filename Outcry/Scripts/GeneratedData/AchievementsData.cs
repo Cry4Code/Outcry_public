@@ -12,9 +12,10 @@ public class AchievementsData : IData
     public int Counts;
     public bool Achieved;
     public int Condition;
-    public string Conditions;
-    public int MissionType;
     public string Desc;
+    public int MissionType;
+    public string Desc_Ko;
+    public int TargetID;
 }
 
 [Serializable]

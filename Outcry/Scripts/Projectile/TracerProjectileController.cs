@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class TracerProjectileController : ProjectileBase
@@ -66,7 +67,9 @@ public class TracerProjectileController : ProjectileBase
                 else
                     yield break; // 플레이어도 없으면 종료
             }
-            
+
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.TurningBlood * 10, EffectType.Sound,
+                gameObject).Forget();
             // 목표를 향해 이동하다가 도달하면 대기 후 다음 추적으로
             while (!ArrivedToTarget())
             {

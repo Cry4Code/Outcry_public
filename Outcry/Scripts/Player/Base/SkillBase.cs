@@ -71,13 +71,12 @@ public abstract class SkillBase
             if (controller.Move.rb.velocity.y != 0)
             {
                 controller.ChangeState<FallState>();
-                return;
             }
             else
             {
                 controller.ChangeState<IdleState>();
-                return;
             }
+            return;
         }
         useSuccessed = true;
         
@@ -98,8 +97,14 @@ public abstract class SkillBase
     }
     public abstract void LogicUpdate();
 
-    public abstract bool ConditionCheck();
-    
+    public virtual bool ConditionCheck()
+    {
+        // 쿨타임 / 스태미나 체크
+        bool canUse = controller.Condition.CheckCooldown(lastUsedTime, cooldown) &&
+                      controller.Condition.TryUseStamina(needStamina);
+
+        return canUse;        
+    }
 
     public virtual void Exit()
     {

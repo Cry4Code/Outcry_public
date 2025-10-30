@@ -11,6 +11,7 @@ public static class PlayerEffectID
     public const int NormalAttack = 100010;
     public const int NormalAttackSound = 100011;
     public const int LastNormalAttackSound = 100012;
+    public const int MonsterDamaged = 100013;
     public const int SpecialAttack = 100020;
     public const int JustSpecialAttack = 100021;
     public const int StartParrying = 100030;
@@ -65,6 +66,32 @@ public static class Stage2BossEffectID
     public const int Infeirno = 103409;
     public const int VolcanoDive =  103410;
     public const int Meteor = 103411;
+}
+
+public static class Stage3BossEffectID
+{
+    public const int NormalATK = 103501;
+    public const int DarkSwamp = 103502;
+    public const int Darkness = 103503;
+    public const int DarkBomb =  103504;
+    public const int TurningBlood = 103505;
+    public const int BloodSting = 103506;
+    public const int BloodShard = 103507;
+    public const int BloodVeil = 103508;
+    public const int BloodSpear = 103509;
+    public const int BatStorm = 103510;
+    public const int BloodMoon = 103511;
+}
+
+public static class MonsterID
+{
+    public const int GoblinRogue = 101000;
+    public const int GoblinFirekeeper = 101001;
+    public const int GoblinFighter = 101002;
+    public const int GoblinKing = 101201;
+    public const int PhantomWitch = 101202;
+    public const int VampireLord = 101205;
+    public const int VampireLordFlying = 101206;
 }
 
 
@@ -131,6 +158,9 @@ public static class EventBusKey
     public const string GetPotion = "GetPotion";
     public const string ChangeHideObstacle = "ChangeHideObstacle";
     public const string ChangeBossHealth =  "ChangeBossHealth";
+    public const string ChangePotionCount = "ChangePotionCount";
+    public const string CantUseCuzStamina = "CantUseCuzStamina";
+    public const string CantUseCuzCooldown = "CantUseCuzCooldown";
 }
 
 public static class Figures
@@ -303,5 +333,68 @@ public static class AnimatorHash
     {
         public static readonly int Triggered = Animator.StringToHash("Triggered");
     }
+
 }
 
+public static class LocalizationStrings
+{
+    public const string TableName = "LocalizationTable";
+    
+    public static class Loading
+    {
+        public const string COMPLETE = "LOADING_COMPLETE";
+        public const string LOADING = "LOADING_LOADING";
+        public const string PREPARINGRESOURCES = "LOADING_PREPARINGRESOURCES";
+        public const string SCENEDATA = "LOADING_SCENEDATA";
+        public const string CLEANINGUP = "LOADING_CLEANINGUP";
+        public const string SAVING = "LOADING_SAVING";
+        public const string SOUNDS = "LOADING_SOUNDS";
+    }
+
+    public static class Store
+    {
+        public const string PURCHASECONFIRM = "STORE_PURCHASECONFIRM";
+    }
+
+    public static class Skill
+    {
+        public const string NAME = "SKILL_NAME";
+        public const string DAMAGE = "SKILL_DAMAGE";
+        public const string COST = "SKILL_COST";
+        public const string COOLDOWN = "SKILL_COOLDOWN";
+    }
+
+    public static class LinkAccount
+    {
+        public const string TITLE_SUCCESS = "LINKACCOUNT_TITLE_SUCCESS";
+        public const string MESSAGE_SUCCESS = "LINKACCOUNT_MESSAGE_SUCCESS";
+        
+        public const string TITLE_FAIL = "LINKACCOUNT_TITLE_FAIL";
+        public const string MESSAGE_FAIL_INVALID = "LINKACCOUNT_MESSAGE_FAIL_INVALID";
+        public const string MESSAGE_FAIL_EXIST = "LINKACCOUNT_MESSAGE_FAIL_EXIST";
+        public const string MESSAGE_FAIL_SERVER = "LINKACCOUNT_MESSAGE_FAIL_SERVER";
+        public const string MESSAGE_FAIL_NETWORK = "LINKACCOUNT_MESSAGE_FAIL_NETWORK";
+        public const string MESSAGE_FAIL_UNKNOWN = "LINKACCOUNT_MESSAGE_FAIL_UNKNOWN";
+        
+  }
+
+    public static class SaveLoad
+    {
+        public const string SAVELOAD = "SAVELOAD_SAVELOAD";
+        public const string MESSAGE_DELETE = "SAVELOAD_MESSAGE_DELETE";
+        public const string MESSAGE_FAIL_DELETE = "SAVELOAD_MESSAGE_FAIL_DELETE";
+        public const string MESSAGE_GUESTWARNING = "SAVELOAD_MESSAGE_GUESTWARNING";
+    }
+
+    public static class UI
+    {
+        public const string CANCEL = "UI_CANCEL";
+        public const string OK = "UI_OK";
+        public const string QUIT = "UI_QUIT";
+        public const string BACKTOLOBBY = "UI_BACKTOLOBBY";
+        public const string DELETE = "UI_DELETE";
+        public const string WARNING = "UI_WARNING";
+        public const string ERROR = "UI_ERROR";
+        public const string EXIT = "UI_EXIT";
+    }
+}

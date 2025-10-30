@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -69,6 +70,8 @@ public class QTEController : MonoBehaviour
             // 올바른 키를 눌렀는지 확인
             if (Input.GetKeyDown(requiredSequence[currentIndex].ToString().ToLower()))
             {
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.BloodMoon * 10 + 5,
+                    EffectType.Sound).Forget();
                 currentIndex++;
                 Debug.Log($"QTE 성공: {requiredSequence[currentIndex - 1]}");
                 UpdateUI(); // UI 업데이트 (예: 누른 키 색상 변경)
@@ -83,6 +86,7 @@ public class QTEController : MonoBehaviour
                 // 모든 키를 다 눌렀다면 최종 성공
                 if (currentIndex >= requiredSequence.Length)
                 {
+                    StartCoroutine(QTESuccessSound());
                     CurrentState = EQTEState.Success;
                     Debug.Log("QTE 최종 성공!");
                     if (timeoutCoroutine != null)
@@ -94,6 +98,8 @@ public class QTEController : MonoBehaviour
             // 잘못된 키를 눌렀다면 즉시 실패
             else
             {
+                EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.BloodMoon * 10 + 7,
+                    EffectType.Sound).Forget();
                 CurrentState = EQTEState.Failure;
                 Debug.Log("QTE 실패: 잘못된 키 입력");
                 if (timeoutCoroutine != null)
@@ -118,6 +124,13 @@ public class QTEController : MonoBehaviour
             CurrentState = EQTEState.Failure;
             Debug.Log("QTE 실패: 시간 초과");
         }
+    }
+
+    private IEnumerator QTESuccessSound()
+    {
+        yield return new WaitForSeconds(0.5f);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.BloodMoon * 10 + 6,
+            EffectType.Sound).Forget();
     }
 
     /// <summary>

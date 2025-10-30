@@ -25,6 +25,7 @@ public class FallenKingStageController : StageController
         SpawnMonstersLogic();
         SettingBossHpBar();
 
+        InitializeInGameCursor();
         await UniTask.Delay(TimeSpan.FromSeconds(1f));
 
         PlayerManager.Instance.player.runFSM = true;

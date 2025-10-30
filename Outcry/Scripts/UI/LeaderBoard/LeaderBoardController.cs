@@ -6,6 +6,8 @@ using UnityEngine;
 
 public class LeaderboardController : MonoBehaviour
 {
+    // 데이터 로딩 시작을 UI에 알려주는 이벤트
+    public event Action OnDataFetchStarted;
     // 데이터 로딩이 완료되면 UI에 알려줌
     public event Action OnDataUpdated;
 
@@ -22,6 +24,9 @@ public class LeaderboardController : MonoBehaviour
         {
             return;
         }
+
+        // 비동기 작업 시작 직전에 로딩 시작 이벤트 발생
+        OnDataFetchStarted?.Invoke();
 
         FetchScoresAsync(leaderboardId).Forget();
     }

@@ -33,8 +33,8 @@ public class PlayerAttack : MonoBehaviour
     #region 섬단 관련
 
     [field: Header("Special Attack")] 
+    public bool isStartSpecialAttack = false;
     public bool isStartJustAttack = false;
-
     public bool successJustAttack = false;
     public float justAttackStopTime = 5f;
     public Coroutine justAttackCoroutine = null;
@@ -90,9 +90,11 @@ public class PlayerAttack : MonoBehaviour
     IEnumerator AddDamageInTime(int damage, float time)
     {
         AdditionalDamage += damage;
+        controller.Condition.playerBuff |= ePlayerBuff.PowerUp;
         Debug.Log($"[플레이어] 데미지 버프 됨 ! -> {AdditionalDamage}");
         yield return new WaitForSecondsRealtime(time);
         AdditionalDamage = Mathf.Max(0, AdditionalDamage - damage);
+        controller.Condition.playerBuff &= ~ePlayerBuff.PowerUp;
         Debug.Log($"[플레이어] 데미지 버프 끝 ! -> {AdditionalDamage}");
     }
     
@@ -110,10 +112,24 @@ public class PlayerAttack : MonoBehaviour
 
     IEnumerator TimeStop(Animator monsterAnimator, float time)
     {
+        var mc = monsterAnimator.GetComponentInParent<MonsterCondition>();
+
         // 별로면 이 부분만 빼면 됨
         controller.Animator.animator.speed = 0f;
         monsterAnimator.speed = 0f;
-        yield return new WaitForSecondsRealtime(time);
+
+        bool interrupted = false;
+        void OnMonsterDeath() { interrupted = true; }
+        mc.OnDeath += OnMonsterDeath;
+
+        float elapsed = 0f;
+        while (elapsed < time && !interrupted)
+        {
+            yield return null;
+            elapsed += Time.unscaledDeltaTime;
+        }
+        mc.OnDeath -= OnMonsterDeath;
+        //yield return new WaitForSecondsRealtime(time);
 
         controller.Animator.animator.speed = 1f;
         monsterAnimator.speed = 1f;

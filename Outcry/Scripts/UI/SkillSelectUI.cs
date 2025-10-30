@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +15,6 @@ public class SkillSelectUI : UIPopup
     [SerializeField] private Transform btnParents;
 
     [SerializeField] private bool activeBtn = true;
-    [SerializeField] private TextMeshProUGUI infoText;
 
     [SerializeField] private Button OnSkill;
     [SerializeField] private Button OnAchieve;
@@ -26,6 +26,8 @@ public class SkillSelectUI : UIPopup
 
     [SerializeField] private Image sidePreviewImage;
 
+    [SerializeField] private GameObject skillToolTip;
+    [SerializeField] private TextMeshProUGUI skillToolTipTxt;
 
     [System.Serializable] public struct SkillIconPair { public int id; public Sprite icon; }
 
@@ -36,7 +38,6 @@ public class SkillSelectUI : UIPopup
 
     private SkillSelectBtn _selectedBtn;
     private SkillData _selectedData;
-
 
     private void Awake()
     {
@@ -87,7 +88,6 @@ public class SkillSelectUI : UIPopup
         }
 
         DisableUnownedSkillToggles();
-
     }
 
     private void OnEnable()
@@ -112,13 +112,9 @@ public class SkillSelectUI : UIPopup
         btn.SetOverlayActive(!owned);
     }
 
-
     private void Exit()
     {
-        //스토어 나가는 코드
-        UIManager.Instance.Hide<SkillSelectUI>();
-        CursorManager.Instance.SetInGame(true);
-        PlayerManager.Instance.player.PlayerInputEnable();
+        UIManager.Instance.ClosePopupAndResumeGame<SkillSelectUI>();
     }
 
     // 눌린 토글 정보 저장
@@ -126,6 +122,9 @@ public class SkillSelectUI : UIPopup
     {
         _selectedBtn = sender;
         _selectedData = data;
+
+        skillToolTip.SetActive(true);
+        UpdateSkillToolTip();
 
         // ★ 장착 시도
         GameManager.Instance.TryEquipSkill(data.Skill_id);
@@ -140,6 +139,7 @@ public class SkillSelectUI : UIPopup
 
     private void OnAchieveWindow()
     {
+        skillToolTip.SetActive(false);
         SkillWindow.SetActive(false);
         AchieveWindow.SetActive(true);
         SelectedSkill.SetActive(false);
@@ -163,6 +163,54 @@ public class SkillSelectUI : UIPopup
             // 소유하지 않은 스킬은 클릭 불가로 만든다
             SetOwnedVisualOverlay(btn, owned);
         }
+
+        if(_selectedData != null)
+        {
+            UpdateSkillToolTip();
+        }
     }
 
+    private void UpdateSkillToolTip()
+    {
+        // 0이 아닌 데미지 값만 저장할 리스트 생성
+        var damageValues = new List<int>();
+
+        // skillData.Damages 배열이 null이 아닐 때만 순회
+        if (_selectedData.Damages != null)
+        {
+            foreach (int val in _selectedData.Damages)
+            {
+                // 0이 아닌 값만 리스트에 추가
+                if (val != 0)
+                {
+                    damageValues.Add(val);
+                }
+            }
+        }
+
+        string dmgText;
+
+        // 리스트에 값이 있는지 여부로 최종 텍스트 결정
+        if (damageValues.Count == 0)
+        {
+            dmgText = "0";
+        }
+        else
+        {
+            int sum = 0;
+
+            foreach (int val in damageValues)
+            {
+                sum += val;
+            }
+
+            dmgText = sum.ToString();
+        }
+
+        var localizedDamageText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.DAMAGE);
+        var localizedCostText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.COST);
+        var localizedConditionTxt = LocalizationUtility.IsCurrentLanguage("en") ? _selectedData.Condition : _selectedData.Condition_Ko;
+        
+        skillToolTipTxt.text = $"{localizedDamageText}\n{dmgText}\n\n{localizedCostText}\n{_selectedData.Stamina}\n\n{localizedConditionTxt}";
+    }
 }

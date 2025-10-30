@@ -1,11 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class PiercingProjectileController : ProjectileBase
 {
     [SerializeField] private LayerMask groundLayer;
-
+    [SerializeField] private int soundNumber;
     [SerializeField] private float speed = 10f;
     [SerializeField] private float maxDistance = 10f;
 
@@ -43,6 +44,7 @@ public class PiercingProjectileController : ProjectileBase
 
         if (rb) rb.velocity = Vector2.zero;
         if (animator) animator.SetBool(AnimatorHash.ProjectileParameter.Triggered, true);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(soundNumber, EffectType.Sound, gameObject).Forget();
     }
 
     private void FixedUpdate()

@@ -160,6 +160,7 @@ public class PlayerController : MonoBehaviour
         {
             Move.rb.velocity =  Vector2.zero;
             ChangeState<IdleState>(); // 기본 상태로 전환
+            Inputs.Player.Look.Disable();
         }
     }
 

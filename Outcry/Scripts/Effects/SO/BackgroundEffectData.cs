@@ -12,7 +12,7 @@ public class BackgroundEffectData : BaseEffectData
     [field: SerializeField] public float Duration { get; private set; }
     [field: SerializeField] public Color FirstPointColor { get; private set; } = new Color(0, 0, 0, 1);
     [field: SerializeField] public Color SecondPointColor { get; private set; } = new Color(0, 0, 0, 1);
-
+    
     private static readonly int ColorID = Shader.PropertyToID("_Color");
 #if UNITY_EDITOR
     private void OnValidate()
@@ -24,7 +24,8 @@ public class BackgroundEffectData : BaseEffectData
     
     public override async UniTask EffectAsync(EffectOrder order, CancellationToken token, GameObject target = null, Vector3 position = default(Vector3))
     {
-        
+        var affected = new List<SpriteRenderer>();
+
         try
         {
            //빨강. 컬러를 이 SO의 PointColor로 바꾸기
@@ -33,10 +34,10 @@ public class BackgroundEffectData : BaseEffectData
             ChangeMapColor(StageManager.Instance.BlackBgs, SecondPointColor);
 
            
-            ChangeCharacterColor(PlayerManager.Instance.player.gameObject, SecondPointColor);
+            ChangeCharacterColor(PlayerManager.Instance.player.gameObject, SecondPointColor, affected);
             for (int i = 0; i < StageManager.Instance.currentStageController.aliveMonsters.Count; i++)
             {
-                ChangeCharacterColor(StageManager.Instance.currentStageController.aliveMonsters[i], SecondPointColor);
+                ChangeCharacterColor(StageManager.Instance.currentStageController.aliveMonsters[i], SecondPointColor, affected);
             }
             
 
@@ -55,15 +56,20 @@ public class BackgroundEffectData : BaseEffectData
         }
         finally
         {
-            ChangeMapColor(StageManager.Instance.ColorBgs, Color.white);
-            ChangeMapColor(StageManager.Instance.BlackBgs, Color.white);
-            
+            // 맵은 덧칠 대신 MPB 제거
+            ResetMapColor(StageManager.Instance.ColorBgs);
+            ResetMapColor(StageManager.Instance.BlackBgs);
+
+            for (int i = 0; i < affected.Count; i++)
+                if (affected[i]) affected[i].SetPropertyBlock(null);
+
+            /* 기존 코드
             ChangeCharacterColor(PlayerManager.Instance.player.gameObject, Color.white);
             for (int i = 0; i < StageManager.Instance.currentStageController.aliveMonsters.Count; i++)
             {
                 ChangeCharacterColor(StageManager.Instance.currentStageController.aliveMonsters[i], Color.white);
             }
-            
+            */
         }
     }
 
@@ -78,7 +84,7 @@ public class BackgroundEffectData : BaseEffectData
         }
     }
 
-    private void ChangeCharacterColor(GameObject parent, Color color)
+    private void ChangeCharacterColor(GameObject parent, Color color, List<SpriteRenderer> record = null)
     {
         SpriteRenderer characterRenderer = parent.GetComponentInChildren<SpriteRenderer>();
 
@@ -88,5 +94,13 @@ public class BackgroundEffectData : BaseEffectData
         characterRenderer.GetPropertyBlock(mpb);
         mpb.SetColor(ColorID, color);
         characterRenderer.SetPropertyBlock(mpb);
+
+        record?.Add(characterRenderer);
+    }
+    private void ResetMapColor(List<Renderer> rederers)
+    {
+        var mpb = new MaterialPropertyBlock();
+        for (int i = 0; i < rederers.Count; i++)
+            rederers[i].SetPropertyBlock(null);
     }
 }

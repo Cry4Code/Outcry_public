@@ -7,6 +7,7 @@ public class TitleScene : SceneBase
     {
         EffectManager.Instance.ToString();
         ResourceManager.Instance.LoadAssetsByLabelAsync<AudioClip>("UISFX").Forget();
+        ResourceManager.Instance.LoadAssetsByLabelAsync<AudioClip>("BGM").Forget();
 
         UIManager.Instance.Show<TitleUI>();
     }

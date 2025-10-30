@@ -8,9 +8,12 @@ public class DamagedState : BasePlayerState
     
     private float startStateTime;
     private float startAttackTime = 0.01f;
-    private float canInputTime = 0.1f;
+    private float canInputTime = 0.3f;
     private float t;
     private float damagedTime;
+    private bool isKeyEnabled = false;
+
+    private Vector2 moveInput;
 
     public override eTransitionType ChangableStates { get; }
 
@@ -19,10 +22,12 @@ public class DamagedState : BasePlayerState
         controller.Move.rb.velocity = Vector2.zero;
         controller.Condition.canStaminaRecovery.Value = true;
         controller.Animator.SetTriggerAnimation(AnimatorHash.PlayerAnimation.Damaged);
+        controller.isLookLocked = true;
         controller.Inputs.Player.Move.Disable();
         controller.Inputs.Player.Jump.Disable();
         controller.Inputs.Player.NormalAttack.Disable();
-        controller.Inputs.Player.Look.Disable();
+        isKeyEnabled = false;
+        startStateTime = Time.time;
         
         damagedTime = controller.Animator.animator.runtimeAnimatorController
             .animationClips.First(c => c.name == "Damaged").length;
@@ -33,10 +38,26 @@ public class DamagedState : BasePlayerState
     {
         if (Time.time - startStateTime > canInputTime)
         {
-            controller.Inputs.Player.Move.Enable();
-            controller.Inputs.Player.Jump.Enable();
-            controller.Inputs.Player.NormalAttack.Enable();
-            controller.Inputs.Player.Look.Enable();
+            if (!isKeyEnabled)
+            {
+                controller.isLookLocked = false;
+                controller.Inputs.Player.Move.Enable();
+                controller.Inputs.Player.Jump.Enable();
+                controller.Inputs.Player.NormalAttack.Enable();
+                isKeyEnabled = true;
+            }
+            
+            moveInput = controller.Inputs.Player.Move.ReadValue<Vector2>();
+            
+            if (moveInput.x != 0)
+            {
+                /*controller.Move.ForceLook(moveInput.x < 0);*/
+                controller.Move.Move();
+            }
+            else if (controller.Move.rb.velocity.x != 0)
+            {
+                controller.Move.Stop();
+            }
         }
         
         if (controller.Inputs.Player.SpecialAttack.triggered)
@@ -62,6 +83,9 @@ public class DamagedState : BasePlayerState
             controller.ChangeState<AdditionalAttackState>();
             return;
         }
+        
+        
+        
     }
 
     public override void LogicUpdate(PlayerController controller)
@@ -79,7 +103,8 @@ public class DamagedState : BasePlayerState
         
         if (animTime >= 1.0f)
         {
-            controller.ChangeState<IdleState>();
+            if (controller.Move.isGrounded) controller.ChangeState<IdleState>();
+            else controller.ChangeState<FallState>();
             return;
         }  
         
@@ -95,9 +120,9 @@ public class DamagedState : BasePlayerState
 
     public override void Exit(PlayerController controller)
     {
+        controller.isLookLocked = false;
         controller.Inputs.Player.Move.Enable();
         controller.Inputs.Player.Jump.Enable();
         controller.Inputs.Player.NormalAttack.Enable();
-        controller.Inputs.Player.Look.Enable();
     }
 }

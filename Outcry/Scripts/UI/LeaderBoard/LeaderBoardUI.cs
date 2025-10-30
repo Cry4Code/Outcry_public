@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
 public class LeaderboardUI : UIPopup
@@ -20,6 +19,7 @@ public class LeaderboardUI : UIPopup
 
     [SerializeField] private GameObject scrollViewObject;
     [SerializeField] private GameObject emptyMessageObject;
+    [SerializeField] private GameObject loadingImgObject;
 
     private const string GoblinKingLeaderboardId = "goblin_king_clear_time";
     private const string WitchLeaderboardId = "phantom_witch_clear_time";
@@ -31,6 +31,7 @@ public class LeaderboardUI : UIPopup
 
     void Start()
     {
+        controller.OnDataFetchStarted += ShowLoadingState;
         controller.OnDataUpdated += RefreshUI;
 
         goblinKingButton.onClick.AddListener(() => controller.RequestLeaderboard(GoblinKingLeaderboardId));
@@ -46,8 +47,17 @@ public class LeaderboardUI : UIPopup
         controller.OnDataUpdated -= RefreshUI;
     }
 
+    private void ShowLoadingState()
+    {
+        loadingImgObject.SetActive(true);
+        scrollViewObject.SetActive(false);
+        emptyMessageObject.SetActive(false);
+    }
+
     private void RefreshUI()
     {
+        loadingImgObject.SetActive(false);
+
         // 현재 활성화된 모든 항목 풀에 반환
         foreach (var entry in activeEntries)
         {
@@ -100,13 +110,14 @@ public class LeaderboardUI : UIPopup
         }
 
         entry.gameObject.SetActive(true); // 활성화
+
+        entry.transform.SetAsLastSibling(); // 계층 구조상 가장 마지막으로 이동
+
         return entry;
     }
 
     public void OnClickExitBtn()
     {
-        UIManager.Instance.Hide<LeaderboardUI>();
-        CursorManager.Instance.SetInGame(true);
-        PlayerManager.Instance.player.PlayerInputEnable();
+        UIManager.Instance.ClosePopupAndResumeGame<LeaderboardUI>();
     }
 }

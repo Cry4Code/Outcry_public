@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public enum AttackState
@@ -19,6 +20,8 @@ public class AttackHitbox : MonoBehaviour
     [field : SerializeField] public AttackState AttackState { get; set; }
     public SpriteRenderer spriteRenderer;
 
+    public bool specialAttackDamaged = false;
+    
     public void Init(PlayerController player)
     {
         controller = player;
@@ -29,6 +32,7 @@ public class AttackHitbox : MonoBehaviour
     private void Awake()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
+        specialAttackDamaged = false;
     }
 
     // 애니메이션 이벤트 받기용
@@ -59,11 +63,10 @@ public class AttackHitbox : MonoBehaviour
                             /*(other.transform.position - controller.transform.position).normalized 
                             * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f*/
                             (Vector3.right * 2f));
+                        return;
                     }
                 }
             }
-
-            return;
         }
 
         if (controller.Attack.isStartJustAttack)
@@ -77,20 +80,18 @@ public class AttackHitbox : MonoBehaviour
                         Debug.Log("[플레이어] 플레이어 저스트 어택!");
                         controller.Attack.successJustAttack = true;
                         controller.Condition.SetInvincible(0.5f + controller.Attack.justAttackStopTime);
-                        controller.Attack.SetDamage(controller.Data.justSpecialAttackDamage);
+                        
                         controller.Attack.JustSpecialAttack(other.gameObject.GetComponentInChildren<Animator>());
                         countable.CounterAttacked();
-                        controller.Attack.successJustAttack = false;
                         controller.Condition.health.Add(3);
+                        
                         int stageId = StageManager.Instance.CurrentStageData.Stage_id;
                         if (stageId != StageID.Village)
                         {
                             UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.JustSpecialAttack);
                         }
-                        await EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject, 
-                            /*((other.transform.position - controller.transform.position).normalized 
-                                                             * Vector2.Distance(other.transform.position, controller.transform.position) * 0.5f)*/
-                            (Vector3.right * 2f));
+                        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject, 
+                            (Vector3.right * 2f)).Forget();
                     } 
                 }
                 else
@@ -98,15 +99,70 @@ public class AttackHitbox : MonoBehaviour
                     controller.Condition.SetInvincible(0.5f + controller.Attack.justAttackStopTime);
                     countable.CounterAttacked();
                 }
+                return;
             }
         }
             
         if (other.TryGetComponent<IDamagable>(out var damagable))
         {
+            // 패리랑 섬단은 데미지 판단 여기서 안함
+            if (controller.Attack.isStartParry || controller.Attack.isStartSpecialAttack) return;
+            
             ShakeCameraUsingState();
             damagable?.TakeDamage(attack.AttackDamage + attack.AdditionalDamage);
             Debug.Log($"[플레이어] 플레이어가 몬스터에게 {attack.AttackDamage + attack.AdditionalDamage} 만큼 데미지 줌");
         } 
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        // 섬단 데미지 판단 여기서 함
+        if (controller.Attack.isStartSpecialAttack)
+        {
+            if (other.TryGetComponent<IDamagable>(out var damagable))
+            {
+                CheckSpecialAttack(damagable);
+            }
+
+            try
+            {
+                var parentDamagable = other.GetComponentInParent<IDamagable>();
+                if (parentDamagable != null)
+                {
+                    CheckSpecialAttack(parentDamagable);
+                }
+            }
+            catch (Exception e)
+            {
+                Debug.Log($"[플레이어] 몬스터의 Damagable을 찾을 수 없음. 사유 : {e}");
+            }
+        }
+    }
+
+    private void CheckSpecialAttack(IDamagable damagable)
+    {
+        if (!specialAttackDamaged)
+        {
+            // 저섬 성공
+            if (controller.Attack.isStartSpecialAttack && controller.Attack.successJustAttack)
+            {
+                controller.Attack.SetDamage(controller.Data.justSpecialAttackDamage);
+                damagable?.TakeDamage(attack.AttackDamage + attack.AdditionalDamage);
+                Debug.Log($"[플레이어] 플레이어가 몬스터에게 저스트 섬단으로 {attack.AttackDamage + attack.AdditionalDamage} 만큼 데미지 줌");
+            }
+            
+            // 저섬 실패
+            else if (controller.Attack.isStartSpecialAttack)
+            {
+                controller.Attack.SetDamage(controller.Data.specialAttackDamage);
+                damagable?.TakeDamage(attack.AttackDamage + attack.AdditionalDamage);
+                Debug.Log($"[플레이어] 플레이어가 몬스터에게 일반 섬단으로 {attack.AttackDamage + attack.AdditionalDamage} 만큼 데미지 줌");
+            }
+
+        }
+        
+        specialAttackDamaged = true;
+
     }
 
     private void ShakeCameraUsingState()

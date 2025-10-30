@@ -4,6 +4,7 @@ using StageEnums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using UnityEngine.UI;
@@ -135,16 +136,15 @@ public class StageManager : Singleton<StageManager>
     // 스테이지의 전체적인 흐름을 관리하는 메인 코루틴
     private IEnumerator StageFlowRoutine()
     {
+        stageTimer = currentStageData.Time_limit;
+        Debug.Log($"현재 시간 제한 : {stageTimer}");
         // 스폰 및 등장 연출
         yield return StartCoroutine(IntroRoutine());
-
+        
         // 스테이지 시작
         CurrentState = EStageState.InProgress;
-        stageTimer = currentStageData.Time_limit;
-        //stageTimer = 10f; // TEST
-        Debug.Log("스테이지 시작!");
-        
         OnTimeChanged = UIManager.Instance.GetUI<HUDUI>().ChangeTimerBar;
+        
     }
 
     // 스폰 및 등장 연출 코루틴
@@ -254,9 +254,10 @@ public class StageManager : Singleton<StageManager>
     private IEnumerator VictoryRoutine()
     {
         CurrentState = EStageState.Finished;
-        
 
         currentStageController?.OnStageVictory();
+
+        CursorManager.Instance.SetInGame(false);
 
         if (currentStageData != null)
         {
@@ -298,15 +299,20 @@ public class StageManager : Singleton<StageManager>
         {
             // TODO: 클리어 보상 UI(보상 중복 보유 가능 여부에 따라 달라질 예정)
             int bossId = currentStageData.Monster_ids[0];
-            Sprite soulSprite = GameManager.Instance.GetSprite(bossId);
+            Sprite bossPortrait = GameManager.Instance.GetSprite(bossId);
+            Sprite soul = GameManager.Instance.GetSprite(CurrentStageData.Boss_Soul);
 
             var popup = UIManager.Instance.Show<ConfirmUI>();
             popup.Setup(new ConfirmPopupData
             {
                 Title = "",
-                Message = $"{currentStageData.Boss_names[0]} Vanquished.",
+                // Message = $"{currentStageData.Boss_names[0]} Vanquished.\nYou obtained a Soul.",
+                Message = LocalizationUtility.ChooseLocalizedString(
+                    "{0} Vanquished.\nYou obtained a Soul.",
+                    "{0} 처치 완료.\n영혼을 획득했습니다.").Replace("{0}", currentStageData.Boss_names[0]),
                 Type = EConfirmPopupType.SOUL_ACQUIRE_OK,
-                ItemSprite = soulSprite
+                ItemSprite = bossPortrait,
+                SoulSprite = soul
             });
         }
     }
@@ -317,7 +323,9 @@ public class StageManager : Singleton<StageManager>
         CurrentState = EStageState.Finished;
 
         currentStageController?.OnStageDefeat();
-        
+
+        CursorManager.Instance.SetInGame(false);
+
         if (currentStageData != null && currentStageController != null)
         {
             float monsterFullHp = -1f;
@@ -349,7 +357,7 @@ public class StageManager : Singleton<StageManager>
             GameManager.Instance.StartStage((int)EStageType.Tutorial);
             yield break;
         }
-        
+
         UIManager.Instance.Show<DefeatUI>();
     }
     #endregion
@@ -487,6 +495,8 @@ public class StageManager : Singleton<StageManager>
         {
             Cursor.visible = true;
 
+            AchievementManager.Instance.ReportEvent(EMissionType.Death);
+
             StartCoroutine(DefeatRoutine());
         }
     }
@@ -528,6 +538,7 @@ public class StageManager : Singleton<StageManager>
         {
             // 타임오버 시 플레이어 사망 처리
             PlayerManager.Instance.player.runFSM = false; // FSM 멈추기
+            Debug.Log("[StageManager] 타임 오버로 인한 플레이어 사망");
             OnPlayerDiedHandler(true);
         }
         else
@@ -543,15 +554,15 @@ public class StageManager : Singleton<StageManager>
             // 로비에서 다른 팝업이 열려있을 때 옵션창이 아닌 다른 팝업이 열려있다면 모두 닫기
             if (UIManager.Instance.PopupStack.Count == 1 && UIManager.Instance.PopupStack.Peek().GetType() != typeof(OptionUI))
             {
-                UIManager.Instance.CloseAllPopups();
-                CursorManager.Instance.SetInGame(true);
-                PlayerManager.Instance.player.PlayerInputEnable();
+                UIManager.Instance.CloseAllPopupsAndResumeGame();
                 return;
             }
         }
+        
+        CursorManager.Instance.SetInGame(false);
 
         // 게임이 진행 중일 때 -> 일시정지 상태로 변경
-        if (CurrentState == EStageState.InProgress)
+        if (CurrentState == EStageState.InProgress || CurrentState == EStageState.Ready)
         {
             CurrentState = EStageState.Paused;
             Time.timeScale = 0f; // 게임 시간 정지
@@ -562,7 +573,8 @@ public class StageManager : Singleton<StageManager>
                 optionPopup.Setup(new OptionUIData
                 {
                     Type = EOptionUIType.Lobby,
-                    ExitText = "Quit Game",
+                    // ExitText = "Quit Game",
+                    ExitText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.QUIT),
                     OnClickExitAction = () =>
                     {
                         GameManager.Instance.QuitGame();
@@ -571,8 +583,8 @@ public class StageManager : Singleton<StageManager>
                     {
                         CurrentState = EStageState.InProgress;
                         Time.timeScale = 1f; // 게임 시간 다시 시작
-                        UIManager.Instance.Hide<OptionUI>();
                         CursorManager.Instance.SetInGame(true);
+                        UIManager.Instance.Hide<OptionUI>();
                     }
                 });
             }
@@ -581,7 +593,8 @@ public class StageManager : Singleton<StageManager>
                 optionPopup.Setup(new OptionUIData
                 {
                     Type = EOptionUIType.Stage,
-                    ExitText = "Back to Lobby",
+                    // ExitText = "Back to Lobby",
+                    ExitText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.BACKTOLOBBY),
                     OnClickExitAction = () =>
                     {
                         GameManager.Instance.GoToLobby();
@@ -590,23 +603,18 @@ public class StageManager : Singleton<StageManager>
                     {
                         CurrentState = EStageState.InProgress;
                         Time.timeScale = 1f; // 게임 시간 다시 시작
-                        UIManager.Instance.Hide<OptionUI>();
                         CursorManager.Instance.SetInGame(true);
+                        UIManager.Instance.Hide<OptionUI>();
                     }
                 });
             }
-
-            CursorManager.Instance.SetInGame(false);
         }
         // 일시정지 상태일 때 -> 게임 진행 상태로 변경
         else if (CurrentState == EStageState.Paused)
         {
             CurrentState = EStageState.InProgress;
-            Time.timeScale = 1f; // 게임 시간 다시 시작
-
-            UIManager.Instance.CloseAllPopups();
-
-            CursorManager.Instance.SetInGame(true);
+            Time.timeScale = 1f;
+            UIManager.Instance.CloseAllPopupsAndResumeGame();
         }
     }
     #endregion

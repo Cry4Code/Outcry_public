@@ -1,11 +1,16 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using Cysharp.Threading.Tasks;
-using Unity.VisualScripting.Antlr3.Runtime;
 using UnityEngine;
-using UnityEngine.InputSystem.EnhancedTouch;
-using UnityEngine.Serialization;
+
+[Flags]
+public enum ePlayerBuff
+{
+    None = 0,
+    PowerUp = 1 << 1,
+    DeadHard = 1 << 2
+}
+
 
 public class PlayerCondition : MonoBehaviour, IDamagable
 {
@@ -18,6 +23,8 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     private float recoveryFullTime;
     private float recoveryStaminaThresholdTime;
     private float k; // k = (최대 스태미나) / (최대 회복시간)^2
+    public Observable<bool> cantUseCuzStamina;
+    public Observable<bool> cantUseCuzCooldown;
 
     [Header("Invincible Settings")] 
     public bool GodMode;
@@ -28,49 +35,55 @@ public class PlayerCondition : MonoBehaviour, IDamagable
     private WaitForSecondsRealtime waitInvisible;
     
     [Header("Obstacle Settings")]
-    [HideInInspector] public Observable<bool> behindObstacle;
+    public LayerMask obstacleMask;
 
     private bool needCheckObstacle = false;
     private Vector3 boundX;
     private Vector3 boundY;
-    public LayerMask obstacleMask;
+    [HideInInspector] public Observable<bool> behindObstacle;
 
 
     [Header("Potion Settings")] 
-    [HideInInspector] public Observable<bool> getPotion; // 포션 먹기 시작했는지!
-    
-    public int potionCount = 3;
+    public int potionInitialCount = 3;
     public int potionHealthRecovery = 3;
+
+    [HideInInspector] public Observable<int> potionCount;
+    [HideInInspector] public Observable<bool> getPotion; // 포션 먹기 시작했는지!
 
     [Header("Damaged Feedback Settings")] 
     public float flashTime;
     public float flashSpeed;
     
-    
+    [Header("Buff Settings")]
+    [SerializeField] public ePlayerBuff playerBuff;
     
     private PlayerController controller;
     private Coroutine invincibleCoroutine;
     [HideInInspector] public Observable<bool> isDead;
 
+    public bool WasHitThisStage;
+
     private void Awake()
     {
         controller = GetComponent<PlayerController>();
         canStaminaRecovery = new Observable<bool>(EventBusKey.ChangeStaminaRecovery, false);
+        potionCount = new Observable<int>(EventBusKey.ChangePotionCount, potionInitialCount);
+        cantUseCuzStamina = new Observable<bool>(EventBusKey.CantUseCuzStamina, false);
+        cantUseCuzCooldown = new Observable<bool>(EventBusKey.CantUseCuzCooldown, false);
         isDead = new Observable<bool>(EventBusKey.ChangePlayerDead, false);
         getPotion = new Observable<bool>(EventBusKey.GetPotion, false);
         behindObstacle = new Observable<bool>(EventBusKey.ChangeHideObstacle, false);
+
+        WasHitThisStage = false;
     }
-    
-    
 
     private void ConditionSettings()
     {
         EventBus.Unsubscribe(EventBusKey.ChangeStaminaRecovery, OnStaminaRecoveryChanged);
         EventBus.Unsubscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
         EventBus.Unsubscribe(EventBusKey.ChangeHideObstacle, OnHideObstacleChanged);
-        // 테스트 코드
-        /*EventBus.Unsubscribe(EventBusKey.GetPotion, TestGetPotion);*/
-        
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzStamina, CannotActionCuzStamina);
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzCooldown, CannotActionCuzCooldown);
         
         health.maxValue = controller.Data.maxHealth;
         stamina.maxValue = controller.Data.maxStamina;
@@ -81,8 +94,8 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         EventBus.Subscribe(EventBusKey.ChangeStaminaRecovery, OnStaminaRecoveryChanged);
         EventBus.Subscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
         EventBus.Subscribe(EventBusKey.ChangeHideObstacle, OnHideObstacleChanged);
-        // 테스트 코드
-        /*EventBus.Subscribe(EventBusKey.GetPotion, TestGetPotion);*/
+        EventBus.Subscribe(EventBusKey.CantUseCuzStamina, CannotActionCuzStamina);
+        EventBus.Subscribe(EventBusKey.CantUseCuzCooldown, CannotActionCuzCooldown);
     }
     
     private void OnDisable()
@@ -90,6 +103,8 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         EventBus.Unsubscribe(EventBusKey.ChangeStaminaRecovery, OnStaminaRecoveryChanged);
         EventBus.Unsubscribe(EventBusKey.ChangeStamina, OnStaminaChanged);
         EventBus.Unsubscribe(EventBusKey.ChangeHideObstacle, OnHideObstacleChanged);
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzStamina, CannotActionCuzStamina);
+        EventBus.Unsubscribe(EventBusKey.CantUseCuzCooldown, CannotActionCuzCooldown);
     }
 
     void Start()
@@ -149,6 +164,7 @@ public class PlayerCondition : MonoBehaviour, IDamagable
 
         if (health.CurValue() <= 0f && !isDead.Value)
         {
+            Debug.Log("[StageManager] 체력 소모로 인한 플레이어 사망");
             Die();
         }
     }
@@ -172,10 +188,14 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         {
             if (invincibleCoroutine != null) return;
             invincibleCoroutine = StartCoroutine(Invincible(controller.Data.parryInvincibleTime));
+            return;
         }
         if(!isCharge) invincibleCoroutine = StartCoroutine(Invincible());
         Debug.Log("[플레이어] 플레이어 데미지 받음");
         health.Substract(damage);
+
+        WasHitThisStage = true;
+
         controller.Animator.DamagedFeedback(flashTime, flashSpeed);
         EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.Damaged, EffectOrder.Player, controller.gameObject)
             .Forget();
@@ -191,12 +211,17 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         }
     }
 
+    public void DeadHard(float time)
+    {
+        StartCoroutine(Invincible(time, true));
+    }
+
     public void NoMoreInvincible()
     {
         isInvincible = false;
         if(invincibleCoroutine != null) StopCoroutine(invincibleCoroutine);
     }
-
+    
     IEnumerator Invincible()
     {
         Debug.Log("[플레이어] 플레이어 무적 시작");
@@ -207,13 +232,28 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         Debug.Log("[플레이어] 플레이어 무적 끝");
     }
 
-    IEnumerator Invincible(float time)
+    IEnumerator Invincible(float time, bool isBuff = false)
     {
+        if (isBuff)
+        {
+            controller.Condition.playerBuff |= ePlayerBuff.DeadHard;
+        }
         Debug.Log("[플레이어] 플레이어 무적 시작");
         isInvincible = true;
         yield return new WaitForSecondsRealtime(time);
+        // 만약에 이 코루틴을 부른 이유가 버프가 아니고
+        // 지금 DeadHard가 켜져있는 상태면 무적을 끄면 안됨.
+        // ex) 데드하드 킨 채로 패링이면 무적 끄면 안됨
+        if (!isBuff && controller.Condition.playerBuff.HasFlag(ePlayerBuff.DeadHard))
+        {
+            yield break;
+        }
         isInvincible = false;
         invincibleCoroutine = null;
+        if (isBuff)
+        {
+            controller.Condition.playerBuff &= ~ePlayerBuff.DeadHard;
+        }
         Debug.Log("[플레이어] 플레이어 무적 끝");
     }
 
@@ -230,11 +270,25 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         }
         else
         {
+            // 스태미나 때문에 사용 불가능한거 티내기
+            cantUseCuzStamina.Value = true;
             Debug.Log($"[플레이어] 스태미나 {useStamina} 사용 불가");
             canStaminaRecovery.Value = true;
+            cantUseCuzStamina.Value = false;
             return false;
         }
         
+    }
+
+    public bool CheckCooldown(float lastUsedTime, float cooldown)
+    {
+        if (Time.time - lastUsedTime < cooldown)
+        {
+            cantUseCuzCooldown.Value = true;
+            cantUseCuzCooldown.Value = false;
+            return false;
+        }
+        return true;
     }
 
     private void Die()
@@ -312,20 +366,21 @@ public class PlayerCondition : MonoBehaviour, IDamagable
         controller.Hitbox.spriteRenderer.SetPropertyBlock(mpb);
     }
 
-    
-    // 테스트 코드. 참고하세요
-    /*
-    public void TestGetPotion(object data)
+    private void CannotActionCuzStamina(object o)
     {
-        if ((bool)data)
+        if ((bool)o)
         {
-            Debug.Log("[플레이어] 포션 먹기 시작");
+            Debug.Log("[CantUse] Because You have no stamina");
         }
-        else
+    }
+
+    private void CannotActionCuzCooldown(object o)
+    {
+        if ((bool)o)
         {
-            Debug.Log("[플레이어] 포션 먹기 끝");
+            Debug.Log("[CantUse] Because It's Cooldown");
         }
-    }*/
+    }
     
     
 }

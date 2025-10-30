@@ -167,6 +167,12 @@ public class HallOfBloodStageController : StageController
         GameObject bossInstance = SpawnMonsterAt(walkingBossPrefab, walkingBossId, phase1SpawnPoint);
         SettingBossHpBar();
 
+        // 인게임 마우스 커서가 먼저 나오지 않게 조절
+        await UniTask.Yield(PlayerLoopTiming.Update);
+        await UniTask.Yield(PlayerLoopTiming.Update);
+
+        InitializeInGameCursor();
+
         if (bossInstance != null)
         {
             bossMonster = bossInstance.GetComponent<MonsterBase>();
@@ -187,6 +193,10 @@ public class HallOfBloodStageController : StageController
         EffectManager.Instance.PlayEffectByIdAndTypeAsync(9900, EffectType.Camera).Forget();
 
         await FadeManager.Instance.FadeOut();
+
+        // 인게임 커서 숨기기, 사용자 입력 막기
+        CursorManager.Instance.SetInGame(false);
+        PlayerManager.Instance.player.PlayerInputDisable();
 
         // 카메라 경계를 페이즈 2용으로 업데이트
         if (stageManager != null && phase2BoundsTilemap != null)
@@ -243,6 +253,15 @@ public class HallOfBloodStageController : StageController
                 ChangeBossHp(bossMonster, prevHP);
             }).Forget();
         }
+
+        // 사용자 입력 활성화
+        PlayerManager.Instance.player.PlayerInputEnable();
+
+        // 다음 프레임까지 기다려서 마우스 좌표가 갱신될 시간 준다
+        await UniTask.NextFrame(cancellationToken: this.GetCancellationTokenOnDestroy());
+
+        // 갱신된 좌표를 바탕으로 커서를 안전하게 표시
+        CursorManager.Instance.SetInGame(true);
 
         await FadeManager.Instance.FadeIn();
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using UnityEngine;
 
 public class FireballController : ProjectileBase
@@ -41,6 +42,7 @@ public class FireballController : ProjectileBase
 
         if (rb) rb.velocity = Vector2.zero;
         if (animator) animator.SetBool(AnimatorHash.ProjectileParameter.Triggered, true);
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(1032021,  EffectType.Sound, gameObject).Forget();
     }
 
     private void FixedUpdate()

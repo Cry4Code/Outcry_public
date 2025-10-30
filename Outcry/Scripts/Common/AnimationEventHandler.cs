@@ -9,4 +9,9 @@ public class AnimationEventHandler : MonoBehaviour
     { 
         EffectManager.Instance.PlayEffectsByIdAsync(effectId, EffectOrder.Monster, gameObject).Forget();
     }
+
+    public void PlayEffectSound(int effectId)
+    {
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(effectId, EffectType.Sound, gameObject).Forget();
+    }
 }

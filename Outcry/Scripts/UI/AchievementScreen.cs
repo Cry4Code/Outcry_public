@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI; // LayoutRebuilder
@@ -11,7 +12,7 @@ public class AchievementScreen : MonoBehaviour
 
     private void OnEnable()
     {
-        Rebuild();
+        StartCoroutine(CoWaitAndRebuild());
     }
 
     private void OnDisable()
@@ -37,19 +38,25 @@ public class AchievementScreen : MonoBehaviour
             var bar = Instantiate(barPrefab, contentParent);
             bar.name = $"Achievement_{entry.id}";
 
-            // 설명(Conditions) 먼저
-            var label = string.IsNullOrWhiteSpace(entry.data.Conditions)
-                ? $"목표: {entry.data.Counts}"
-                : entry.data.Conditions;
+            // 설명(Desc) 먼저
+            // var label = string.IsNullOrWhiteSpace(entry.data.Desc)
+            //     ? $"목표: {entry.data.Counts}"
+            //     : entry.data.Desc;
+            var label = LocalizationUtility.IsCurrentLanguage("en") ? entry.data.Desc : entry.data.Desc_Ko;
             bar.SetConditions(label);
 
-            // ★ 목표값(Condition) 숫자도 별도 TMP에 표시
+            // 목표값(Condition) 숫자도 별도 TMP에 표시
             bar.SetTarget(entry.data.Counts);
 
             // ★ 나중에 AchievementsBar에 초기화 메서드를 만들면 여기서 호출
-            // var bar = go.GetComponent<AchievementsBar>();
-            // bar.SetData(entry.id, entry.data); // 원하는 시그니처로 추가하면 됨
 
+            bar.SetGrade(entry.data.Grade);
+
+            // 추가: 퍼센트 계산 → 정수 반올림 → 바에 표시
+            float ratio01 = Mathf.Clamp01(AchievementManager.Instance.ShowPersent(entry.id));
+            int percentInt = Mathf.RoundToInt(ratio01 * 100f);
+            bar.SetPercent(percentInt);
+            bar.SetProgress01(ratio01);     // ★ 막대 fillAmount
             spawned.Add(bar.gameObject);
         }
 
@@ -75,4 +82,17 @@ public class AchievementScreen : MonoBehaviour
             Destroy(contentParent.GetChild(i).gameObject);
         }
     }
+
+    private IEnumerator CoWaitAndRebuild()
+    {
+        // AchievementManager와 그 안의 CurrentUserData가 준비될 때까지 대기
+        while (AchievementManager.Instance == null ||
+               AchievementManager.Instance.currentUserData == null)
+        {
+            yield return null; // 다음 프레임
+        }
+
+        Rebuild(); // 이제 안전하게 퍼센트 계산 가능
+    }
+
 }

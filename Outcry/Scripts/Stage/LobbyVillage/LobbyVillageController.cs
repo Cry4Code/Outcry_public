@@ -11,6 +11,8 @@ public class LobbyVillageController : StageController
 
         await UniTask.Delay(TimeSpan.FromSeconds(0.1f));
 
+        InitializeInGameCursor();
+
         await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.Lobby);
     }
 

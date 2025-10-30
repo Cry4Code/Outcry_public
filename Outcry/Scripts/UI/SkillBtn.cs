@@ -14,6 +14,7 @@ public class SkillBtn : MonoBehaviour
     [SerializeField] private Button buyBtn;
     [SerializeField] private TextMeshProUGUI selfInfoText;   // ★추가
     [SerializeField] private Image iconImage;
+    [SerializeField] private Image soulsprite;
     
     [SerializeField] private ShowSkillPreview previewPlayer;
     public void SetPreviewPlayer(ShowSkillPreview p) { previewPlayer = p; }
@@ -72,11 +73,23 @@ public class SkillBtn : MonoBehaviour
 
     }
 
+    private void OnEnable()
+    {
+        RefreshSkillInformation();
+    }
+
     public void Bind(SkillData data)
     {
         Data = data;
         Debug.Log($"[SkillBtn] Bind 완료: {data?.Skill_id}", this);
         Debug.Log($"[Bind] {gameObject.name} / id={data?.Skill_id}", this);
+
+        // 보스 소울 스프라이트 바인딩
+        Sprite soul = GameManager.Instance.GetSprite(data.NeedSoul);
+        if (soul != null)
+        {
+            soulsprite.sprite = soul;
+        }
 
         // ★추가: 아이콘 바인딩 (Skill_id 기준)
         if (iconImage != null && iconPairs != null)
@@ -97,17 +110,8 @@ public class SkillBtn : MonoBehaviour
             }
         }
 
-        // ★추가: 텍스트 즉시 출력(동적 생성 시 바로 보이게)
-        if (selfInfoText != null && Data != null)
-        {
-            int[] d = Data.Damages ?? Array.Empty<int>();
-            string dmgText = (d.Length == 0 || d.All(x => x == 0))
-                ? "없음"
-                : (d.Length == 1 ? $"{d[0]}"
-                                 : string.Join(", ", d.Select((val, idx2) => val == 0 ? null : $"{idx2 + 1}HIT: {val}")
-                                                      .Where(s => s != null)));
-            selfInfoText.text = $"Skillname: {Data.P_Skill_Name}\nSkillDamage: {dmgText}\nSkillCost: {Data.Stamina}";
-        }
+        RefreshSkillInformation();
+
         //여기 코드는 기본적인 내가 생각할 수 있는 코드
         /*
         int[] damages = Data.Damages;
@@ -150,6 +154,33 @@ public class SkillBtn : MonoBehaviour
 
     }
 
+    private void RefreshSkillInformation()
+    {
+        // ★추가: 텍스트 즉시 출력(동적 생성 시 바로 보이게)
+        if (selfInfoText != null && Data != null)
+        {
+            int[] d = Data.Damages ?? Array.Empty<int>();
+            // 0은 합산에서 제외
+            int total = 0;
+            for (int i = 0; i < d.Length; i++)
+            {
+                if (d[i] > 0) total += d[i];
+            }
+
+            string dmgText = (d.Length == 0 || total == 0) ? "NONE" : total.ToString();
+            float cd = Data.Cooldown;
+            string cond = Data.Condition;
+            // selfInfoText.text = $"Skillname: {Data.P_Skill_Name}\nSkillDamage: {dmgText}\nSkillCost: {Data.Stamina}\n"+$"Cooldown: {cd}\n" +$"Condition: {cond}";
+            var localizedNameText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.NAME);
+            var localizedDamageText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.DAMAGE);
+            var localizedCostText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.COST);
+            var localizedCooldownText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Skill.COOLDOWN);
+            var localizedSkillName = LocalizationUtility.IsCurrentLanguage("en") ? Data.P_Skill_Name : Data.P_Skill_Name_Ko;
+            var localizedCondition = LocalizationUtility.IsCurrentLanguage("en") ? Data.Condition : Data.Condition_Ko;
+            // Debug.Log("[한글화]" + localizedSkillName);
+            selfInfoText.text = $"{localizedNameText}: {localizedSkillName}\n{localizedDamageText}: {dmgText}\n{localizedCostText}: {Data.Stamina}\n{localizedCooldownText}:{cd}\n{localizedCondition}";
+        }
+    }
     public void OnToggleChanged(bool isOn)
     {
         Debug.Log($"토글 체인지드 호출됨");

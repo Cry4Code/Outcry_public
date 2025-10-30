@@ -118,8 +118,23 @@ public class PlayerMove : MonoBehaviour
         //StageManager.Instance.TogglePause();
         //CursorManager.Instance.SetInGame(!CursorManager.Instance.IsInGame);
 
-        // 키가 눌리는 순간(Started)에만 한 번 호출되도록 하여 중복 실행을 방지합니다.
+        // 키가 눌리는 순간(Started)에만 한 번 호출되도록 하여 중복 실행 방지
         if (context.started)
+        {
+            StartCoroutine(PauseAfterFrame());
+        }
+    }
+
+    /// <summary>
+    /// 한 프레임을 기다린 후 StageManager의 TogglePause를 호출하는 코루틴
+    /// </summary>
+    private IEnumerator PauseAfterFrame()
+    {
+        // 현재 프레임의 렌더링이 끝날 때까지 기다림
+        yield return new WaitForEndOfFrame();
+
+        // 모든 것이 준비된 다음 프레임에 TogglePause 호출
+        if (StageManager.Instance != null)
         {
             StageManager.Instance.TogglePause();
         }

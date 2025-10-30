@@ -8,7 +8,7 @@ public class BloodStingSkillSequenceNode : SkillSequenceNode
     //애니메이터 추가
     private Animator animator;
     // 상수
-    private const float MOVE_SPEED = 40f;   // 이동 속도
+    private const float MOVE_SPEED = 60f;   // 이동 속도
     private const float ALLOW_GAP = 1.0f;
     private const float FORCED_EXIT_TIME = 2f;
 

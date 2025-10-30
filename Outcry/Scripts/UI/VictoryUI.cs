@@ -14,6 +14,7 @@ public class VictoryUI : UIPopup
 
     private void OnExitButtonClicked()
     {
+        Debug.Log($"[Button] 클리어 버튼 눌림");
         GameManager.Instance.GoToLobby();
     }
 }

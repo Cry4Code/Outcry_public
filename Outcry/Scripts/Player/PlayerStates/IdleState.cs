@@ -26,6 +26,7 @@ public class IdleState : GroundSubState
         
         controller.Animator.OnBoolParam(AnimatorHash.PlayerAnimation.Idle);
         controller.Inputs.Player.Move.Enable();
+        controller.Inputs.Player.Look.Enable();
     }
 
     public override async void HandleInput(PlayerController controller)

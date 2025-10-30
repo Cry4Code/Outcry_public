@@ -47,30 +47,15 @@ public class GoblinFighterAI : MonsterAIBase
         attackSequence.nodeName = "AttackSequenceNode";
         behaviorSelector.AddChild(attackSequence);
 
-        SelectorNode skillSelector = new SelectorNode();    // 공격 셀랙터
-        skillSelector.nodeName = "SkillSelectorNode";
-        attackSequence.AddChild(skillSelector);
-
-        // 스킬 쿨타임 순으로 재정렬
-        var entries = monsterModel.commonSkillsIds
-            .Select(id =>
-            {
-                DataManager.Instance.MonsterSkillDataList.TryGetMonsterSkillModelData(id, out MonsterSkillModel data);
-                return new { id, data };
-            })
-            .Where(x => x.data != null)                 // null 무시
-            .OrderByDescending(x => x.data.cooldown)    // 쿨타임 내림차순으로 정렬
-            .ThenBy(x => x.id)                          // 동률 시, id 순 정렬
-            .ToList();
-
-        // 정렬된 순서로 노드 생성, 추가
-        foreach (var x in entries)
+        // 공격 노드 생성 및 추가
+        foreach (int id in monsterModel.commonSkillsIds)
         {
-            DataManager.Instance.SkillSequenceNodeDataList.TryGetSkillSequenceNode(x.id, out SkillSequenceNode skillNode);
+            DataManager.Instance.SkillSequenceNodeDataList.TryGetSkillSequenceNode(id, out var skillnode);
+            DataManager.Instance.MonsterSkillDataList.TryGetMonsterSkillModelData(id, out var skillData);
 
-            skillNode.InitializeSkillSequenceNode(monster, target);
-            skillNode.nodeName = "S_SkillNode_" + x.data.skillName;  // 디버깅용 노드 이름 설정
-            skillSelector.AddChild(skillNode);
+            skillnode.InitializeSkillSequenceNode(monster, target);
+            skillnode.nodeName = "S_SkillNode_" + skillData.skillName;
+            attackSequence.AddChild(skillnode);
         }
 
         // 공격 후 대기
@@ -101,7 +86,7 @@ public class GoblinFighterAI : MonsterAIBase
         var notDetected = new InverterNode();
         var isDetected = new IsDetectableConditionNode(monster.transform, target.transform, monsterModel.detectRange);
         notDetected.SetChild(isDetected);
-        var patrolAction = new PatrolActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
+        var patrolAction = new PatrolPingPongActionNode(monster.Rb2D, monster.transform, monsterModel.patrolSpeed, monster.Animator);
         var patrolGuarded = new WhileTrueDecorator(notDetected, patrolAction);
         patrolSeqence.AddChild(patrolGuarded);
 

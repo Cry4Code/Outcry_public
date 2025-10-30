@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -106,6 +107,59 @@ public class UIManager : Singleton<UIManager>
         }
     }
 
+    public void CloseAllPopupsWithoutSound()
+    {
+        while (popupStack.Count > 0)
+        {
+            // 스택에서 하나씩 꺼내서 닫기
+            UIPopup popup = popupStack.Pop();
+            popup.CloseWithoutSound();
+        }
+    }
+
+    public void CloseAllPopupsAndResumeGame()
+    {
+        StartCoroutine(CloseAllPopupsAndResumeRoutine());
+    }
+
+    private IEnumerator CloseAllPopupsAndResumeRoutine()
+    {
+        // 모든 팝업 UI 닫음
+        CloseAllPopups();
+
+        // 현재 프레임의 렌더링이 끝날 때까지 기다림
+        yield return new WaitForEndOfFrame();
+
+        // 커서 활성화하고 플레이어 입력 받음
+        CursorManager.Instance.SetInGame(true);
+        if (PlayerManager.Instance != null && PlayerManager.Instance.player != null)
+        {
+            PlayerManager.Instance.player.PlayerInputEnable();
+        }
+    }
+
+    public void ClosePopupAndResumeGame<T>() where T : UIPopup
+    {
+        StartCoroutine(ClosePopupAndResumeRoutine<T>());
+    }
+
+    private IEnumerator ClosePopupAndResumeRoutine<T>() where T : UIPopup
+    {
+        // 지정된 타입 UI 닫음
+        Hide<T>();
+
+        // 현재 프레임의 렌더링이 모두 끝날 때까지 기다림
+        // 이 대기 시간 동안 Input 시스템이 실제 마우스 위치를 갱신할 시간 확보
+        yield return new WaitForEndOfFrame();
+
+        // 안전하게 커서 활성화하고 플레이어 입력을 받음
+        CursorManager.Instance.SetInGame(true);
+        if (PlayerManager.Instance != null && PlayerManager.Instance.player != null)
+        {
+            PlayerManager.Instance.player.PlayerInputEnable();
+        }
+    }
+
     /// <summary>
     /// 팝업 스택을 기반으로 캔버스의 SortingOrder 재정렬
     /// </summary>
@@ -183,12 +237,12 @@ public class UIManager : Singleton<UIManager>
 
     public void ClearUIPool()
     {
-        CloseAllPopups(); // 모든 팝업 닫기
+        CloseAllPopupsWithoutSound(); // 모든 팝업 닫기
 
         // 모든 UI를 닫고 딕셔너리 클리어
         foreach (var ui in uis.Values)
         {
-            ui.Close();
+            ui.CloseWithoutSound();
             Destroy(ui.gameObject);
         }
 

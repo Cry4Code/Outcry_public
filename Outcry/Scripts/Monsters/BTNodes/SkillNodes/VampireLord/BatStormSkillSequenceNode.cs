@@ -318,6 +318,8 @@ public class BatStormSkillSequenceNode : SkillSequenceNode
             return NodeState.Running;
         }
 
+        monster.Condition.SetInivincible(true);
+
         // 5초가 지나면 페이즈 전환 신호 보내기
         if (stageController != null)
         {

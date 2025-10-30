@@ -203,6 +203,8 @@ public class BloodMoonSkillSequenceNode : SkillSequenceNode
             bloodMoonInstance = ObjectPoolManager.Instance.GetObject(AddressablePaths.UI.BloodMoon, stageController.BloodMoon.transform);
             bloodMoonAnimator = bloodMoonInstance.GetComponent<Animator>();
             bloodMoonInstance.transform.position = new Vector3(stageController.BloodMoon.transform.position.x, stageController.BloodMoon.transform.position.y);
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.BloodMoon * 10, EffectType.Sound,
+                bloodMoonInstance).Forget();
             if (bloodMoonInstance != null)
             {
                 // 플레이어가 BloodMoon을 바라보도록 방향 전환

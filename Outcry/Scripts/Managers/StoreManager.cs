@@ -7,16 +7,12 @@ public class StoreManager : Singleton<StoreManager>
 {
     //데이터 테이블 매니저에서 스킬 데이터를 받아온다
     //유저 데이터를 통해서 가지고 있는 스킬, 가지고 있는 소울과 그 갯수를 가져온다.
-
     private Dictionary<int, SkillData> skillDict = new Dictionary<int, SkillData>();
-
-    public UserData CurrentUserData { get; private set; }
 
     private void Awake()
     {
         DataTableManager.Instance.LoadCollectionData<SkillDataTable>();
         DataTableManager.Instance.LoadCollectionData<SoulDataTable>();
-
     }
 
     public Dictionary<int,SkillData> InitializeSkillData()
@@ -33,8 +29,6 @@ public class StoreManager : Singleton<StoreManager>
         }
         return skillDict;
     }
-
-
 
     public List<SkillData> GetOrderedSkills() //스킬을 순서대로 정렬
     {

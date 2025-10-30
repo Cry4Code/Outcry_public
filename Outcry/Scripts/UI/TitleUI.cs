@@ -1,3 +1,4 @@
+using Cysharp.Threading.Tasks;
 using StageEnums;
 using System;
 using TMPro;
@@ -15,25 +16,31 @@ public class TitleUI : UIBase
     // UPA 로그인 시도를 추적하기 위한 플래그
     private bool isAttemptingUPALogin = false;
 
+    private Action onLoginSuccessHandler;
+
     private void Awake()
     {
         guestLoginBtn.onClick.AddListener(OnClickGuestLogin);
         emailLoginBtn.onClick.AddListener(OnClickEmailLogin);
         settingsBtn.onClick.AddListener(OnClickSettings);
         quitBtn.onClick.AddListener(OnClickQuit);
+
+        onLoginSuccessHandler = () => HandleLoginSuccess().Forget();
     }
 
     private void Start()
     {
-#if UNITY_WEBGL
+#if UNITY_WEBGL && !UNITY_EDITOR
         emailLoginBtn.gameObject.SetActive(false);
-        guestLoginTxt.text = "Start";
+        guestLoginTxt.text = LocalizationUtility.ChooseLocalizedString(
+                "Start",
+                "시작하기");
 #endif
 
         // UGSManager가 준비되었는지 확인 후 이벤트 구독
         if (UGSManager.Instance != null)
         {
-            UGSManager.Instance.OnLoginSuccess += HandleLoginSuccess;
+            UGSManager.Instance.OnLoginSuccess += onLoginSuccessHandler;
             UGSManager.Instance.OnLoginFailure += HandleLoginFailure;
         }
     }
@@ -43,7 +50,7 @@ public class TitleUI : UIBase
         // UGSManager가 TitleUI보다 먼저 파괴될 수 있는 예외적인 경우(예: 게임 종료 시) 대비
         if (UGSManager.Instance != null)
         {
-            UGSManager.Instance.OnLoginSuccess -= HandleLoginSuccess;
+            UGSManager.Instance.OnLoginSuccess -= onLoginSuccessHandler;
             UGSManager.Instance.OnLoginFailure -= HandleLoginFailure;
         }
     }
@@ -68,7 +75,7 @@ public class TitleUI : UIBase
     /// <summary>
     /// 로그인 성공 이벤트가 발생하면 호출될 핸들러
     /// </summary>
-    private async void HandleLoginSuccess()
+    private async UniTask HandleLoginSuccess()
     {
         Debug.Log("Login successful! Loading user data and transitioning UI.");
 
@@ -81,7 +88,7 @@ public class TitleUI : UIBase
         // 게스트 로그인은 바로 튜토리얼 시작
         if (UGSManager.Instance.IsAnonymousUser && allSlotsData.Count == 0)
         {
-            GameManager.Instance.StartNewGameAsaGuest();
+            GameManager.Instance.StartNewGameAsaGuest().Forget();
             return;
         }
 
@@ -140,29 +147,33 @@ public class TitleUI : UIBase
         Debug.Log("Guest Login Clicked");
         EffectManager.Instance.ButtonSound();
         var popup = UIManager.Instance.Show<ConfirmUI>();
-#if UNITY_WEBGL
+#if UNITY_WEBGL  && !UNITY_EDITOR
         popup.Setup(new ConfirmPopupData
         {
-            Title = "Warning",
-            Message = "Saving is not available in the WebGL version.\n Please launch the Windows version and log in to save your game.",
+            Title = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.WARNING),
+            Message = LocalizationUtility.ChooseLocalizedString(
+                "Saving is not available in the WebGL version.\n Please launch the Windows version and log in to save your game.",
+                "WebGL 버전에서는 저장 기능을 사용할 수 없습니다.\n게임을 저장하려면 Windows 버전을 실행하고 로그인해 주십시오."),
             Type = EConfirmPopupType.OK_CANCEL,
-            OnClickOK = async () =>
+            OnClickOK = () =>
             {
                 SetButtonsInteractable(false);
-                await UGSManager.Instance.SwitchToNewGuestAccountAsync();
+                UGSManager.Instance.SwitchToNewGuestAccountAsync().Forget();
             },
             OnClickCancel = null
         });
 #else
         popup.Setup(new ConfirmPopupData
         {
-            Title = "Warning",
-            Message = "Guest accounts do not save data.\n You can save after linking your account.",
+            // Title = "Warning",
+            // Message = "Guest accounts do not save data.\n You can save after linking your account.",
+            Title = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.WARNING),
+            Message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.SaveLoad.MESSAGE_GUESTWARNING),
             Type = EConfirmPopupType.OK_CANCEL,
-            OnClickOK = async () =>
+            OnClickOK = () =>
             {
                 SetButtonsInteractable(false);
-                await UGSManager.Instance.SwitchToNewGuestAccountAsync();
+                UGSManager.Instance.SwitchToNewGuestAccountAsync().Forget();
             },
             OnClickCancel = null
         });
@@ -194,7 +205,8 @@ public class TitleUI : UIBase
         var optionPopup = UIManager.Instance.Show<OptionUI>();
         optionPopup.Setup(new OptionUIData
         {
-            ExitText = "Exit",
+            // ExitText = "Exit",
+            ExitText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.EXIT),
             Type = EOptionUIType.Title,
             OnClickExitAction = null // 기본 동작(UI 닫기)
         });

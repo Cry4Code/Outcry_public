@@ -17,6 +17,8 @@ public class SkillData : IData
     public string Desc;
     public int NeedSoul;
     public string Condition;
+    public string P_Skill_Name_Ko;
+    public string Condition_Ko;
 }
 
 [Serializable]

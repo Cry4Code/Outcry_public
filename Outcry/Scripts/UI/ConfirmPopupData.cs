@@ -22,6 +22,7 @@ public class ConfirmPopupData
 
     // 동적으로 표시할 아이템/소울 이미지
     public Sprite ItemSprite;
+    public Sprite SoulSprite;
 }
 
 // 사용 예시

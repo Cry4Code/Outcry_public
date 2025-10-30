@@ -123,9 +123,12 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
         ConfirmUI popup = UIManager.Instance.Show<ConfirmUI>();
         popup.Setup(new ConfirmPopupData
         {
-            Title = "Warning",
-            Message = "Are you sure you want to delete this?",
-            OkButtonText = "Delete",
+            // Title = "Warning",
+            // Message = "Are you sure you want to delete this?",
+            // OkButtonText = "Delete",
+            Title = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.WARNING),
+            Message = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.SaveLoad.MESSAGE_DELETE),
+            OkButtonText = LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.DELETE),
             Type = EConfirmPopupType.OK_CANCEL,
 
             // 삭제 버튼을 눌렀을 때 실행될 로직
@@ -156,8 +159,10 @@ public class SaveLoadManager : Singleton<SaveLoadManager>
                     var failPopup = UIManager.Instance.Show<ConfirmUI>();
                     failPopup.Setup(new ConfirmPopupData
                     {
-                        Title = "Error",
-                        Message = "Failed to delete.\nPlease check your network connection and try again.",
+                        // Title = "Error",
+                        // Message = "Failed to delete.\nPlease check your network connection and try again.",
+                        Title =  LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.UI.ERROR),
+                        Message =  LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.SaveLoad.MESSAGE_FAIL_DELETE),
                         Type = EConfirmPopupType.OK // 확인 버튼만 있는 팝업
                     });
                 }

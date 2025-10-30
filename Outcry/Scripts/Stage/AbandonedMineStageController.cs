@@ -16,6 +16,7 @@ public class AbandonedMineStageController : StageController
 
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
 
+        InitializeInGameCursor();
         PlayerManager.Instance.player.runFSM = true;
 
         SpawnMonstersLogic();

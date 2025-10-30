@@ -2,12 +2,14 @@ using Cysharp.Threading.Tasks;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Localization;
+using UnityEngine.Localization.Settings;
 using UnityEngine.SceneManagement;
 
 public class LoadingManager : Singleton<LoadingManager>
 {
     [SerializeField] private LoadingUI loadingUI;
-
+    
     public void StartLoadingProcess()
     {
         LoadAndTransitionRoutine().Forget();
@@ -51,13 +53,20 @@ public class LoadingManager : Singleton<LoadingManager>
         }
         currentProgress = 0.1f; // 선행 작업이 끝난 후 진행도 초기화
 
+
+        // 현재 선택된 로케일(언어) 정보
+        Locale currentLanguage = LocalizationSettings.SelectedLocale;
+        
+        
         // 리소스 로딩
-        onProgress?.Invoke(currentProgress, "Preparing resources...");
+        // onProgress?.Invoke(currentProgress, "Preparing resources...");
+        onProgress?.Invoke(currentProgress, LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.PREPARINGRESOURCES));
         await ResourceManager.Instance.LoadAllAssetsCoroutine(package.ResourceAddressesToLoad).ToUniTask(this);
         await UniTask.Delay(TimeSpan.FromSeconds(0.5f));
 
         currentProgress = 0.4f;
-        onProgress?.Invoke(currentProgress, "Loading...");
+        // onProgress?.Invoke(currentProgress, "Loading...");
+        onProgress?.Invoke(currentProgress, LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.LOADING));
 
         // 씬 데이터 로딩 (활성화는 하지 않음)
         package.SceneLoadOperations = new List<AsyncOperation>();
@@ -73,7 +82,8 @@ public class LoadingManager : Singleton<LoadingManager>
         {
             // 현재까지 로드된 씬들의 진행률을 합산하여 UI 업데이트
             float sceneProgress = mainSceneOp.progress / 0.9f * progressPerScene;
-            onProgress?.Invoke(0.4f + sceneProgress, "Loading scene data...");
+            // onProgress?.Invoke(0.4f + sceneProgress, "Loading scene data...");
+            onProgress?.Invoke(0.4f + sceneProgress, LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.SCENEDATA));
             await UniTask.Yield();
         }
         Debug.Log($"<color=lime>메인 씬 '{package.MainSceneType}' 로딩 완료.</color>");
@@ -93,14 +103,16 @@ public class LoadingManager : Singleton<LoadingManager>
                     // 현재까지 로드된 모든 씬의 진행률을 합산하여 UI 업데이트
                     float totalCompletedProgress = (i + 1) * progressPerScene; // 이미 완료된 씬들의 진행률
                     float currentOpProgress = op.progress / 0.9f * progressPerScene; // 현재 로딩 중인 씬의 진행률
-                    onProgress?.Invoke(0.4f + totalCompletedProgress + currentOpProgress, "Loading scene data...");
+                    // onProgress?.Invoke(0.4f + totalCompletedProgress + currentOpProgress, "Loading scene data...");
+                    onProgress?.Invoke(0.4f + totalCompletedProgress + currentOpProgress, LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.SCENEDATA));
                     await UniTask.Yield();
                 }
                 Debug.Log($"<color=lime>추가 씬 '{sceneName}' 로딩 완료.</color>");
             }
         }
 
-        onProgress?.Invoke(1f, "Loading complete!");
+        // onProgress?.Invoke(1f, "Loading complete!");
+        onProgress?.Invoke(1f, LocalizationUtility.GetLocalizedValueByKey(LocalizationStrings.Loading.COMPLETE));
         await UniTask.Delay(TimeSpan.FromSeconds(0.2f)); // "Loading complete" 메시지가 잠시 보이도록 딜레이
         Debug.Log("<color=orange>LoadingManager: 모든 리소스 및 씬 데이터 로딩 완료.</color>");
     }

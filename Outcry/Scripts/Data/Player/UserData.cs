@@ -19,6 +19,13 @@ public class UserData
     public List<int> AcquiredSkillIds;
     public List<UserSoulData> AcquiredSouls;
 
+    // 업적 ID 저장할 리스트
+    public List<int> CompletedAchievementIds;
+
+    // 누적 통계 데이터
+    public int TotalBossKills;
+    public int TotalDeaths;
+
     public UserData() { }
 
     public UserData(string nickname)
@@ -30,5 +37,9 @@ public class UserData
         SelectSkillId = 0;
         AcquiredSkillIds = new List<int>();
         AcquiredSouls = new List<UserSoulData>();
+
+        CompletedAchievementIds = new List<int>();
+        TotalBossKills = 0;
+        TotalDeaths = 0;
     }
 }

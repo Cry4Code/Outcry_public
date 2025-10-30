@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class CameraManager : Singleton<CameraManager>
 {
-    private CinemachineVirtualCamera virtualCamera;
+    public CinemachineVirtualCamera virtualCamera;
     private CinemachineBasicMultiChannelPerlin perlin;
     
     private EffectOrder currentShakeOrder;

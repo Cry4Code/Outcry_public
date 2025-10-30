@@ -43,13 +43,26 @@ public class SkillSelectBtn : MonoBehaviour
 
     }
 
-    private void Start()
+    private void OnEnable()
+    {
+        RefreshSkillName();
+    }
+
+    private void RefreshSkillName()
     {
         if (SkillName != null && Data != null)
         {
-            string result = Regex.Replace(Data.P_Skill_Name, "([A-Z])", "\n$1");
-            result = result.TrimStart('\n');
-            SkillName.text = result;
+            if (LocalizationUtility.IsCurrentLanguage("en"))
+            {
+                string result = Regex.Replace(Data.P_Skill_Name, "([A-Z])", "\n$1");
+                result = result.TrimStart('\n');
+                SkillName.text = result;
+            }
+            else
+            {
+                string result = Regex.Replace(Data.P_Skill_Name_Ko, " ", "\n");
+                SkillName.text = result;
+            }
         }
     }
 
@@ -58,6 +71,7 @@ public class SkillSelectBtn : MonoBehaviour
         Data = data;
         Debug.Log($"[SkillBtn] Bind 완료: {data?.Skill_id}", this);
         Debug.Log($"[Bind] {gameObject.name} / id={data?.Skill_id}", this);
+        RefreshSkillName();
 
     }
 
@@ -97,7 +111,6 @@ public class SkillSelectBtn : MonoBehaviour
         if (linkedExternalImage && iconImage && iconImage.sprite)
             linkedExternalImage.sprite = iconImage.sprite;
 
-        
     }
 
 

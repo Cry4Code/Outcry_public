@@ -4,13 +4,18 @@ using UnityEngine.InputSystem;
 public class CursorManager : Singleton<CursorManager>
 {
     #region 커서들
-    private Transform inGameCursor; // 인게임용
+    private RectTransform cursorRectTransform;
+    private RectTransform parentRectTransform;
+    private Canvas parentCanvas;
     private PlayerInputs.PlayerActions playerInputMap;
     private InputAction cursorInput;
     private Vector2 mousePos;
     #endregion
 
-    private Camera mainCam;
+    [SerializeField] private Camera mainCamera;
+
+    private Plane gamePlane;
+
     public bool IsInGame { get; set; } = false;
     private bool isInitialized = false; // 중복 초기화 방지 플래그
 
@@ -21,6 +26,14 @@ public class CursorManager : Singleton<CursorManager>
         base.Awake();
 
         Cursor.visible = false;
+
+        gamePlane = new Plane(Vector3.forward, Vector3.zero);
+
+        // mainCamera 변수가 인스펙터에서 할당되지 않았다면 Camera.main을 사용
+        if (mainCamera == null)
+        {
+            mainCamera = Camera.main;
+        }
     }
 
     /// <summary>
@@ -34,31 +47,25 @@ public class CursorManager : Singleton<CursorManager>
             return;
         }
 
-        GameObject cursorPrefab = ResourceManager.Instance.GetLoadedAsset<GameObject>(Paths.Prefabs.Cursor);
+        // U커서 UI 생성
+        InGameCursorUI cursorUI = UIManager.Instance.Show<InGameCursorUI>();
 
-        if (cursorPrefab == null)
+        if (cursorUI == null)
         {
-            Debug.LogError($"'{Paths.Prefabs.Cursor}' 주소의 커서 프리팹을 로드하는데 실패했습니다.");
+            Debug.LogError("InGameCursorUI를 UIManager에서 생성하는데 실패했습니다.");
             return;
         }
 
-        // 로드한 프리팹 씬에 생성
-        GameObject cursorObj = Instantiate(cursorPrefab);
-        var renderer = cursorObj.GetComponent<SpriteRenderer>();
-        renderer.sortingOrder = 500;
+        // 생성된 UI의 RectTransform 참조를 얻어옴
+        cursorRectTransform = cursorUI.GetComponent<RectTransform>();
 
-        inGameCursor = cursorObj.transform;
-        inGameCursor.SetParent(CameraManager.Instance.MainCamera.transform, true); // 카메라의 자식으로 설정
-        inGameCursor.gameObject.SetActive(false); // 일단 비활성화
+        parentRectTransform = cursorRectTransform.parent as RectTransform;
+        parentCanvas = parentRectTransform.GetComponent<Canvas>();
 
-        if (isInitialized || player == null)
+        // UI가 최상단에 보이도록 SortingOrder 매우 높게 설정
+        if (cursorUI.canvas != null)
         {
-            return;
-        }
-
-        if (inGameCursor == null)
-        {
-            return;
+            cursorUI.canvas.sortingOrder = 999; // 가장 높은 값으로 설정
         }
 
         Debug.Log("[CursorManager] 플레이어 준비 완료 신호를 받아 초기화를 시작합니다.");
@@ -76,31 +83,53 @@ public class CursorManager : Singleton<CursorManager>
     public void SetInGame(bool isInGame)
     {
         IsInGame = isInGame;
-        inGameCursor.gameObject.SetActive(isInGame);
 
         Cursor.visible = !isInGame;
         if (isInGame)
         {
             playerInputMap.Enable();
+            UIManager.Instance.Show<InGameCursorUI>();
+            Cursor.lockState = CursorLockMode.Confined;
         }
         else
         {
+            UIManager.Instance.Hide<InGameCursorUI>();
             playerInputMap.Disable();
+            Cursor.lockState = CursorLockMode.None;
         }
     }
 
     private void LateUpdate()
     {
-        if (inGameCursor == null)
+        if (cursorRectTransform == null || !IsInGame)
         {
-            //Debug.LogError("커서가 없삼");
             return;
         }
+
         mousePos = cursorInput.ReadValue<Vector2>();
-        
-        mousePosition = Camera.main.ScreenToWorldPoint(new Vector3(mousePos.x, mousePos.y, 0f));
-        mousePosition.z = 0f;
-        inGameCursor.position = mousePosition;
+
+        // 시각적 커서(UI) 위치 업데이트
+        // RectTransformUtility를 사용하여 스크린 좌표를 UI의 로컬 좌표로 변환
+        if (parentRectTransform != null)
+        {
+            Camera eventCamera = (parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay) ? null : mainCamera;
+
+            if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
+                parentRectTransform,
+                mousePos,
+                eventCamera,
+                out Vector2 localPoint))
+            {
+                cursorRectTransform.localPosition = localPoint;
+            }
+        }
+
+        // 논리적 커서(World) 위치 업데이트
+        Ray ray = mainCamera.ScreenPointToRay(mousePos);
+        if (gamePlane.Raycast(ray, out float distance))
+        {
+            mousePosition = ray.GetPoint(distance);
+        }
     }
 
     public bool IsLeftThan(Transform transform)

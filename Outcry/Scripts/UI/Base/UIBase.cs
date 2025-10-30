@@ -11,10 +11,14 @@ public abstract class UIBase : MonoBehaviour
         gameObject.SetActive(true);
     }
 
-    public virtual void Close() 
+    public virtual void Close()
     {
         EffectManager.Instance.ButtonSound();
         gameObject.SetActive(false);
     }
 
+    public virtual void CloseWithoutSound()
+    {
+        gameObject.SetActive(false);
+    }
 }
