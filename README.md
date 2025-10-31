@@ -1,6 +1,6 @@
 # Outcry
 
-![Logo](Images\Outcry_Logo.png)
+![Logo](Images/Outcry_Logo.png)
 
 # 📼 플레이 영상
 
@@ -68,30 +68,30 @@ WebGL : [itch.io](https://lhr4426.itch.io/outcry)
 # ⚙ 시스템 구성도
 - 와이어프레임
 
-![와이어프레임](Images\WireFrame.png)
+![와이어프레임](Images/WireFrame.png)
 
 - 플레이어 HFSM 구조도
 
-![플레이어HFSM구조도](Images\PlayerHFSM.png)
+![플레이어HFSM구조도](Images/PlayerHFSM.png)
 
 - 몬스터 BT 구조도
 
-![몬스터BT구조도](Images\MonsterBTBase.png)
+![몬스터BT구조도](Images/MonsterBTBase.png)
 
 # 📺 화면 구성
 
 
-| ![튜토리얼](Images\Display1.png) | ![인벤토리](Images\Display2.png) | ![상점](Images\Display3.png) |
+| ![튜토리얼](Images/Display1.png) | ![인벤토리](Images/Display2.png) | ![상점](Images/Display3.png) |
 | :---: | :---: | :---: |
 | 튜토리얼 | 인벤토리 | 상점 |
-| ![고블린킹](Images\Display4.png) | ![팬텀위치](Images\Display5.png) | ![뱀파이어로드](Images\Display6.png) |
+| ![고블린킹](Images/Display4.png) | ![팬텀위치](Images/Display5.png) | ![뱀파이어로드](Images/Display6.png) |
 | 고블린 킹 (스테이지 1) | 팬텀 위치 (스테이지 2) | 뱀파이어 로드 (스테이지 3) |
 
 
 # 🛠 주요 기능
 ## ⚔ 전투 시스템
 
-| ![기본공격](Images\Normal3Attack.gif) | ![점프공격](Images\NormalAirAttack.gif) | ![점프하단공격](Images\NormalDownAttack.gif) |
+| ![기본공격](Images/Normal3Attack.gif) | ![점프공격](Images/NormalAirAttack.gif) | ![점프하단공격](Images/NormalDownAttack.gif) |
 | :---: | :---: | :---: |
 |기본 공격|공중 공격|공중 하단 공격|
 
@@ -99,22 +99,22 @@ WebGL : [itch.io](https://lhr4426.itch.io/outcry)
 
 - 스태미나를 소모하는 행동들 
 
-| ![섬단](Images\SpecialAttack.gif) | ![패링](Images\Parrying.gif) | ![회피](Images\Dodge.gif) | ![추가 스킬](Images\AdditionalSkill.gif) |
+| ![섬단](Images/SpecialAttack.gif) | ![패링](Images/Parrying.gif) | ![회피](Images/Dodge.gif) | ![추가 스킬](Images/AdditionalSkill.gif) |
 | :---: | :---: | :---: | :---: |
 | 섬단 | 패링 | 회피 | 추가 스킬 |
 
 - 정확한 타이밍에 맞춰 섬단/패링을 사용하면 체력 회복 or 스태미나 회복 및 몬스터 그로기 상태 진입
 
-| ![저스트섬단](Images\JustSpecialAttack.gif) | ![저스트패링](Images\SuccessParrying.gif) | 
+| ![저스트섬단](Images/JustSpecialAttack.gif) | ![저스트패링](Images/SuccessParrying.gif) | 
 | :---: | :---: |
 | 저스트 섬단 | 저스트 패링 | 
 
 - 보스를 처치해 얻은 소울을 통해 새로운 스킬 (총 6종) 구매 가능
 
-| ![플레임슬래시](Images\102000-FlameSlash.gif) | ![수퍼크래시](Images\102001-SuperCrash.gif) | ![스피드스팅](Images\102002-SpeedSting.gif) |
+| ![플레임슬래시](Images/102000-FlameSlash.gif) | ![수퍼크래시](Images/102001-SuperCrash.gif) | ![스피드스팅](Images/102002-SpeedSting.gif) |
 | :---: | :---: | :---: |
 | 플레임 슬래시 | 수퍼 크래시 | 스피드 스팅 |
-| ![홀리슬래시](Images\102003-HolySlash.gif) | ![파워업](Images\102004-PowerUp.gif) | ![데드하드](Images\102005-DeadHard.gif) |
+| ![홀리슬래시](Images/102003-HolySlash.gif) | ![파워업](Images/102004-PowerUp.gif) | ![데드하드](Images/102005-DeadHard.gif) |
 | 홀리 슬래시 | 파워 업 | 데드하드 |
 
 
@@ -123,35 +123,35 @@ WebGL : [itch.io](https://lhr4426.itch.io/outcry)
 
 - 보스별로 클리어 타임을 기록할 수 있는 리더보드
 
-| ![리더보드](Images\Leaderboard.gif) |
+| ![리더보드](Images/Leaderboard.gif) |
 | :---: |
 |리더보드|
 
 
 - 다양한 조건으로 구성된 업적  
 
-| ![업적](Images\Achievements.gif) |
+| ![업적](Images/Achievements.gif) |
 | :---: |
 |업적|
 
 
 ##  🔥 스테이지 별 각기 다른 패턴
 
-![3Monsters](Images\3Monsters.gif)
+![3Monsters](Images/3Monsters.gif)
 
 - 보스들마다 색다른 패턴을 구사하도록 제작됨
 
-| ![고블린킹](Images\GoblinKing.gif) | 
+| ![고블린킹](Images/GoblinKing.gif) | 
 | --- |
 | 고블린 킹 : 큰 도끼를 휘두르며 플레이어에게 위압감을 선사 | 
  
 
-| ![팬텀위치](Images\PhantomWitch.gif) | 
+| ![팬텀위치](Images/PhantomWitch.gif) | 
 | --- |
 | 팬텀 위치 : 귀여운 도마뱀과 함께 원소 마법으로 플레이어를 시도 때도 없이 공격 | 
  
 
-| ![뱀파이어로드](Images\VampireLord.gif) | 
+| ![뱀파이어로드](Images/VampireLord.gif) | 
 | --- |
 | 뱀파이어 로드 : 다양한 투사체와 근접 공격, 기믹으로 플레이어를 괴롭힘 | 
  
