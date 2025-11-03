@@ -14,4 +14,9 @@ public class AnimationEventHandler : MonoBehaviour
     {
         EffectManager.Instance.PlayEffectByIdAndTypeAsync(effectId, EffectType.Sound, gameObject).Forget();
     }
+
+    public void PlayEffectCamera(int effectId)
+    {
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(effectId, EffectType.Camera, gameObject).Forget();
+    }
 }

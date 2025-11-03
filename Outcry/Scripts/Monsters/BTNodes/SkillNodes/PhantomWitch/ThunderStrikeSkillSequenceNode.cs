@@ -81,7 +81,7 @@ public class ThunderStrikeSkillSequenceNode : SkillSequenceNode
             skillTriggered = true;
             stateEnterTime = Time.time; // 상태 시작 시간 저장
             isSpawned = false;
-            EffectManager.Instance.PlayEffectsByIdAsync(skillId, EffectOrder.Monster, monster.gameObject).Forget();
+            EffectManager.Instance.PlayEffectsByIdAsync(skillId * 10, EffectOrder.Monster, monster.gameObject).Forget();
         }
 
         // 애니메이션 출력 보장

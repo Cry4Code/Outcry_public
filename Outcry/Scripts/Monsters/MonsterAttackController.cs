@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -175,6 +176,15 @@ public class MonsterAttackController : MonoBehaviour, ICountable
         if (isCountable)
         {
             Debug.Log($"[몬스터] {monster.MonsterData.monsterName} (ID: {monster.MonsterData.monsterId}) was counterattacked!");
+           
+            
+            bool playerInMyBack = monster.transform.localScale.x > 0
+                ? PlayerManager.Instance.player.transform.position.x < monster.transform.position.x
+                : PlayerManager.Instance.player.transform.position.x > monster.transform.position.x;
+            
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(PlayerEffectID.JustSpecialAttack * 10, EffectType.Sprite,null,
+                monster.transform.position + (Vector3)(playerInMyBack? -(Vector2.right) : (Vector2.right)) * 1.5f).Forget();
+            
             if (PlayerManager.Instance.player.Attack.successJustAttack || PlayerManager.Instance.player.Attack.successParry)
             {
                 monster.Condition.Stunned();

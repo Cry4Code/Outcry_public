@@ -90,8 +90,7 @@ public class AttackHitbox : MonoBehaviour
                         {
                             UGSManager.Instance.LogDoAction(stageId, PlayerEffectID.JustSpecialAttack);
                         }
-                        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject, 
-                            (Vector3.right * 2f)).Forget();
+                        EffectManager.Instance.PlayEffectsByIdAsync(PlayerEffectID.JustSpecialAttack, EffectOrder.Player, controller.gameObject).Forget();
                     } 
                 }
                 else

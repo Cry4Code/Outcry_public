@@ -45,6 +45,7 @@ public class PiercingProjectileController : ProjectileBase
         if (rb) rb.velocity = Vector2.zero;
         if (animator) animator.SetBool(AnimatorHash.ProjectileParameter.Triggered, true);
         EffectManager.Instance.PlayEffectByIdAndTypeAsync(soundNumber, EffectType.Sound, gameObject).Forget();
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(soundNumber, EffectType.Camera, gameObject).Forget();
     }
 
     private void FixedUpdate()

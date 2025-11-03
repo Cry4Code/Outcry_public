@@ -37,6 +37,8 @@ public class TracerProjectileController : ProjectileBase
 
         if (traceCoroutine != null) StopCoroutine(traceCoroutine);
         traceCoroutine = StartCoroutine(TraceTarget());
+        EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.TurningBlood * 10, EffectType.Camera)
+            .Forget();
     }
 
     private void OnDisable()
@@ -70,6 +72,8 @@ public class TracerProjectileController : ProjectileBase
 
             EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.TurningBlood * 10, EffectType.Sound,
                 gameObject).Forget();
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage3BossEffectID.TurningBlood * 10 + 1, EffectType.Camera)
+                .Forget();
             // 목표를 향해 이동하다가 도달하면 대기 후 다음 추적으로
             while (!ArrivedToTarget())
             {

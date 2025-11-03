@@ -60,6 +60,7 @@ public class MeteorController : ProjectileBase
         // 따라서 and 연산을 하면 0이 되기 때문에, 이 부분은 스킵된다.
         if ((1 << collision.gameObject.layer & groundMask) != 0)
         {
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(Stage2BossEffectID.Meteor * 10 + 1, EffectType.Camera).Forget();
             RequestRelease();
             return;
         }
