@@ -162,6 +162,8 @@ public class HallOfBloodStageController : StageController
 
         SpawnPlayerAt(playerSpawnPoints[0], 3f);
 
+        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase1);
+
         int walkingBossId = stageData.Monster_ids[0];
         Transform phase1SpawnPoint = enemySpawnPoints[0];
         GameObject bossInstance = SpawnMonsterAt(walkingBossPrefab, walkingBossId, phase1SpawnPoint);
@@ -177,8 +179,6 @@ public class HallOfBloodStageController : StageController
         {
             bossMonster = bossInstance.GetComponent<MonsterBase>();
         }
-
-        await AudioManager.Instance.PlayBGM((int)SoundEnums.EBGM.HallOfBloodPhase1);
     }
 
     private async UniTask TransitionToPhase2()

@@ -32,9 +32,6 @@ public class TitleUI : UIBase
     {
 #if UNITY_WEBGL && !UNITY_EDITOR
         emailLoginBtn.gameObject.SetActive(false);
-        guestLoginTxt.text = LocalizationUtility.ChooseLocalizedString(
-                "Start",
-                "시작하기");
 #endif
 
         // UGSManager가 준비되었는지 확인 후 이벤트 구독

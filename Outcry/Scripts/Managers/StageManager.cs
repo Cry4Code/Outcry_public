@@ -552,7 +552,7 @@ public class StageManager : Singleton<StageManager>
         if(GameManager.Instance.CurrentGameState == EGameState.Lobby)
         {
             // 로비에서 다른 팝업이 열려있을 때 옵션창이 아닌 다른 팝업이 열려있다면 모두 닫기
-            if (UIManager.Instance.PopupStack.Count == 1 && UIManager.Instance.PopupStack.Peek().GetType() != typeof(OptionUI))
+            if (UIManager.Instance.PopupStack.Count > 0 && UIManager.Instance.PopupStack.Peek().GetType() != typeof(OptionUI))
             {
                 UIManager.Instance.CloseAllPopupsAndResumeGame();
                 return;

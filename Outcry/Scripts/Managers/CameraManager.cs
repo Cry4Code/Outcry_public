@@ -73,5 +73,14 @@ public class CameraManager : Singleton<CameraManager>
         perlin.m_FrequencyGain = 0f;
     }
     
-    
+    public void StopAllCameraCoroutine()
+    {
+        if (shakeCoroutine != null)
+        {
+            StopCoroutine(shakeCoroutine);
+            shakeCoroutine = null;
+        }
+
+        StopCameraShake(); // 현재 진행 중인 셰이크 즉시 정지
+    }
 }

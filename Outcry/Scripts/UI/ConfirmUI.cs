@@ -99,22 +99,25 @@ public class ConfirmUI : UIPopup
 
     private void OnClickOkBtn()
     {
-        // 저장된 액션이 있다면 실행
-        onClickOkAction?.Invoke();
-        // 실행 후에는 참조를 초기화하여 중복 실행 방지
+        Action actionToRun = onClickOkAction;
         onClickOkAction = null;
 
-        // UI 닫기
+        // 팝업 먼저 닫음
         UIManager.Instance.Hide<ConfirmUI>();
+
+        // 팝업 닫힌 후 저장해둔 액션 실행
+        actionToRun?.Invoke();
     }
 
     private void OnClickCancelBtn()
     {
-        // 저장된 액션이 있다면 실행
-        onClickCancelAction?.Invoke();
+        Action actionToRun = onClickCancelAction;
         onClickCancelAction = null;
 
-        // UI 닫기
+        // 팝업 먼저 닫음
         UIManager.Instance.Hide<ConfirmUI>();
+
+        // 팝업 닫힌 후 저장해둔 액션 실행
+        actionToRun?.Invoke();
     }
 }
