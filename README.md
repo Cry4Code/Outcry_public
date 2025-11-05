@@ -4,6 +4,8 @@
 
 # 📼 플레이 영상
 
+![Trailer](Images/Trailer.gif)
+
 # 🔗 배포 링크
 Windows : [Github/Release](https://github.com/Cry4Code/Outcry_public/releases)  
 WebGL : [itch.io](https://lhr4426.itch.io/outcry)  
