@@ -67,6 +67,16 @@ WebGL : [itch.io](https://lhr4426.itch.io/outcry)
 
 ![Notion](https://img.shields.io/badge/Notion-%23000000.svg?style=for-the-badge&logo=notion&logoColor=white) ![Jira](https://img.shields.io/badge/jira-%230A0FFF.svg?style=for-the-badge&logo=jira&logoColor=white) 
 
+# 💻 기술적 도전과 결과
+
+- GoogleSheetToJson 개발을 통한 데이터 관리 파이프라인 구축
+- Unity Gaming Service (UGS)를 백엔드 시스템으로 사용함으로써 로그인, 플레이어 데이터 저장, 데이터 분석등을 진행
+- 참조 카운팅 기반 ResourceManager 개발로 안정적인 메모리 사용
+- Addressable 기반 비동기 로딩
+- Behaviour Tree를 사용한 몬스터 AI로 개발 협업 효율 향상
+- 이벤트 버스 패턴을 사용해 클래스 간 의존도 감소
+- WebGL 플랫폼 빌드 대응
+
 # ⚙ 시스템 구성도
 - 와이어프레임
 
