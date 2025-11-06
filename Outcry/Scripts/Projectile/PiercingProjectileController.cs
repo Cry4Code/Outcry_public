@@ -9,7 +9,10 @@ public class PiercingProjectileController : ProjectileBase
     [SerializeField] private int soundNumber;
     [SerializeField] private float speed = 10f;
     [SerializeField] private float maxDistance = 10f;
+    [SerializeField] private bool isEffectLoop;
+    [SerializeField] private float loopDuration;
 
+    private float lastLoopTime;
     private Rigidbody2D rb;
 
     private Vector2 startPos;
@@ -50,6 +53,10 @@ public class PiercingProjectileController : ProjectileBase
 
     private void FixedUpdate()
     {
+        if (Time.fixedDeltaTime - lastLoopTime > loopDuration && isEffectLoop)
+        {
+            EffectManager.Instance.PlayEffectByIdAndTypeAsync(soundNumber, EffectType.Camera, gameObject).Forget();
+        }
 
         // 첫 프레임에 방향 초기화
         if (!dirInitialized)
@@ -111,6 +118,7 @@ public class PiercingProjectileController : ProjectileBase
     {
         base.OnDisable();
         if (rb) rb.velocity = Vector2.zero;
+        isEffectLoop = false;
     }
 
     public override void Init(int damage, bool isCountable = true)

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using Cinemachine;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class CameraManager : Singleton<CameraManager>
 {
@@ -17,18 +18,43 @@ public class CameraManager : Singleton<CameraManager>
     {
         base.Awake();
 
-        virtualCamera = FindFirstObjectByType<CinemachineVirtualCamera>();
-        if(virtualCamera == null)
+        TryInit();
+    }
+
+    private void OnEnable()
+    {
+        SceneManager.activeSceneChanged += OnActiveSceneChanged;    //todo. SceneLoadManager에 역할 이관
+    }
+
+    private void OnDisable()
+    {
+        SceneManager.activeSceneChanged -= OnActiveSceneChanged;
+    }
+
+    private void OnActiveSceneChanged(Scene oldS, Scene newS)
+    {
+        virtualCamera = null;
+        perlin = null;
+        TryInit();
+    }
+
+    private bool TryInit()
+    {
+        if (virtualCamera == null)
         {
-            Debug.LogError("CinemachineVirtualCamera not found in the scene.");
-            return;
+            virtualCamera = FindFirstObjectByType<CinemachineVirtualCamera>();
+            if (virtualCamera == null)
+                Debug.LogError("CinemachineVirtualCamera not found in the scene.");
         }
-        perlin = virtualCamera.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
-        if (perlin == null)
+
+        if (virtualCamera != null && perlin == null)
         {
-            Debug.LogError("CinemachineBasicMultiChannelPerlin component not found on the virtual camera.");
-            return;
+            perlin = virtualCamera.GetCinemachineComponent<CinemachineBasicMultiChannelPerlin>();
+            if (perlin == null)
+                Debug.LogError("CinemachineBasicMultiChannelPerlin component not found on the virtual camera.");
         }
+
+        return perlin != null;
     }
 
     public CinemachineVirtualCamera GetCurrentVirtualCamera()
@@ -38,6 +64,7 @@ public class CameraManager : Singleton<CameraManager>
 
     public void ShakeCamera(float duration, float magnitude, float frequency, EffectOrder shakeOrder)
     {
+        if (!TryInit()) return;
         if (shakeCoroutine == null)
         {
             currentShakeOrder = shakeOrder;
@@ -69,6 +96,7 @@ public class CameraManager : Singleton<CameraManager>
 
     public void StopCameraShake()
     {
+        if (perlin == null) return;
         perlin.m_AmplitudeGain = 0f;
         perlin.m_FrequencyGain = 0f;
     }

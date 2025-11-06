@@ -47,14 +47,19 @@ public class SceneLoadManager : Singleton<SceneLoadManager>
         // 현재 씬이 InGameScene일 경우에만 씬 전환 직전 모든 카메라 및 이펙트 효과들 강제 중지
         if (currentScene is InGameScene)
         {
-            if (CameraManager.Instance != null)
-            {
-                CameraManager.Instance.StopAllCameraCoroutine();
-            }
             if (EffectManager.Instance != null)
             {
                 EffectManager.Instance.StopAllEffects();
             }
+            if (ObjectPoolManager.Instance != null)
+            {
+                ObjectPoolManager.Instance.ClearAllPools();
+            }
+
+            if (CameraManager.Instance != null)
+            {
+                CameraManager.Instance.StopAllCameraCoroutine();
+            }            
         }
 
         if (!scenes.ContainsKey(sceneType))
